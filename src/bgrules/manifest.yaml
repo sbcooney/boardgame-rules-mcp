@@ -1,4 +1,11 @@
 # Official rulebook sources. Links and checksums only — never rulebook content.
+#
+# extraction hints (from the M0 spike):
+#   columns:       text columns per page; extract each separately, or lines
+#                  from side-by-side columns get interleaved
+#   heading_fonts: font name substrings (with min size) that mark section headings
+#   body_fonts:    font name substrings kept as rules text; everything else
+#                  (card art, decorative borders, watermarks) is dropped
 catan:
   name: Catan
   editions:
@@ -7,9 +14,23 @@ catan:
         - id: rules-almanac
           title: Game Rules & Almanac (3-4 players)
           url: https://www.catan.com/sites/default/files/2021-06/catan_base_rules_2020_200707.pdf
-          sha256: null  # fill in after first verified download (M0)
+          sha256: 3fed941bf202314ed462d4d0cdfb0384c97fe04166b48a7186833b3f6f4ac024
+          extraction:
+            columns: 2
+            heading_fonts: [{name: Garamond-BoldCondensed-SC800, min_size: 12}]  # small caps: normalize case
+            body_fonts: [Garamond-BookCondensed, Garamond-BoldCondensed]
           structure_hints:
-            almanac_start_page: 6
+            rules_pages: [2, 6]
+            almanac_pages: [6, 15]
+    "2025":
+      docs:
+        - id: rulebook
+          title: CATAN – The Game Rulebook (3-4 players)
+          url: https://www.catan.com/sites/default/files/2025-03/CN3081%20CATAN%E2%80%93The%20Game%20Rulebook%20secure%20%281%29.pdf
+          sha256: 0d81a40c1d4eb5eb438a62f80d71cdaab5f00404722c3cfa0b106d79b635ebc6
+          extraction:
+            body_fonts: [ProximaNovaCond, ProximaNova]  # drop sub-1pt copyright watermark
+          # no almanac in this edition; rules differ from 2020 (Production/Action phases)
 
 wingspan:
   name: Wingspan
