@@ -1,0 +1,30 @@
+# Official rulebook sources. Links and checksums only — never rulebook content.
+catan:
+  name: Catan
+  editions:
+    "2020":
+      docs:
+        - id: rules-almanac
+          title: Game Rules & Almanac (3-4 players)
+          url: https://www.catan.com/sites/default/files/2021-06/catan_base_rules_2020_200707.pdf
+          sha256: null  # fill in after first verified download (M0)
+          structure_hints:
+            almanac_start_page: 6
+
+wingspan:
+  name: Wingspan
+  editions:
+    "1st":
+      docs:
+        - id: rulebook
+          title: Rulebook
+          source: user_supplied  # hosted on BoardGameGeek, login required
+
+spirit-island:
+  name: Spirit Island
+  editions:
+    "1st":
+      docs:
+        - id: rulebook
+          title: Rulebook
+          source: user_supplied  # no official direct download found

@@ -1,0 +1,20 @@
+# Rulebooks are publisher content: never commit them. Only manifest links go in the repo.
+data/
+*.pdf
+*.sqlite
+*.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# Local env / secrets (eval API keys)
+.env
+
+.DS_Store
