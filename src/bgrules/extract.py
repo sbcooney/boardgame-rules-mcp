@@ -128,24 +128,62 @@ def normalize_heading(text: str) -> str:
     return re.sub(r"[A-Za-z]+", fix, " ".join(text.split()))
 
 
+FULL_WIDTH = -1  # Line.column for text that spans the page's columns
+GUTTER_MIN_GAP = 12.0  # points: a column gutter is wider than any word space
+
+
 def _matches(fontname: str, names: list[str]) -> bool:
     return any(n in fontname for n in names)
+
+
+def _char_key(c) -> tuple:
+    return (round(c["x0"], 2), round(c["top"], 2), c["text"])
+
+
+def _is_full_width(line: dict, mid: float) -> bool:
+    """True for a line that runs across the gutter, as opposed to two column
+    lines that merely sit at the same height (those have a wide gap at mid)."""
+    if not (line["x0"] < mid - 20 and line["x1"] > mid + 20):
+        return False
+    chars = sorted(line["chars"], key=lambda c: c["x0"])
+    gaps = [b["x0"] - a["x1"] for a, b in zip(chars, chars[1:]) if a["x1"] <= mid + 20 and b["x0"] >= mid - 20]
+    return max(gaps, default=0.0) < GUTTER_MIN_GAP
 
 
 def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     columns = hints.get("columns", 1)
     heading_fonts = hints.get("heading_fonts", [])
     body_fonts = hints.get("body_fonts", [])
+    body_min, body_max = hints.get("body_size", [0, 1_000])
     first, last = hints.get("content_pages", [1, 10_000])
     pages = range(first, last + 1)
 
     def is_heading_char(c) -> bool:
-        return any(h["name"] in c["fontname"] and c["size"] >= h.get("min_size", 0) - 0.1 for h in heading_fonts)
+        return any(
+            h["name"] in c["fontname"] and h.get("min_size", 0) - 0.1 <= c["size"] <= h.get("max_size", 1_000) + 0.1
+            for h in heading_fonts
+        )
 
     def keep(obj) -> bool:
         if obj["object_type"] != "char":
             return True
-        return is_heading_char(obj) or not body_fonts or _matches(obj["fontname"], body_fonts)
+        if is_heading_char(obj):
+            return True
+        # Body text only in body fonts at body sizes: drops card art, sidebars,
+        # decorative borders, watermarks and oversized diagram symbols.
+        return (not body_fonts or _matches(obj["fontname"], body_fonts)) and body_min - 0.1 <= obj["size"] <= body_max + 0.1
+
+    def to_lines(raw: list[dict], page_no: int, column: int) -> list[Line]:
+        out = []
+        for ln in raw:
+            chars = ln["chars"]
+            heading = sum(is_heading_char(c) for c in chars) > len(chars) / 2
+            if heading and not re.search(r"[A-Za-z]", ln["text"]):
+                continue  # heading-font symbols in diagrams ("=", "+")
+            if re.fullmatch(r"[A-Z]", ln["text"].strip()):
+                continue  # alphabetical divider letters between almanac entries
+            out.append(Line(text=ln["text"], page=page_no, column=column, bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]), is_heading=heading))
+        return out
 
     lines: list[Line] = []
     with pdfplumber.open(pdf_path) as pdf:
@@ -153,25 +191,29 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             if page_no not in pages:
                 continue
             page = page.dedupe_chars().filter(keep)
+            if columns == 1:
+                lines += to_lines(page.extract_text_lines(return_chars=True), page_no, 0)
+                continue
+
+            # Full-width lines (an intro paragraph across both columns) are read
+            # whole; the stretches between them are read column by column, so
+            # reading order stays top to bottom.
+            mid = page.width / 2
+            full = [ln for ln in page.extract_text_lines(return_chars=True) if _is_full_width(ln, mid)]
+            full_keys = {_char_key(c) for ln in full for c in ln["chars"]}
+            cols_only = page.filter(lambda o: o["object_type"] != "char" or _char_key(o) not in full_keys)
             width = page.width / columns
-            for col in range(columns):
-                region = page.crop((col * width, 0, (col + 1) * width, page.height))
-                for ln in region.extract_text_lines(return_chars=True):
-                    chars = ln["chars"]
-                    heading = sum(is_heading_char(c) for c in chars) > len(chars) / 2
-                    if heading and not re.search(r"[A-Za-z]", ln["text"]):
-                        continue  # heading-font symbols in diagrams ("=", "+")
-                    if re.fullmatch(r"[A-Z]", ln["text"].strip()):
-                        continue  # alphabetical divider letters between almanac entries
-                    lines.append(
-                        Line(
-                            text=ln["text"],
-                            page=page_no,
-                            column=col,
-                            bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]),
-                            is_heading=heading,
-                        )
-                    )
+
+            y = 0.0
+            for band in [*full, None]:
+                y_end = band["top"] if band else page.height
+                if y_end > y:
+                    for col in range(columns):
+                        region = cols_only.crop((col * width, y, (col + 1) * width, y_end))
+                        lines += to_lines(region.extract_text_lines(return_chars=True), page_no, col)
+                if band:
+                    lines += to_lines([band], page_no, FULL_WIDTH)
+                    y = max(y, band["bottom"])
     return lines
 
 

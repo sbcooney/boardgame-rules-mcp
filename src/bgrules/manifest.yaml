@@ -56,9 +56,10 @@ catan:
             columns: 2
             content_pages: [2, 14]  # skip cover, credits, index
             heading_fonts:
-              - {name: Garamond-BoldCondensed-SC800, min_size: 12}  # small caps: normalize case
-              - {name: Garamond-BoldCondensed, min_size: 13}  # "The Turn in Detail", "2. Trade"
+              - {name: Garamond-BoldCondensed-SC800, min_size: 12}  # small caps (initials print larger): normalize case
+              - {name: Garamond-BoldCondensed, min_size: 13, max_size: 13}  # "The Turn in Detail"; larger = diagram symbols
             body_fonts: [Garamond-BookCondensed, Garamond-BoldCondensed]
+            body_size: [9, 12.5]  # rules text is 11-12pt; sidebars are 13-17pt, card art under 8pt
           parts:  # top level of each section's path; a part starts at its first heading
             - {name: Game Rules}
             - {name: Almanac, first_heading: Build (Building)}

@@ -1,4 +1,4 @@
-from bgrules.extract import Line, Section, build_sections, join_lines, normalize_heading
+from bgrules.extract import Line, Section, _is_full_width, build_sections, join_lines, normalize_heading
 from bgrules.store import expand_terms, query_terms
 
 
@@ -55,6 +55,24 @@ def test_spans_are_per_column():
     sec = Section(heading="Robber", page_start=11)
     sec.lines = [line("a", page=11, column=0, top=400), line("b", page=11, column=1, top=50)]
     assert len(sec.spans) == 2
+
+
+def _raw_line(words: list[tuple[float, float]]) -> dict:
+    """A pdfplumber-style line from (x0, x1) character extents."""
+    chars = [{"x0": a, "x1": b} for a, b in words]
+    return {"x0": chars[0]["x0"], "x1": chars[-1]["x1"], "chars": chars}
+
+
+def test_full_width_line_vs_two_column_lines_at_same_height():
+    mid = 297
+    # Continuous text across the middle: word gaps of ~3pt.
+    across = _raw_line([(40 + i * 10, 47 + i * 10) for i in range(50)])
+    assert _is_full_width(across, mid)
+    # Left column ends at 289, right column starts at 313: a 24pt gutter.
+    two_cols = _raw_line([(40, 120), (280, 289), (313, 330), (500, 550)])
+    assert not _is_full_width(two_cols, mid)
+    # A line entirely in one column is never full width.
+    assert not _is_full_width(_raw_line([(40, 120), (200, 280)]), mid)
 
 
 def test_query_terms_drop_stopwords():
