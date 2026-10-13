@@ -18,3 +18,6 @@ build/
 .env
 
 .DS_Store
+
+# Eval outputs contain rulebook quotes from model answers: keep local
+evals/results/

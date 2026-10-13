@@ -11,6 +11,18 @@
 #   not_addressed  - the rulebook doesn't answer it; correct behaviour is to say so
 game: catan
 edition: "2020"
+game_name: Catan
+edition_desc: 5th English edition rules (2020 "Game Rules & Almanac")
+
+# Core subset for routine end-to-end runs (uses Claude subscription usage);
+# covers every category. `evals/e2e.py --all` runs everything.
+core: [
+  vp-to-win, city-cost, discard-nine, road-building,
+  dev-card-same-turn, trade-off-turn, robber-desert, longest-road-tie, win-off-turn, special-harbor-other,
+  vocab-two-spaces, vocab-thief, vocab-church,
+  na-turn-timer, na-take-back,
+]
+
 questions:
   # ---- lookup ----------------------------------------------------------
   - id: vp-to-win

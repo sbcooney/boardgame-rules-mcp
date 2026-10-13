@@ -85,7 +85,15 @@ Keyword overlap can't reliably tell that a rulebook *doesn't* cover something, s
 
 ### End-to-end (with vs. without the server)
 
-_Coming next: answer accuracy, citation precision, abstention and fabricated quotes, for a model with no tools vs. with this server._
+_Results coming soon._ The harness asks each question twice through Claude Code's headless mode: once with no tools (answering from memory), and once with only this server. A grader call scores each answer, and every quote is checked against the rulebook locally. Metrics: ruling accuracy, correct "not covered" answers, cited sections, and quotes that aren't in the rulebook.
+
+It runs on your Claude subscription (no API key or billing), uses a 15-question core subset by default, and caches answers so reruns only redo what changed:
+
+```sh
+uv run python evals/e2e.py --dry-run   # show the commands, call nothing
+uv run python evals/e2e.py --limit 1   # smoke test
+uv run python evals/e2e.py             # core subset; --all for every question
+```
 
 ## License
 
