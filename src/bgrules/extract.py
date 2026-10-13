@@ -176,6 +176,10 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             return True
         # Body text only in body fonts at body sizes: drops card art, sidebars,
         # decorative borders, watermarks and oversized diagram symbols.
+        # `captions` adds specific font/size bands outside that range (icon
+        # captions that name things: food types, habitats, nest types).
+        if any(r["name"] in c["fontname"] and in_size(c, r) for r in hints.get("captions", [])):
+            return True
         return (not body_fonts or _matches(c["fontname"], body_fonts)) and body_min - 0.1 <= c["size"] <= body_max + 0.1
 
     def keep(obj) -> bool:
