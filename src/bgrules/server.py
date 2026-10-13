@@ -115,9 +115,19 @@ def _open_pdf_at(pdf_path: str, page: int) -> str:
     """Open the PDF at a page in a viewer that honours #page=N. Returns the app used."""
     url = Path(pdf_path).as_uri() + f"#page={page}"
     if platform.system() == "Darwin":
-        for app in ("Google Chrome", "Firefox", "Microsoft Edge", "Brave Browser"):
-            if Path(f"/Applications/{app}.app").exists():
-                subprocess.run(["open", "-a", app, url], check=True)
+        # Launch the browser binary directly: `open -a App file:///…#page=N` drops
+        # the #page fragment, so the PDF opens at page 1. A running browser hands
+        # the URL to its existing window; otherwise the browser starts detached.
+        browsers = {
+            "Google Chrome": "Google Chrome",
+            "Firefox": "firefox",
+            "Microsoft Edge": "Microsoft Edge",
+            "Brave Browser": "Brave Browser",
+        }
+        for app, binary in browsers.items():
+            exe = Path(f"/Applications/{app}.app/Contents/MacOS/{binary}")
+            if exe.exists():
+                subprocess.Popen([str(exe), url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
                 return app
         subprocess.run(["open", pdf_path], check=True)  # Preview: can't jump to a page
         return "default PDF viewer (could not jump to the page)"
