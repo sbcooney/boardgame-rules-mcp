@@ -81,6 +81,43 @@ catan:
 
 wingspan:
   name: Wingspan
+  # Only words the rulebook doesn't already use with another meaning: "move",
+  # "score" and "row" are left out (move a cube, score a goal, player-mat rows).
+  synonyms:
+    # equipment
+    tower: [birdfeeder]
+    feeder: [birdfeeder]
+    dice: [die]
+    die: [dice]
+    market: [tray, face-up]
+    river: [tray, face-up]
+    display: [tray, face-up]
+    chit: [token]
+    # actions and timing
+    reroll: [throw]
+    reset: [throw, refill]
+    refresh: [refill, replenish, restock]
+    restock: [refill, replenish]
+    stash: [cache, tuck]
+    store: [cache]
+    hide: [cache, tuck]
+    buy: [pay]
+    capacity: [limit]
+    # scoring and goals
+    vp: [point]
+    objective: [goal]
+    ability: [power]
+    zone: [habitat]
+    # food names players use
+    worm: [invertebrate]
+    bug: [invertebrate]
+    insect: [invertebrate]
+    grain: [seed]
+    wheat: [seed]
+    berry: [fruit]
+    cherry: [fruit]
+    mouse: [rodent]
+    rat: [rodent]
   # Stonemaier's official resources folder. A shared-folder link can only be
   # downloaded as one large zip, so users fetch the rulebook themselves.
   official_source: https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0
