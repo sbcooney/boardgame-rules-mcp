@@ -1,5 +1,5 @@
 from bgrules.extract import Line, Section, build_sections, join_lines, normalize_heading
-from bgrules.store import query_terms
+from bgrules.store import expand_terms, query_terms
 
 
 def line(text, page=1, heading=False, column=0, top=0.0):
@@ -59,3 +59,9 @@ def test_spans_are_per_column():
 
 def test_query_terms_drop_stopwords():
     assert query_terms("Can I build a settlement next to a city?") == ["build", "settlement", "next", "city"]
+
+
+def test_expand_terms_adds_rulebook_words_including_plurals():
+    groups = expand_terms("catan", ["thief", "ports", "settlement"])
+    assert groups == [["thief", "robber"], ["ports", "harbor"], ["settlement"]]
+    assert expand_terms("unknown-game", ["thief"]) == [["thief"]]

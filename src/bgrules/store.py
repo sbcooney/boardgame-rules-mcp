@@ -163,24 +163,42 @@ def query_terms(query: str) -> list[str]:
     return list(dict.fromkeys(w for w in words if w not in STOPWORDS))
 
 
+def expand_terms(game: str, terms: list[str]) -> list[list[str]]:
+    """Each query term plus the rulebook words players mean by it (manifest
+    `synonyms`), e.g. "thief" -> ["thief", "robber"]. Plurals use the singular entry."""
+    from . import manifest
+
+    synonyms = manifest.load().get(game, {}).get("synonyms", {})
+    groups = []
+    for t in terms:
+        extra = synonyms.get(t) or (synonyms.get(t[:-1]) if t.endswith("s") else None) or []
+        groups.append(list(dict.fromkeys([t, *(str(s).lower() for s in extra)])))
+    return groups
+
+
+def _fts_any(words: list[str]) -> str:
+    return " OR ".join(f'"{w}"' for w in words)
+
+
 def search(db: sqlite3.Connection, game: str, query: str, edition: str | None = None, max_results: int = 5) -> dict:
     edition = resolve_edition(db, game, edition)
     terms = query_terms(query)
     if not terms:
         return {"found": False, "game": game, "edition": edition, "reason": "Query has no searchable words.", "results": []}
 
-    match = " OR ".join(f'"{t}"' for t in terms)
+    groups = expand_terms(game, terms)
     rows = db.execute(
         """SELECT citation_id, bm25(passages_fts, 4.0, 1.0) AS score FROM passages_fts
            WHERE passages_fts MATCH ? AND game=? AND edition=? ORDER BY score LIMIT ?""",
-        (match, game, edition, max_results * 3),
+        (_fts_any([w for g in groups for w in g]), game, edition, max_results * 3),
     ).fetchall()
 
     scored = []
     for r in rows:
+        # A term is covered if the passage has it or any of its rulebook synonyms.
         hits = sum(
-            db.execute("SELECT 1 FROM passages_fts WHERE passages_fts MATCH ? AND citation_id=?", (f'"{t}"', r["citation_id"])).fetchone() is not None
-            for t in terms
+            db.execute("SELECT 1 FROM passages_fts WHERE passages_fts MATCH ? AND citation_id=?", (_fts_any(g), r["citation_id"])).fetchone() is not None
+            for g in groups
         )
         scored.append((hits / len(terms), r["score"], r["citation_id"]))
     # Rank by coverage first, then bm25 (lower is better).

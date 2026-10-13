@@ -69,15 +69,18 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 
 ### Retrieval (server only, no model)
 
-47 Catan 2020 questions in [`evals/catan_2020.yaml`](evals/catan_2020.yaml): direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), and questions the rulebook doesn't answer. A hit means a section that settles the question is among the top results.
+57 Catan 2020 questions in [`evals/catan_2020.yaml`](evals/catan_2020.yaml): direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), and questions the rulebook doesn't answer. A hit means a section that settles the question is among the top results.
 
-| Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
-| --- | --- | --- | --- | --- | --- |
-| lookup | 15 | 53% | 73% | 73% | – |
-| edge | 22 | 77% | 95% | 95% | – |
-| vocab | 5 | 40% | 40% | 60% | – |
-| not_addressed | 5 | – | – | – | 40% |
-| **all answerable** | 42 | 64% | 81% | 83% | – |
+| Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
+| --- | --- | --- | --- | --- | --- | --- |
+| lookup | 15 | 53% | 73% | 73% | 73% | – |
+| edge | 22 | 82% | 95% | 95% | 95% | – |
+| vocab | 5 | 40% | 60% | 80% | 60% | – |
+| vocab, held out | 10 | 60% | 100% | 100% | 30% | – |
+| not_addressed | 5 | – | – | – | – | 40% |
+| **all answerable** | 52 | 65% | 87% | 88% | 73% | – |
+
+Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording. Treat the 100% as optimistic until it's checked against questions written by someone else.
 
 Run it: `uv run python evals/retrieval.py --misses`
 

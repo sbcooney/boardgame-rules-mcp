@@ -6,8 +6,45 @@
 #   heading_fonts: font name substrings (with min size) that mark section headings
 #   body_fonts:    font name substrings kept as rules text; everything else
 #                  (card art, decorative borders, watermarks) is dropped
+#
+# synonyms: words players use -> the rulebook's own terms. Search also looks
+# for the rulebook terms, so "thief" finds robber rules. Built from general
+# table talk, not from failing eval questions (see evals/ vocab_holdout).
 catan:
   name: Catan
+  synonyms:
+    thief: [robber]
+    bandit: [robber]
+    tile: [hex]
+    space: [hex, intersection]
+    corner: [intersection]
+    edge: [path]
+    house: [settlement]
+    town: [settlement]
+    village: [settlement]
+    church: [city]
+    port: [harbor]
+    soldier: [knight]
+    biggest: [largest]
+    action: [development]
+    bank: [supply]
+    points: [victory]
+    score: [victory]
+    vp: [victory]
+    disc: [token]
+    chip: [token]
+    throw: [roll]
+    seven: ["7"]
+    swap: [trade]
+    exchange: [trade]
+    water: [coast, sea]
+    sand: [desert]
+    wood: [lumber]
+    sheep: [wool]
+    wheat: [grain]
+    stone: [ore]
+    rock: [ore]
+    clay: [brick]
   editions:
     "2020":
       docs:
