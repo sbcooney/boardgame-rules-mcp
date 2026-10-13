@@ -15,7 +15,7 @@ import yaml
 
 from bgrules import store
 
-CATEGORY_ORDER = ["lookup", "edge", "vocab", "not_addressed"]
+CATEGORY_ORDER = ["lookup", "edge", "vocab", "vocab_holdout", "not_addressed"]
 
 
 def run(path: Path, k_values=(1, 3, 5)) -> tuple[list[dict], dict]:

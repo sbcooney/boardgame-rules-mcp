@@ -240,6 +240,60 @@ questions:
     answer: 10 victory points on your own turn.
     sections: ["Almanac > Victory Points", "Almanac > Ending the Game", "Game Rules > Ending the Game"]
 
+  # ---- vocab_holdout -----------------------------------------------------
+  # Written 2026-10-13 BEFORE the synonym list existed, and never used to build
+  # it. If synonyms help these as much as the `vocab` set, the gain is real.
+  - id: holdout-bandit-desert
+    category: vocab_holdout
+    question: Am I allowed to put the bandit on the desert?
+    answer: Yes, the robber can be moved to any other terrain hex's number token or to the desert.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards", "Game Rules > 3. Build"]
+  - id: holdout-town-cards
+    category: vocab_holdout
+    question: How many cards does a town get when its number is rolled?
+    answer: A settlement produces 1 resource card per adjacent producing hex (a city produces 2).
+    sections: ["Almanac > Resource Production", "Game Rules > The Turn in Detail", "Game Rules > 3. Build", "Almanac > Settlements"]
+  - id: holdout-port-rate
+    category: vocab_holdout
+    question: Can I swap 3 cards for 1 at a port?
+    answer: Yes, if you have a settlement or city on a generic (3:1) harbor; a 2:1 special harbor only covers its own resource.
+    sections: ["Almanac > Maritime Trade", "Game Rules > 2. Trade", "Almanac > Harbors"]
+  - id: holdout-big-hand
+    category: vocab_holdout
+    question: What happens to a player with a huge hand when someone throws a seven?
+    answer: Anyone holding more than 7 resource cards discards half of them, rounded down.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 3. Build"]
+  - id: holdout-house-adjacent
+    category: vocab_holdout
+    question: Can I put a house on the corner right next to another house?
+    answer: No, the Distance Rule requires all 3 adjacent intersections to be empty.
+    sections: ["Almanac > Distance Rule", "Game Rules > 3. Build", "Almanac > Settlements"]
+  - id: holdout-soldiers-army
+    category: vocab_holdout
+    question: How many soldiers do I need to play to get the biggest army bonus?
+    answer: 3 knight cards for Largest Army (worth 2 VP); someone who plays more takes it.
+    sections: ["Almanac > Largest Army", "Almanac > Knight Cards", "Almanac > Soldier Cards", "Game Rules > 3. Build"]
+  - id: holdout-action-card
+    category: vocab_holdout
+    question: Can I use an action card the moment I buy it?
+    answer: No, a development card can't be played the turn it was bought, except a victory point card that wins the game.
+    sections: ["Almanac > Development Cards", "Game Rules > 3. Build"]
+  - id: holdout-road-water
+    category: vocab_holdout
+    question: Can roads go along the water's edge?
+    answer: Yes, roads can be built along the coast.
+    sections: ["Almanac > Roads", "Almanac > Coast"]
+  - id: holdout-desert-corner
+    category: vocab_holdout
+    question: Does a village next to the sand tile ever collect anything from it?
+    answer: No, the desert is the only hex that produces no resources.
+    sections: ["Almanac > Desert"]
+  - id: holdout-dots
+    category: vocab_holdout
+    question: What do the little dots under the numbers on the discs mean?
+    answer: They show how likely the number is to be rolled; more dots means rolled more often (6 and 8 have 5).
+    sections: ["Almanac > Number Tokens"]
+
   # ---- not_addressed -----------------------------------------------------
   - id: na-turn-timer
     category: not_addressed
