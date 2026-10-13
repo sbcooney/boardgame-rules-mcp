@@ -63,7 +63,7 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 | --- | --- | --- |
 | Catan (2020 edition) | Official PDF, auto-downloaded | Working |
 | Wingspan (base game: rulebook r24 + appendix r17) | User-supplied PDFs from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0): `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` | Working |
-| Spirit Island | User-supplied PDF | Planned |
+| Spirit Island (core rulebook) | Official PDF, auto-downloaded (Greater Than Games' link): `bgrules add spirit-island` | Working (no eval set yet) |
 
 ## Results
 

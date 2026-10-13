@@ -81,7 +81,8 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
         n = store.replace_doc(db, game, edition, doc, dest, digest, sections)
         content = doc.get("extraction", {}).get("content_pages")
         pages_with_text = {ln.page for ln in lines}
-        empty = [p for p in range(content[0], content[1] + 1) if p not in pages_with_text] if content else []
+        skipped = set(doc.get("extraction", {}).get("skip_pages", []))
+        empty = [p for p in range(content[0], content[1] + 1) if p not in pages_with_text and p not in skipped] if content else []
         report.append({"doc": doc["title"], "sections": len(sections), "passages": n, "pages_without_text": empty})
         log(f"Indexed {len(sections)} sections, {n} passages" + (f"; WARNING no text on pages {empty}" if empty else ""))
     return report

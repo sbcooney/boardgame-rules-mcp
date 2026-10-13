@@ -170,5 +170,23 @@ spirit-island:
     "1st":
       docs:
         - id: rulebook
-          title: Rulebook
-          source: user_supplied  # no official direct download found
+          title: Core Rulebook
+          # Linked as "Download here" from Greater Than Games' shop page
+          # (https://shop.greaterthangames.com/products/spirit-island);
+          # dl=1 makes Dropbox serve the file itself.
+          url: https://www.dropbox.com/scl/fi/5wzghwnbsi39msyy6vvox/Spirit-Island-CORE-Rulebook.pdf?rlkey=86i7aofqbzhulezjr7z0ssyff&dl=1
+          sha256: 64012c21460d3aee0f5c2c0d1048811a4dd4b4aebd03284ee4706a6a1f8e630e
+          extraction:
+            layout: boxes  # main rules column with sidebars beside it
+            content_pages: [3, 32]
+            skip_pages: [24, 25, 26, 27, 29]  # lore and design notes (page 2 contents, page 1 cover)
+            heading_fonts:
+              - {name: FlingaLingBold, min_size: 30, part: true}  # page titles: "GAME CONCEPTS" (repeat as running headers)
+              - {name: ReemKufi-Regular, min_size: 13.5, max_size: 14.5, uppercase: true}  # "INVADER PHASE"; 14pt mixed case is flavor text
+            subheadings:
+              - {fonts: [FlingaLingBold], min_size: 16.5, max_size: 17.5}  # sidebar titles: "LAND ORDER?"
+              - {pattern: '^\d+[a-z]?\.\s+[A-Z][A-Z]', fonts: [ReemKufi-Regular], min_size: 11.5, max_size: 12.5}  # "1. BLIGHTED ISLAND", "3a. RAVAGE"
+            # Rules text 12pt, examples 9pt, the difficulty table 10pt. Dropped:
+            # map and component labels (FlingaLing), page numbers (20pt).
+            body_fonts: [ReemKufi-Regular]
+            body_size: [8.5, 12.5]

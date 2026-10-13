@@ -163,13 +163,17 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     if isinstance(sub_rules, dict):
         sub_rules = [sub_rules]
     first, last = hints.get("content_pages", [1, 10_000])
-    pages = range(first, last + 1)
+    skip = set(hints.get("skip_pages", []))  # non-rules pages inside the range (lore, contents)
+    pages = [p for p in range(first, last + 1) if p not in skip]
 
     def in_size(c, rule) -> bool:
         return rule.get("min_size", 0) - 0.1 <= c["size"] <= rule.get("max_size", 1_000) + 0.1
 
     def is_heading_char(c) -> bool:
         return any(h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts)
+
+    def uppercase_only(c) -> bool:
+        return any(h.get("uppercase") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts)
 
     def keep_char(c) -> bool:
         if is_heading_char(c) or any(_matches(c["fontname"], r.get("fonts", [])) and in_size(c, r) for r in sub_rules):
@@ -203,6 +207,10 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             if not chars or not ln["text"].strip():
                 continue
             heading = sum(is_heading_char(c) for c in chars) > len(chars) / 2
+            if heading and any(uppercase_only(c) for c in chars) and any(ch.islower() for ch in ln["text"]):
+                # An `uppercase: true` heading font in normal case is flavor
+                # text, not a heading: keep it as ordinary text.
+                heading = False
             if heading and not re.search(r"[A-Za-z]", ln["text"]):
                 continue  # heading-font symbols in diagrams ("=", "+")
             if re.fullmatch(r"[A-Z]|\d{1,3}", ln["text"].strip()):
@@ -316,7 +324,10 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
         for page_no in wanted:
             if page_no in box_pages:
                 continue
-            page = pdf.pages[page_no - 1].dedupe_chars().filter(keep)
+            page = pdf.pages[page_no - 1]
+            # Text positioned outside the page (layout spill-over from a facing
+            # page) is invisible in print: never index it.
+            page = page.within_bbox(page.bbox).dedupe_chars().filter(keep)
             if layout_for(page_no) == "table":
                 by_page[page_no] = table_lines(page, page_no)
             else:
@@ -353,6 +364,8 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char):
                         continue
                     c = {"fontname": obj.fontname, "size": obj.size, "text": obj.get_text(),
                          "x0": obj.x0, "x1": obj.x1, "top": h - obj.y1, "bottom": h - obj.y0}
+                    if obj.x1 < 0 or obj.x0 > layout.width or obj.y1 < 0 or obj.y0 > h:
+                        continue  # outside the page: invisible in print
                     if not keep_char(c):
                         continue
                     key = (c["text"], round(c["x0"]), round(c["top"]))
@@ -404,6 +417,10 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
             if current is None:
                 current = Section(heading=preamble_heading, page_start=ln.page, part=part)
                 sections.append(current)
+            elif ln.is_subheading and current.subheading and all(l.is_subheading for l in current.lines):
+                # A subheading wrapped onto another line ("FEAR EARNED THROUGH" /
+                # "FEAR EFFECTS"): one subsection, one title.
+                current.subheading = f"{current.subheading} {' '.join(ln.text.split())}"
             elif ln.is_subheading:
                 # A labelled step starts a subsection of the current section. The
                 # label line stays in the text: "b) Settlement Requires: Brick, ..."
