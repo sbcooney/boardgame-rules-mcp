@@ -30,7 +30,11 @@ async def _session_calls():
             search = await session.call_tool("search_rules", {"game": "catan", "query": "What happens when I move the robber?"})
             term = await session.call_tool("lookup_term", {"game": "catan", "term": "distance rule"})
             missing = await session.call_tool("search_rules", {"game": "catan", "query": "How do zombies spawn at night?"})
-            return init, tools, search, term, missing
+            cid = _payload(search)["results"][0]["citation_id"]
+            shown = await session.call_tool("show_passage", {"citation_id": cid})
+            real = await session.call_tool("verify_quote", {"citation_id": cid, "text": "It is moved only by rolling a \"7\" or playing a Knight card."})
+            fake = await session.call_tool("verify_quote", {"citation_id": cid, "text": "The robber may never return to the desert."})
+            return init, tools, search, term, missing, shown, real, fake
 
 
 def _payload(result) -> dict:
@@ -38,10 +42,13 @@ def _payload(result) -> dict:
 
 
 def test_server_over_stdio():
-    init, tools, search, term, missing = asyncio.run(_session_calls())
+    init, tools, search, term, missing, shown, real, fake = asyncio.run(_session_calls())
 
     assert "Answer ONLY from passages" in init.instructions
-    assert {t.name for t in tools.tools} >= {"list_games", "search_rules", "get_section", "lookup_term"}
+    assert {t.name for t in tools.tools} >= {
+        "list_games", "search_rules", "get_section", "lookup_term",
+        "show_passage", "get_page", "open_in_rulebook", "verify_quote",
+    }
 
     found = _payload(search)
     assert found["found"] is True
@@ -56,3 +63,10 @@ def test_server_over_stdio():
     assert entry["sections"][0]["section_path"] == ["Almanac", "Distance Rule"]
 
     assert _payload(missing)["found"] is False
+
+    kinds = [block.type for block in shown.content]
+    assert kinds[0] == "text" and "image" in kinds
+    assert json.loads(shown.content[0].text)["printed_page"] == 11
+
+    assert _payload(real)["verified"] is True
+    assert _payload(fake)["verified"] is False

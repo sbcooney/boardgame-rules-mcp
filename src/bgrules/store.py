@@ -198,7 +198,90 @@ def search(db: sqlite3.Connection, game: str, query: str, edition: str | None = 
     else:
         out["reason"] = "No passage matches enough of the question. The rulebook may not address this."
         out["nearest"] = [{"section_path": r["section_path"], "section_id": r["section_id"], "printed_page": r["printed_page"]} for r in results[:3]]
+        out["next_steps"] = (
+            "Before concluding the rulebook is silent: retry with the rulebook's own terms "
+            "(e.g. 'intersection' rather than 'space'), or open a likely section with get_section/lookup_term. "
+            "If that also fails, tell the user the rulebook does not address this; do not answer from memory."
+        )
     return out
+
+
+def get_passage(db: sqlite3.Connection, citation_id: str) -> tuple[dict, str]:
+    """A passage's citation plus the local PDF path it came from."""
+    row = db.execute("SELECT * FROM passages WHERE citation_id=?", (citation_id,)).fetchone()
+    if row is None:
+        raise LookupError_(f"No passage {citation_id!r}. Use citation_id values returned by search_rules.")
+    doc = db.execute(
+        "SELECT pdf_path FROM docs WHERE game=? AND edition=? AND doc_id=?", (row["game"], row["edition"], row["doc_id"])
+    ).fetchone()
+    return citation(db, row), doc["pdf_path"]
+
+
+def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | None = None) -> tuple[dict, str]:
+    """What is on one printed page: the passages there, and the PDF to render."""
+    edition = resolve_edition(db, game, edition)
+    docs = db.execute("SELECT doc_id, title, pdf_path FROM docs WHERE game=? AND edition=?", (game, edition)).fetchall()
+    if len(docs) != 1:
+        raise LookupError_(f"{game} {edition} has {len(docs)} documents; page lookup supports single-document editions for now.")
+    doc = docs[0]
+    rows = db.execute(
+        """SELECT p.* FROM passages p JOIN sections s USING (section_id)
+           WHERE p.game=? AND p.edition=? AND p.doc_id=? ORDER BY s.ord, p.ord""",
+        (game, edition, doc["doc_id"]),
+    ).fetchall()
+    on_page = [r for r in rows if any(s["page"] == page for s in json.loads(r["spans"]))]
+    if not on_page:
+        raise LookupError_(f"No indexed rules text on page {page} of {doc['title']}.")
+    passages = [
+        {"citation_id": r["citation_id"], "section_path": json.loads(db.execute("SELECT path FROM sections WHERE section_id=?", (r["section_id"],)).fetchone()["path"])}
+        for r in on_page
+    ]
+    boxes = [s["bbox"] for r in on_page for s in json.loads(r["spans"]) if s["page"] == page]
+    return {
+        "game": game,
+        "edition": edition,
+        "document": doc["title"],
+        "printed_page": page,
+        "passages": passages,
+        "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={page}",
+        "_boxes": boxes,
+    }, doc["pdf_path"]
+
+
+def _normalize(text: str) -> str:
+    text = text.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'", "–": "-", "—": "-", "­": ""}))
+    return " ".join(text.split()).lower()
+
+
+def verify_quote(db: sqlite3.Connection, citation_id: str, text: str) -> dict:
+    """Check that `text` appears in the cited section. Ellipses ("..." or "…")
+    may join fragments, which must then appear in order."""
+    row = db.execute("SELECT section_id FROM passages WHERE citation_id=?", (citation_id,)).fetchone()
+    if row is None:
+        raise LookupError_(f"No passage {citation_id!r}. Use citation_id values returned by search_rules.")
+    source = _normalize(db.execute("SELECT text FROM sections WHERE section_id=?", (row["section_id"],)).fetchone()["text"])
+    fragments = [f.strip(" .,;:") for f in _normalize(text).replace("…", "...").split("...")]
+    fragments = [f for f in fragments if f]
+    if not fragments:
+        return {"verified": False, "citation_id": citation_id, "reason": "Empty quote."}
+
+    pos = 0
+    for frag in fragments:
+        found_at = source.find(frag, pos)
+        if found_at < 0:
+            import difflib
+
+            m = difflib.SequenceMatcher(None, source, frag, autojunk=False).find_longest_match(0, len(source), 0, len(frag))
+            closest = source[max(0, m.a - 40): m.a + m.size + 40]
+            return {
+                "verified": False,
+                "citation_id": citation_id,
+                "failed_fragment": frag,
+                "closest_source_text": closest,
+                "reason": "This text is not in the cited section. Quote the rulebook exactly, or do not present it as a quote.",
+            }
+        pos = found_at + len(frag)
+    return {"verified": True, "citation_id": citation_id}
 
 
 def get_section(db: sqlite3.Connection, section_id: str) -> dict:

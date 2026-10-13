@@ -2,7 +2,7 @@
 
 An MCP server that answers board game rules questions from the **official rulebook**, and points you to the exact section and page every answer comes from.
 
-> Status: early development (milestone M1: Catan MVP).
+> Status: early development (milestone M2: checkable citations).
 
 ## How it works
 
@@ -52,6 +52,10 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 | `search_rules(game, query, edition?)` | Verbatim passages with citations, or `found: false` with the nearest sections |
 | `get_section(section_id)` | A full section, plus the sections before and after it |
 | `lookup_term(game, term, edition?)` | An almanac/glossary entry by exact title |
+| `show_passage(citation_id)` | An image of the rulebook page region with the cited passage highlighted |
+| `get_page(game, page, edition?)` | A whole page image with rules text highlighted, plus the passages on it |
+| `open_in_rulebook(citation_id)` | Opens the PDF on your computer at the cited page (Chrome/Firefox/Edge/Brave jump to the page; Preview can't) |
+| `verify_quote(citation_id, text)` | Confirms a quote appears word for word in the cited section |
 
 ## Supported games
 

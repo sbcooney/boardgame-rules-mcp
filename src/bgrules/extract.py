@@ -26,6 +26,7 @@ class Line:
 @dataclass
 class Passage:
     lines: list[Line]
+    heading_lines: list[Line] = field(default_factory=list)  # highlighted, not part of the text
 
     @property
     def page(self) -> int:
@@ -37,7 +38,7 @@ class Passage:
 
     @property
     def spans(self) -> list[dict]:
-        return spans(self.lines)
+        return spans(self.heading_lines + self.lines)
 
 
 @dataclass
@@ -46,6 +47,7 @@ class Section:
     page_start: int
     part: str | None = None  # top-level division, e.g. "Game Rules" or "Almanac"
     lines: list[Line] = field(default_factory=list)
+    heading_lines: list[Line] = field(default_factory=list)
 
     @property
     def path(self) -> list[str]:
@@ -61,7 +63,7 @@ class Section:
 
     @property
     def spans(self) -> list[dict]:
-        return spans(self.lines)
+        return spans(self.heading_lines + self.lines)
 
     def passages(self, target_chars: int = PASSAGE_TARGET_CHARS) -> list[Passage]:
         """Split at sentence-ending lines once a passage reaches target_chars."""
@@ -80,6 +82,8 @@ class Section:
                 out[-1].lines.extend(current)
             else:
                 out.append(Passage(current))
+        if out:
+            out[0].heading_lines = list(self.heading_lines)
         return out
 
 
@@ -182,8 +186,9 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
             if current is not None and not current.lines:
                 # Heading wrapped onto a second line: merge into the same heading.
                 current.heading = f"{current.heading} {normalize_heading(ln.text)}"
+                current.heading_lines.append(ln)
             else:
-                current = Section(heading=normalize_heading(ln.text), page_start=ln.page, part=part)
+                current = Section(heading=normalize_heading(ln.text), page_start=ln.page, part=part, heading_lines=[ln])
                 sections.append(current)
         else:
             if current is None:

@@ -5,9 +5,15 @@ with where it is (section path, page, link); the client model writes the
 answer from those passages.
 """
 
-from mcp.server.mcpserver import MCPServer
+import platform
+import shutil
+import subprocess
+import webbrowser
+from pathlib import Path
 
-from . import store
+from mcp.server.mcpserver import Image, MCPServer
+
+from . import render, store
 
 INSTRUCTIONS = """\
 This server gives you the official rulebook text for board games the user has installed.
@@ -17,7 +23,9 @@ When answering a rules question:
 - If search_rules returns found=false, or the returned passages do not actually settle the question, say the rulebook
   does not address it. Do not guess. You may mention the nearest sections the tool lists.
 - Rules differ between editions; always state which edition you are citing.
-- Each citation includes open_link, which opens the PDF at that page; offer it when the user wants to check."""
+- Copy quotes exactly from `quote`. If you shorten or splice a quote, check it with verify_quote first.
+- To let the user check a citation: show_passage shows the rulebook page with the passage highlighted;
+  open_in_rulebook opens the PDF on their computer at that page."""
 
 mcp = MCPServer("bgrules", instructions=INSTRUCTIONS)
 
@@ -66,6 +74,84 @@ def lookup_term(game: str, term: str, edition: str | None = None) -> dict:
     ("Robber", "Longest Road", "Distance Rule"). Returns found=false with similar
     titles when there is no exact match."""
     return _call(store.lookup_term, game, term, edition=edition)
+
+
+@mcp.tool(structured_output=False)
+def show_passage(citation_id: str) -> list:
+    """Show the cited passage as it appears in the printed rulebook: an image of
+    the page region with the passage highlighted. Use when the user wants to see
+    or check where an answer came from."""
+    db = store.connect()
+    try:
+        cite, pdf_path = store.get_passage(db, citation_id)
+    except store.LookupError_ as e:
+        return [{"error": str(e)}]
+    finally:
+        db.close()
+    images = []
+    for page in sorted({s["page"] for s in cite["spans"]}):
+        boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
+        images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36), format="png"))
+    summary = {k: cite[k] for k in ("citation_id", "game", "edition", "document", "section_path", "printed_page", "open_link")}
+    return [summary, *images]
+
+
+@mcp.tool(structured_output=False)
+def get_page(game: str, page: int, edition: str | None = None) -> list:
+    """Show a whole rulebook page (printed page number) with its rules text
+    highlighted, and list the passages on it with their citation ids."""
+    db = store.connect()
+    try:
+        info, pdf_path = store.page_contents(db, game, page, edition=edition)
+    except store.LookupError_ as e:
+        return [{"error": str(e)}]
+    finally:
+        db.close()
+    boxes = info.pop("_boxes")
+    return [info, Image(data=render.render(pdf_path, page, boxes, scale=1.25), format="png")]
+
+
+def _open_pdf_at(pdf_path: str, page: int) -> str:
+    """Open the PDF at a page in a viewer that honours #page=N. Returns the app used."""
+    url = Path(pdf_path).as_uri() + f"#page={page}"
+    if platform.system() == "Darwin":
+        for app in ("Google Chrome", "Firefox", "Microsoft Edge", "Brave Browser"):
+            if Path(f"/Applications/{app}.app").exists():
+                subprocess.run(["open", "-a", app, url], check=True)
+                return app
+        subprocess.run(["open", pdf_path], check=True)  # Preview: can't jump to a page
+        return "default PDF viewer (could not jump to the page)"
+    if shutil.which("xdg-open"):
+        subprocess.run(["xdg-open", url], check=True)
+        return "xdg-open"
+    webbrowser.open(url)
+    return "web browser"
+
+
+@mcp.tool()
+def open_in_rulebook(citation_id: str) -> dict:
+    """Open the rulebook PDF on the user's computer at the cited page, so they can
+    read the passage in context."""
+    db = store.connect()
+    try:
+        cite, pdf_path = store.get_passage(db, citation_id)
+    except store.LookupError_ as e:
+        return {"error": str(e)}
+    finally:
+        db.close()
+    try:
+        app = _open_pdf_at(pdf_path, cite["printed_page"])
+    except (OSError, subprocess.CalledProcessError) as e:
+        return {"opened": False, "error": str(e), "open_link": cite["open_link"]}
+    return {"opened": True, "app": app, "printed_page": cite["printed_page"], "section_path": cite["section_path"]}
+
+
+@mcp.tool()
+def verify_quote(citation_id: str, text: str) -> dict:
+    """Check that `text` appears word for word in the cited section (ignoring
+    whitespace and curly vs straight quotes; '...' may join fragments in order).
+    Use before presenting a shortened or spliced quote."""
+    return _call(store.verify_quote, citation_id, text)
 
 
 @mcp.prompt(name="ask-rules")

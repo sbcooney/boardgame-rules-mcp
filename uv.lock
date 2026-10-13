@@ -45,6 +45,7 @@ source = { editable = "." }
 dependencies = [
     { name = "mcp" },
     { name = "pdfplumber" },
+    { name = "pillow" },
     { name = "pypdfium2" },
     { name = "pyyaml" },
 ]
@@ -58,6 +59,7 @@ dev = [
 requires-dist = [
     { name = "mcp", specifier = ">=2.3,<3" },
     { name = "pdfplumber", specifier = ">=0.11" },
+    { name = "pillow", specifier = ">=10.0" },
     { name = "pypdfium2", specifier = ">=4.30" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]
