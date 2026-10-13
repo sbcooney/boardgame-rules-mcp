@@ -257,7 +257,38 @@ questions:
     answer: Birds such as Bewick's Wren and Song Sparrow may, when activated, move to another habitat if they are to the right of all other birds in their habitat.
     sections: ["Bird Powers > Other Powers"]
 
+  # ---- independent -------------------------------------------------------
+  # Written by a Wingspan player (the project owner) without seeing the synonym
+  # list. Wording is theirs, verbatim; rulings checked against the rulebook and
+  # appendix. Two of their questions aren't answerable from the text; those are
+  # under not_addressed (user-*).
+  - id: user-ws-reroll
+    category: independent
+    question: When can I re-roll the food dice?
+    answer: When you're about to gain food and every die in the birdfeeder shows the same face (including a single die), you may throw all 5 back in; if the birdfeeder is empty, throw all 5 back in.
+    sections: ["The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder", "Quick Reference > Round Overview", "Bird Powers > Food-Gaining Powers"]
+  - id: user-ws-first
+    category: independent
+    question: Who goes first?
+    answer: Pick the first player at random and give them the first-player token; it passes clockwise at the end of each round.
+    sections: ["Setup > Player Setup", "Quick Reference > Setup", "Overview > Round Structure", "End of the Round"]
+  - id: user-ws-start-cards
+    category: independent
+    question: How many cards do I get to start?
+    answer: 5 bird cards and 2 bonus cards; keep up to 5 birds (discarding 1 food per bird kept) and 1 bonus card.
+    sections: ["Setup > Player Setup", "Quick Reference > Setup"]
+
   # ---- not_addressed -----------------------------------------------------
+  - id: user-ws-cavity-odds
+    category: not_addressed
+    question: How likely is it to get a bird with a tree hole nest?
+    answer: null  # nest types are listed, but no counts or odds are given
+    sections: []
+  - id: user-ws-dice-faces
+    category: not_addressed
+    question: What is on each side of the dice?
+    answer: null  # faces appear only as pictures; the text mentions a dual face but never lists them
+    sections: []
   - id: ws-na-trade
     category: not_addressed
     question: Can I trade bird cards or food with another player?
