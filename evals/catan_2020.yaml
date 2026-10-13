@@ -1,0 +1,256 @@
+# Catan (2020 "Game Rules & Almanac") eval questions.
+#
+# Each answer is a short ruling in our own words, checked against the indexed
+# rulebook text; `sections` lists every section that settles the question
+# (retrieving any one of them counts as a hit). No rulebook text is copied here.
+#
+# categories:
+#   lookup         - direct fact from one entry
+#   edge           - rules arguments, exceptions, interactions between rules
+#   vocab          - phrased in words the rulebook doesn't use ("thief", "tile")
+#   not_addressed  - the rulebook doesn't answer it; correct behaviour is to say so
+game: catan
+edition: "2020"
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: vp-to-win
+    category: lookup
+    question: How many victory points do you need to win?
+    answer: 10 victory points, reached (or held) during your own turn.
+    sections: ["Almanac > Victory Points", "Almanac > Ending the Game", "Game Rules > Ending the Game"]
+  - id: city-cost
+    category: lookup
+    question: What does it cost to build a city?
+    answer: 3 ore and 2 grain, and it must upgrade one of your existing settlements.
+    sections: ["Game Rules > 3. Build"]
+  - id: settlement-cost
+    category: lookup
+    question: What resources do I need to build a settlement?
+    answer: Brick, lumber, wool and grain (one of each).
+    sections: ["Game Rules > 3. Build"]
+  - id: dev-card-cost
+    category: lookup
+    question: How much does a development card cost?
+    answer: Ore, wool and grain (one of each).
+    sections: ["Game Rules > 3. Build"]
+  - id: road-cost
+    category: lookup
+    question: What does a road cost?
+    answer: Brick and lumber.
+    sections: ["Game Rules > 3. Build"]
+  - id: piece-limits
+    category: lookup
+    question: How many settlements, cities and roads does each player have?
+    answer: 5 settlements, 4 cities and 15 roads; you can't build more than your supply.
+    sections: ["Almanac > Build (Building)", "Game Rules > 3. Build", "Game Rules > Setting Up the Game"]
+  - id: largest-army-count
+    category: lookup
+    question: How many knights do you need for Largest Army?
+    answer: The first player to play 3 knight cards takes it; another player who has played more knights takes it from them.
+    sections: ["Almanac > Largest Army", "Almanac > Knight Cards", "Game Rules > 3. Build"]
+  - id: longest-road-length
+    category: lookup
+    question: How long does a road have to be to get the Longest Road card?
+    answer: At least 5 continuous road pieces; branches don't count, only the single longest branch.
+    sections: ["Almanac > Longest Road", "Game Rules > 3. Build"]
+  - id: monopoly
+    category: lookup
+    question: What does the Monopoly card do?
+    answer: You name one resource type and every other player gives you all of their cards of that type.
+    sections: ["Almanac > Progress Cards"]
+  - id: year-of-plenty
+    category: lookup
+    question: What does Year of Plenty do, and can I build with the cards right away?
+    answer: Take any 2 resource cards from the supply; yes, you may use them to build that same turn.
+    sections: ["Almanac > Progress Cards"]
+  - id: road-building
+    category: lookup
+    question: What does the Road Building card let you do?
+    answer: Immediately place 2 free roads, following the normal building rules.
+    sections: ["Almanac > Progress Cards"]
+  - id: discard-nine
+    category: lookup
+    question: A 7 is rolled and I have 9 resource cards. How many do I discard?
+    answer: 4 (half, rounded down). Only players with more than 7 cards discard.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 3. Build"]
+  - id: most-common-numbers
+    category: lookup
+    question: Which numbers get rolled most often?
+    answer: 6 and 8 (the red numbers, 5 pips each). There is no 7 token.
+    sections: ["Almanac > Number Tokens"]
+  - id: first-player-variable
+    category: lookup
+    question: With the variable set-up, who places the first settlement?
+    answer: Everyone rolls both dice; the highest roller is the starting player.
+    sections: ["Almanac > Round One"]
+  - id: starting-resources
+    category: lookup
+    question: When do you get your starting resources in a variable set-up?
+    answer: Right after placing your second settlement, one card for each terrain hex adjacent to it.
+    sections: ["Almanac > Round Two"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: dev-card-same-turn
+    category: edge
+    question: Can I play a development card on the same turn I bought it?
+    answer: No, except a victory point card that brings you to 10 points (VP cards can be revealed the turn you buy them).
+    sections: ["Almanac > Development Cards", "Game Rules > 3. Build"]
+  - id: knight-before-roll
+    category: edge
+    question: Can I play a knight card before I roll the dice?
+    answer: Yes, a development card can be played at any time during your turn, even before rolling.
+    sections: ["Almanac > Development Cards"]
+  - id: two-dev-cards
+    category: edge
+    question: Can I play two knight cards in the same turn?
+    answer: No, only 1 development card (a knight or a progress card) per turn.
+    sections: ["Almanac > Development Cards", "Almanac > Progress Cards", "Game Rules > 3. Build"]
+  - id: trade-off-turn
+    category: edge
+    question: Can two other players trade with each other while it's my turn?
+    answer: No, every trade must involve the player whose turn it is.
+    sections: ["Almanac > Domestic Trade", "Almanac > Resource Trade", "Game Rules > 2. Trade", "Almanac > Trade"]
+  - id: trade-dev-cards
+    category: edge
+    question: Can I trade a development card to another player?
+    answer: No, development cards can't be traded or given away.
+    sections: ["Almanac > Trade", "Almanac > Development Cards"]
+  - id: gift-cards
+    category: edge
+    question: Can I give a resource card to another player for free?
+    answer: No, you may not give away cards.
+    sections: ["Almanac > Trade", "Almanac > Domestic Trade"]
+  - id: like-for-like
+    category: edge
+    question: Can I trade 2 wool to someone for 1 wool?
+    answer: No, you can't trade matching resources.
+    sections: ["Almanac > Trade", "Almanac > Domestic Trade"]
+  - id: robber-stay
+    category: edge
+    question: When I roll a 7, can I leave the robber where it is?
+    answer: No, the robber must be moved to a different hex.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards"]
+  - id: robber-desert
+    category: edge
+    question: Can the robber be moved back to the desert?
+    answer: Yes, it can go on any other terrain hex's number token or on the desert.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards", "Game Rules > 3. Build"]
+  - id: break-longest-road
+    category: edge
+    question: Can I break someone's longest road?
+    answer: Yes, by building a settlement on an unoccupied intersection along their road, which splits it.
+    sections: ["Almanac > Longest Road"]
+  - id: longest-road-tie
+    category: edge
+    question: My longest road got broken and now two other players are tied for longest. Who gets the card?
+    answer: Nobody; set the card aside until a single player has the longest road (5+ pieces). If you are still tied for longest, you keep it.
+    sections: ["Almanac > Longest Road"]
+  - id: win-off-turn
+    category: edge
+    question: If I reach 10 points during someone else's turn, do I win right away?
+    answer: No, you can only win on your own turn; you claim victory on your next turn.
+    sections: ["Almanac > Ending the Game", "Game Rules > Ending the Game"]
+  - id: bank-shortage
+    category: edge
+    question: What happens if the bank runs out of a resource when several players should receive it?
+    answer: Nobody receives that resource that turn, unless the shortage only affects one player, who gets whatever is left.
+    sections: ["Almanac > Resource Production", "Game Rules > The Turn in Detail"]
+  - id: four-to-one-no-harbor
+    category: edge
+    question: Do I need a harbor to trade with the bank?
+    answer: No, the 4:1 trade is always available; harbors give better rates (3:1 or 2:1).
+    sections: ["Almanac > Maritime Trade", "Game Rules > 2. Trade"]
+  - id: special-harbor-other
+    category: edge
+    question: I have a settlement on the 2:1 ore harbor. Can I trade wool at 3:1 there?
+    answer: No, a special harbor only improves the rate for its own resource; other resources stay at 4:1.
+    sections: ["Almanac > Maritime Trade"]
+  - id: harbor-same-turn
+    category: edge
+    question: Can I use a harbor on the same turn I build a settlement on it?
+    answer: Only with the Combined Trade/Build Phase variant (recommended for experienced players); in the basic turn order, trading comes before building.
+    sections: ["Almanac > Combined Trade/Build Phase"]
+  - id: steal-empty-hand
+    category: edge
+    question: If I move the robber next to a player who has no cards, what do I steal?
+    answer: Nothing.
+    sections: ["Almanac > Knight Cards"]
+  - id: second-settlement-connect
+    category: edge
+    question: Does my second starting settlement have to connect to my first one?
+    answer: No, it can go on any unoccupied intersection that satisfies the Distance Rule.
+    sections: ["Almanac > Round Two"]
+  - id: roads-vp
+    category: edge
+    question: Are roads worth victory points?
+    answer: Only through the Longest Road card (2 VP).
+    sections: ["Almanac > Roads", "Almanac > Victory Points"]
+  - id: city-directly
+    category: edge
+    question: Can I build a city on an empty intersection?
+    answer: No, a city can only be made by upgrading one of your settlements.
+    sections: ["Almanac > Cities", "Game Rules > 3. Build"]
+  - id: sixth-settlement
+    category: edge
+    question: All 5 of my settlements are on the board. Can I build another one?
+    answer: Not until you upgrade one to a city, which returns that settlement piece to your supply.
+    sections: ["Almanac > Settlements", "Almanac > Cities"]
+  - id: ask-card-count
+    category: edge
+    question: Do players have to tell me how many cards they're holding?
+    answer: Yes, you can always ask and they must answer truthfully.
+    sections: ["Almanac > Knight Cards"]
+
+  # ---- vocab -----------------------------------------------------------
+  - id: vocab-two-spaces
+    category: vocab
+    question: Can I build a settlement two spaces away from a city?
+    answer: Only if all 3 intersections adjacent to the spot are empty (the Distance Rule); a spot next to the city's corner is illegal.
+    sections: ["Almanac > Distance Rule", "Game Rules > 3. Build", "Almanac > Settlements"]
+  - id: vocab-thief
+    category: vocab
+    question: Is the thief allowed to stay on the same tile?
+    answer: No, the robber must be moved to a different hex.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber"]
+  - id: vocab-church
+    category: vocab
+    question: How many cards does a church collect when its number comes up?
+    answer: The church-shaped piece is a city; it produces 2 resource cards.
+    sections: ["Almanac > Cities", "Game Rules > 3. Build", "Almanac > Resource Production"]
+  - id: vocab-robbed-empty
+    category: vocab
+    question: What do I get if I rob someone whose hand is empty?
+    answer: Nothing.
+    sections: ["Almanac > Knight Cards"]
+  - id: vocab-points-win
+    category: vocab
+    question: What score ends the game?
+    answer: 10 victory points on your own turn.
+    sections: ["Almanac > Victory Points", "Almanac > Ending the Game", "Game Rules > Ending the Game"]
+
+  # ---- not_addressed -----------------------------------------------------
+  - id: na-turn-timer
+    category: not_addressed
+    question: Is there a time limit on how long a turn can take?
+    answer: null
+    sections: []
+  - id: na-take-back
+    category: not_addressed
+    question: Can I take back a road after I've placed it?
+    answer: null
+    sections: []
+  - id: na-dice-off-table
+    category: not_addressed
+    question: Do we reroll if a die falls off the table?
+    answer: null
+    sections: []
+  - id: na-promises
+    category: not_addressed
+    question: Are promises of future trades binding?
+    answer: null
+    sections: []
+  - id: na-show-hand
+    category: not_addressed
+    question: Is there a penalty for accidentally showing my cards?
+    answer: null
+    sections: []

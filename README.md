@@ -67,7 +67,25 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 
 ## Results
 
-_Eval results (accuracy and citation precision with vs. without the server) will go here._
+### Retrieval (server only, no model)
+
+47 Catan 2020 questions in [`evals/catan_2020.yaml`](evals/catan_2020.yaml): direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), and questions the rulebook doesn't answer. A hit means a section that settles the question is among the top results.
+
+| Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
+| --- | --- | --- | --- | --- | --- |
+| lookup | 15 | 53% | 73% | 73% | – |
+| edge | 22 | 77% | 95% | 95% | – |
+| vocab | 5 | 40% | 40% | 60% | – |
+| not_addressed | 5 | – | – | – | 40% |
+| **all answerable** | 42 | 64% | 81% | 83% | – |
+
+Run it: `uv run python evals/retrieval.py --misses`
+
+Keyword overlap can't reliably tell that a rulebook *doesn't* cover something, so that judgment is left to the model reading the returned passages. The end-to-end eval measures it.
+
+### End-to-end (with vs. without the server)
+
+_Coming next: answer accuracy, citation precision, abstention and fabricated quotes, for a model with no tools vs. with this server._
 
 ## License
 

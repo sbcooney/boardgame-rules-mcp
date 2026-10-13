@@ -161,6 +161,8 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                     heading = sum(is_heading_char(c) for c in chars) > len(chars) / 2
                     if heading and not re.search(r"[A-Za-z]", ln["text"]):
                         continue  # heading-font symbols in diagrams ("=", "+")
+                    if re.fullmatch(r"[A-Z]", ln["text"].strip()):
+                        continue  # alphabetical divider letters between almanac entries
                     lines.append(
                         Line(
                             text=ln["text"],
