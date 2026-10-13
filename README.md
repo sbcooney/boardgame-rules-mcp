@@ -62,7 +62,7 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 | Game | Rulebook source | Status |
 | --- | --- | --- |
 | Catan (2020 edition) | Official PDF, auto-downloaded | Working |
-| Wingspan (rulebook r24) | User-supplied PDF from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0): `bgrules add wingspan --file WS_Rulebook_r24.pdf` | Working (rulebook; appendix next) |
+| Wingspan (base game: rulebook r24 + appendix r17) | User-supplied PDFs from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0): `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` | Working |
 | Spirit Island | User-supplied PDF | Planned |
 
 ## Results
@@ -75,23 +75,26 @@ Question sets cover direct lookups, rules arguments and edge cases, questions wo
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
-| lookup | 15 | 53% | 73% | 80% | 73% | – |
+| lookup | 15 | 53% | 80% | 80% | 73% | – |
 | edge | 22 | 73% | 95% | 95% | 95% | – |
 | vocab | 5 | 40% | 80% | 80% | 60% | – |
 | vocab, held out | 10 | 70% | 90% | 100% | 30% | – |
-| independent | 5 | 60% | 80% | 80% | – | – |
+| independent | 5 | 40% | 60% | 80% | – | – |
 | not_addressed | 5 | – | – | – | – | 40% |
-| **all answerable** | 57 | 63% | 86% | 89% | – | – |
+| **all answerable** | 57 | 61% | 86% | 89% | – | – |
 
-#### Wingspan (base game, rulebook r24): [`evals/wingspan_1st.yaml`](evals/wingspan_1st.yaml)
+#### Wingspan (base game, rulebook r24 + appendix r17): [`evals/wingspan_1st.yaml`](evals/wingspan_1st.yaml)
 
-| Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
-| --- | --- | --- | --- | --- | --- |
-| lookup | 12 | 50% | 92% | 100% | – |
-| edge | 17 | 76% | 82% | 88% | – |
-| vocab | 5 | 20% | 40% | 40% | – |
-| not_addressed | 4 | – | – | – | 25% |
-| **all answerable** | 34 | 59% | 79% | 85% | – |
+| Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 rulebook only | Correctly said "not found" |
+| --- | --- | --- | --- | --- | --- | --- |
+| lookup | 12 | 58% | 83% | 92% | 100% | – |
+| edge | 17 | 71% | 71% | 88% | 88% | – |
+| vocab | 5 | 20% | 40% | 40% | 40% | – |
+| appendix (specific birds, bonus cards) | 12 | 92% | 100% | 100% | – | – |
+| not_addressed | 4 | – | – | – | – | 0% (25%) |
+| **all answerable** | 46 | 67% | 78% | 87% | – | – |
+
+The appendix explains every bird power and bonus card; questions about a specific bird now find it 100% of the time. It costs a little elsewhere: one rulebook lookup ("How many birds per habitat?") drops out of the top 5, and the larger index gives off-topic questions more partial matches. Its bird-power pages are tables (bird names beside shared power text), read with a table layout that keeps each power sentence intact with its birds listed before it.
 
 Wingspan has no synonym list yet, so its numbers show the pipeline on a second publisher's layout with no game-specific tuning beyond fonts. Its misses are wording gaps, like Catan's were ("reroll the birdfeeder" vs the rulebook's "throw all 5 dice back"). Search ranking uses word rarity across everything indexed, so installing another game shifts a game's numbers slightly (results never mix games).
 

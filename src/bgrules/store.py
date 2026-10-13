@@ -235,12 +235,18 @@ def get_passage(db: sqlite3.Connection, citation_id: str) -> tuple[dict, str]:
     return citation(db, row), doc["pdf_path"]
 
 
-def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | None = None) -> tuple[dict, str]:
-    """What is on one printed page: the passages there, and the PDF to render."""
+def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | None = None, document: str | None = None) -> tuple[dict, str]:
+    """What is on one printed page: the passages there, and the PDF to render.
+    `document` (a doc id such as "appendix") is needed when an edition has several."""
     edition = resolve_edition(db, game, edition)
     docs = db.execute("SELECT doc_id, title, pdf_path FROM docs WHERE game=? AND edition=?", (game, edition)).fetchall()
-    if len(docs) != 1:
-        raise LookupError_(f"{game} {edition} has {len(docs)} documents; page lookup supports single-document editions for now.")
+    if document is not None:
+        docs = [d for d in docs if d["doc_id"] == document]
+        if not docs:
+            known = [r["doc_id"] for r in db.execute("SELECT doc_id FROM docs WHERE game=? AND edition=?", (game, edition))]
+            raise LookupError_(f"No document {document!r} for {game} {edition}. Installed: {known}")
+    if len(docs) > 1:
+        raise LookupError_(f"{game} {edition} has several documents {[d['doc_id'] for d in docs]}; pass document=.")
     doc = docs[0]
     rows = db.execute(
         """SELECT p.* FROM passages p JOIN sections s USING (section_id)

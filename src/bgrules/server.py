@@ -97,12 +97,14 @@ def show_passage(citation_id: str) -> list:
 
 
 @mcp.tool(structured_output=False)
-def get_page(game: str, page: int, edition: str | None = None) -> list:
+def get_page(game: str, page: int, edition: str | None = None, document: str | None = None) -> list:
     """Show a whole rulebook page (printed page number) with its rules text
-    highlighted, and list the passages on it with their citation ids."""
+    highlighted, and list the passages on it with their citation ids.
+    `document` (e.g. "appendix") is needed when a game has several documents;
+    list_games shows them."""
     db = store.connect()
     try:
-        info, pdf_path = store.page_contents(db, game, page, edition=edition)
+        info, pdf_path = store.page_contents(db, game, page, edition=edition, document=document)
     except store.LookupError_ as e:
         return [{"error": str(e)}]
     finally:

@@ -15,6 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     add.add_argument("game")
     add.add_argument("--edition")
     add.add_argument("--file", help="path to a rulebook PDF you already have")
+    add.add_argument("--doc", help="which document --file is, when an edition has several (e.g. rulebook, appendix)")
 
     sub.add_parser("list", help="list installed games")
 
@@ -30,7 +31,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "add":
         try:
-            ingest.add(args.game, edition=args.edition, file=args.file, log=lambda m: print(m, file=sys.stderr))
+            ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, log=lambda m: print(m, file=sys.stderr))
         except (ingest.IngestError, KeyError) as e:
             print(f"error: {e}", file=sys.stderr)
             return 1

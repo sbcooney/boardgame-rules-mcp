@@ -95,13 +95,34 @@ wingspan:
             layout: boxes  # free-form magazine layout: pdfminer text boxes, not fixed columns
             content_pages: [1, 11]  # page 12 is credits
             heading_fonts:
-              - {name: ATSMarker, min_size: 29}  # page titles: "THE FOUR ACTIONS"
+              - {name: ATSMarker, min_size: 29, part: true}  # page titles: "THE FOUR ACTIONS"
               - {name: CardenioModern-Bold, min_size: 19.5, max_size: 20.5}  # "OPTION 1. Play a Bird From Your Hand"
             subheadings:
               - {fonts: [CardenioModern-Bold], min_size: 16.5, max_size: 17.5}  # "When you choose to play a bird, do the following:"
             # Rules text 10-12pt; Cardenio at 12pt labels sidebars ("Designer's Note:").
             # Dropped: bird card text (8.3pt), Latin names, icon labels (16pt), print slug.
             body_fonts: [FuturaPT-Light, FuturaPT-Medium, FuturaPT-LightObl, FuturaPTCond-BookObl, FuturaPTCond-Medium, CardenioModern-Bold]
+            body_size: [10, 12.5]
+        - id: appendix
+          title: Appendix (r17)
+          source: user_supplied  # WS_Appendix_r17.pdf in the official folder
+          expected_sha256: ec17130c81b0be52785741cead7131f3f1ddc9f0c4bae7b8d6a56cb197ef5a5c
+          extraction:
+            # Goal tiles sit side by side (text boxes); bonus cards and bird
+            # powers are tables of names beside shared text (read across rows).
+            layout:
+              - {pages: [2, 3], layout: boxes}
+              - {pages: [4, 5], layout: rows}
+              - {pages: [6, 12], layout: table}  # bird powers: names | power text | explanation
+            table: {column_bounds: [188, 387]}  # the table's column edges (from its divider lines)
+            content_pages: [2, 12]  # page 1 is the cover
+            heading_fonts:
+              - {name: ATSMarker, min_size: 29, part: true}  # page titles: "BIRD POWERS" (repeated: running header)
+              - {name: CardenioModern-Bold, min_size: 19.5, max_size: 20.5}  # "Name-Related Bonuses"
+            subheadings:
+              - {fonts: [CardenioModern-Bold], min_size: 16.5, max_size: 17.5}  # power groups: "Food from the supply"
+            # Bird and bonus card names are CardenioModern-Bold 10pt.
+            body_fonts: [FuturaPT-Light, FuturaPT-Book, FuturaPT-Medium, FuturaPT-LightObl, FuturaPTCond-BookObl, CardenioModern-Bold]
             body_size: [10, 12.5]
 
 spirit-island:

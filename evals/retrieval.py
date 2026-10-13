@@ -15,7 +15,7 @@ import yaml
 
 from bgrules import store
 
-CATEGORY_ORDER = ["lookup", "edge", "vocab", "vocab_holdout", "independent", "not_addressed"]
+CATEGORY_ORDER = ["lookup", "edge", "vocab", "vocab_holdout", "independent", "appendix", "not_addressed"]
 
 
 def is_hit(got: str, expected: list[str]) -> bool:

@@ -2,7 +2,8 @@
 #
 # Same format as catan_2020.yaml: short rulings in our own words, checked
 # against the indexed rulebook text, and the sections that settle each one.
-# Wingspan has no synonym list yet, so the `vocab` questions here were written
+# Sections may come from the rulebook or the appendix (its Quick Reference
+# restates core rules). Wingspan has no synonym list yet, so the `vocab` questions here were written
 # before any exists and can test one honestly later.
 game: wingspan
 edition: "1st"
@@ -32,7 +33,7 @@ questions:
     category: lookup
     question: What does each player get at the start of the game?
     answer: A player mat, 8 action cubes of one color, 2 random bonus cards, 5 random bird cards and 5 food tokens (1 of each type).
-    sections: ["Setup > Player Setup"]
+    sections: ["Setup > Player Setup", "Quick Reference > Setup"]
   - id: ws-keep-birds-food
     category: lookup
     question: How many starting birds and food can I keep?
@@ -42,22 +43,22 @@ questions:
     category: lookup
     question: How many eggs does it cost to play a bird in column 3?
     answer: 1 egg (columns 2-3 cost 1 egg, columns 4-5 cost 2, the first column costs none).
-    sections: ["Option 1. Play a Bird From Your Hand"]
+    sections: ["The Four Actions > Option 1. Play a Bird From Your Hand"]
   - id: ws-egg-points
     category: lookup
     question: How many points is each egg worth?
     answer: 1 point per egg on your birds at the end of the game.
-    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers", "Overview > Game End and Scoring"]
+    sections: ["The Four Actions > Option 3. Lay Eggs and Activate Grassland Bird Powers", "Overview > Game End and Scoring"]
   - id: ws-tie
     category: lookup
     question: How are ties broken at the end of the game?
     answer: The tied player with the most unused food tokens wins; if still tied, they share the victory.
-    sections: ["Overview > Game End and Scoring"]
+    sections: ["Overview > Game End and Scoring", "Quick Reference > End Game Scoring"]
   - id: ws-max-birds-habitat
     category: lookup
     question: How many birds can I have in one habitat?
     answer: At most 5 birds in each habitat.
-    sections: ["Option 1. Play a Bird From Your Hand"]
+    sections: ["The Four Actions > Option 1. Play a Bird From Your Hand"]
   - id: ws-pink-once
     category: lookup
     question: How often can I use a pink power?
@@ -67,12 +68,12 @@ questions:
     category: lookup
     question: On the blue side of the goal board, how many points can a goal give?
     answer: 1 point per targeted item, up to a maximum of 5.
-    sections: ["Scoring End-of-Round Goals > Blue: One point per targeted item"]
+    sections: ["End of the Round > Scoring End-of-Round Goals > Blue: One point per targeted item"]
   - id: ws-green-tie
     category: lookup
     question: Two players tie for first on a green goal worth 5, 2 or 1 points. What do they score?
     answer: 3 points each ((5 + 2) / 2, rounded down), and 2nd place is not awarded to anyone else.
-    sections: ["Scoring End-of-Round Goals > Green: Majority of the targeted item"]
+    sections: ["End of the Round > Scoring End-of-Round Goals > Green: Majority of the targeted item", "Quick Reference > End of the Round"]
   - id: ws-bonus-start
     category: lookup
     question: How many bonus cards does each player start with?
@@ -84,72 +85,72 @@ questions:
     category: edge
     question: Can I use the 2-food-for-1 exchange when I'm not playing a bird?
     answer: No, spending any 2 food as 1 only works when playing birds, not in other parts of the game.
-    sections: ["Option 1. Play a Bird From Your Hand"]
+    sections: ["The Four Actions > Option 1. Play a Bird From Your Hand"]
   - id: ws-cached-food-pay
     category: edge
     question: Can I pay for a bird with food cached on my other birds?
     answer: No, food must come from next to your player mat; cached food can't be spent (it's worth 1 point at game end).
-    sections: ["Option 1. Play a Bird From Your Hand", "Bird Powers"]
+    sections: ["The Four Actions > Option 1. Play a Bird From Your Hand", "Bird Powers"]
   - id: ws-reroll-feeder
     category: edge
     question: When am I allowed to reroll the birdfeeder?
     answer: If all dice in the tray show the same face (including a single die) when you're about to gain food, you may reroll all 5; if the tray is empty, all 5 dice are thrown back in.
-    sections: ["Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder"]
+    sections: ["The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder", "Quick Reference > Round Overview"]
   - id: ws-choice-die
     category: edge
     question: Does a die face showing two food types give me two tokens?
     answer: No, you gain 1 token of either type; always 1 food token per die.
-    sections: ["Option 2. Gain Food and Activate Forest Bird Powers"]
+    sections: ["The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers"]
   - id: ws-hand-limit
     category: edge
     question: Is there a hand limit for bird cards?
     answer: No, there is no hand limit.
-    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers"]
+    sections: ["The Four Actions > Option 4. Draw Bird Cards and Activate Wetland Bird Powers"]
   - id: ws-tray-refill
     category: edge
     question: When I take a face-up bird card, when is the tray refilled?
     answer: At the end of your turn, not immediately.
-    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck"]
+    sections: ["The Four Actions > Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck", "Bird Powers > Card-Drawing Powers"]
   - id: ws-deck-empty
     category: edge
     question: What happens if the bird deck runs out?
     answer: Reshuffle all discarded bird cards to form a new deck.
-    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck"]
+    sections: ["The Four Actions > Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck"]
   - id: ws-excess-eggs
     category: edge
     question: What if I can lay more eggs than my birds have room for?
     answer: The excess is lost; a bird can never hold more eggs than its egg limit.
-    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers"]
+    sections: ["The Four Actions > Option 3. Lay Eggs and Activate Grassland Bird Powers"]
   - id: ws-when-played-again
     category: edge
     question: Can I use a bird's "when played" power again later in the game?
     answer: No, white "when played" powers only work when the bird is played.
-    sections: ["Bird Powers", "Option 1. Play a Bird From Your Hand"]
+    sections: ["Bird Powers", "The Four Actions > Option 1. Play a Bird From Your Hand"]
   - id: ws-brown-on-play
     category: edge
     question: Do brown powers trigger when I play a bird into that row?
     answer: No, playing a bird only triggers its own "when played" power; it is the only action that doesn't activate a row.
-    sections: ["Option 1. Play a Bird From Your Hand", "Overview > Turn Structure"]
+    sections: ["The Four Actions > Option 1. Play a Bird From Your Hand", "Overview > Turn Structure"]
   - id: ws-powers-optional
     category: edge
     question: Do I have to use a bird's power when it activates?
     answer: No, bird powers are always optional.
-    sections: ["Bird Powers", "Overview > Turn Structure", "Option 2. Gain Food and Activate Forest Bird Powers", "Option 3. Lay Eggs and Activate Grassland Bird Powers", "Option 4. Draw Bird Cards and Activate Wetland Bird Powers"]
+    sections: ["Bird Powers", "Overview > Turn Structure", "The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers", "The Four Actions > Option 3. Lay Eggs and Activate Grassland Bird Powers", "The Four Actions > Option 4. Draw Bird Cards and Activate Wetland Bird Powers"]
   - id: ws-star-nest
     category: edge
     question: What nest type does a star nest count as?
     answer: Star nests are wild and match any nest type for goals, bonus cards and bird powers.
-    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers"]
+    sections: ["The Four Actions > Option 3. Lay Eggs and Activate Grassland Bird Powers"]
   - id: ws-goal-zero
     category: edge
     question: Do I still put a cube on the goal board if I score nothing for that goal?
     answer: Yes, every player places an action cube on the goal board, even for 0 points.
-    sections: ["Scoring End-of-Round Goals"]
+    sections: ["End of the Round > Scoring End-of-Round Goals", "Quick Reference > End of the Round"]
   - id: ws-cache-no-tokens
     category: edge
     question: What if there are no food tokens left when a power tells me to cache food?
     answer: The rules say to cache discarded cards instead; elsewhere they say to use a temporary substitute for any food token type that runs out.
-    sections: ["Bird Powers", "Option 2. Gain Food and Activate Forest Bird Powers > Managing food tokens"]
+    sections: ["Bird Powers", "The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers > Managing food tokens"]
   - id: ws-hand-public
     category: edge
     question: Do I have to keep my hand of bird cards secret?
@@ -159,24 +160,24 @@ questions:
     category: edge
     question: Are my food tokens hidden from other players?
     answer: No, food tokens are public information.
-    sections: ["Option 2. Gain Food and Activate Forest Bird Powers"]
+    sections: ["The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers"]
   - id: ws-card-for-food
     category: edge
     question: When gaining food, how many cards can I discard for extra food?
     answer: At most 1, and only if the slot shows the card-to-food conversion; the extra food comes from dice still in the birdfeeder.
-    sections: ["Option 2. Gain Food and Activate Forest Bird Powers"]
+    sections: ["The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers"]
 
   # ---- vocab -----------------------------------------------------------
   - id: ws-vocab-tower-empty
     category: vocab
     question: What do I do when the dice tower runs dry?
     answer: When the birdfeeder tray is empty, throw all 5 dice back in.
-    sections: ["Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder"]
+    sections: ["The Four Actions > Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder", "Quick Reference > Round Overview"]
   - id: ws-vocab-food-for-egg
     category: vocab
     question: Can I buy an extra egg with food?
     answer: If your lay-eggs slot shows the food-to-egg conversion, you may pay at most 1 food to lay 1 additional egg.
-    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers"]
+    sections: ["The Four Actions > Option 3. Lay Eggs and Activate Grassland Bird Powers"]
   - id: ws-vocab-stash
     category: vocab
     question: What's a card stashed under a bird worth?
@@ -186,12 +187,75 @@ questions:
     category: vocab
     question: When does the card market get refreshed?
     answer: Empty spaces on the bird tray refill at the end of a turn; at the end of each round the remaining face-up cards are discarded and replaced.
-    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck", "Overview > Round Structure", "End of the Round"]
+    sections: ["The Four Actions > Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck", "Overview > Round Structure", "End of the Round", "Quick Reference > End of the Round", "Bird Powers > Card-Drawing Powers"]
   - id: ws-vocab-moves-last
     category: vocab
     question: How many moves do I get in the final round?
     answer: 5 turns in round 4.
     sections: ["Overview > Round Structure"]
+
+  # ---- appendix ----------------------------------------------------------
+  # Specific birds, bonus cards and power types: answered only by the appendix.
+  - id: wsa-cardinal
+    category: appendix
+    question: What does the Northern Cardinal's power do?
+    answer: WHEN ACTIVATED, gain 1 of its specific food from the supply.
+    sections: ["Bird Powers > Food-Gaining Powers > Food from the supply"]
+  - id: wsa-goldfinch
+    category: appendix
+    question: What happens when I play an American Goldfinch?
+    answer: WHEN PLAYED, gain 3 of its specific food from the supply.
+    sections: ["Bird Powers > Food-Gaining Powers > Food from the supply"]
+  - id: wsa-crow
+    category: appendix
+    question: How does the American Crow's power work?
+    answer: WHEN ACTIVATED, discard 1 egg from any of your other birds to gain food from the supply; you need an egg on another bird to use it.
+    sections: ["Bird Powers > Food-Gaining Powers > Food from the supply"]
+  - id: wsa-blue-jay
+    category: appendix
+    question: What does the Blue Jay do?
+    answer: WHEN ACTIVATED, gain 1 of a specific food from the birdfeeder if available; you may cache it on the Blue Jay.
+    sections: ["Bird Powers > Food-Gaining Powers > caching food"]
+  - id: wsa-predator
+    category: appendix
+    question: How do predator hunting powers work?
+    answer: Look at the top card of the deck; if its wingspan is less than the size on the power, tuck it behind the predator (1 point at game end); if equal or larger, discard it.
+    sections: ["Bird Powers > Hunting and Fishing Powers"]
+  - id: wsa-photographer
+    category: appendix
+    question: How does the Photographer bonus card score?
+    answer: Count your played birds with a color in their name; each bird counts once even with several colors.
+    sections: ["Bonus Cards > Name-Related Bonuses"]
+  - id: wsa-large-bird
+    category: appendix
+    question: Does a bird with a wingspan of exactly 65cm count for the Large Bird Specialist?
+    answer: No, it counts birds with wingspans over 65cm; exactly 65cm does not count.
+    sections: ["Bonus Cards > Other Bonuses"]
+  - id: wsa-passerine
+    category: appendix
+    question: Does a 30cm bird count for the Passerine Specialist bonus?
+    answer: Yes, it counts birds with wingspans of 30cm or less, and exactly 30cm counts.
+    sections: ["Bonus Cards > Other Bonuses"]
+  - id: wsa-catbird
+    category: appendix
+    question: What does the Gray Catbird's power do?
+    answer: WHEN ACTIVATED, repeat a brown power on another bird in the same habitat.
+    sections: ["Bird Powers > Other Powers"]
+  - id: wsa-mallard
+    category: appendix
+    question: What does the Mallard's power do?
+    answer: WHEN ACTIVATED, draw 1 card, from the deck or the face-up cards.
+    sections: ["Bird Powers > Card-Drawing Powers"]
+  - id: wsa-flock-points
+    category: appendix
+    question: How many points is a card tucked under a flocking bird worth?
+    answer: 1 point at the end of the game.
+    sections: ["Bird Powers > Flocking Powers", "Bird Powers > Powers on bird cards fall into 3 categories:", "Overview > Game End and Scoring"]
+  - id: wsa-move-habitat
+    category: appendix
+    question: Which birds can move to a different habitat, and when?
+    answer: Birds such as Bewick's Wren and Song Sparrow may, when activated, move to another habitat if they are to the right of all other birds in their habitat.
+    sections: ["Bird Powers > Other Powers"]
 
   # ---- not_addressed -----------------------------------------------------
   - id: ws-na-trade

@@ -30,7 +30,7 @@ def download(url: str, dest: Path) -> None:
     tmp.replace(dest)
 
 
-def add(game: str, edition: str | None = None, file: str | None = None, log=print) -> list[dict]:
+def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print) -> list[dict]:
     editions = manifest.editions(game)
     if edition is None:
         if len(editions) > 1:
@@ -39,8 +39,13 @@ def add(game: str, edition: str | None = None, file: str | None = None, log=prin
     if edition not in editions:
         raise IngestError(f"Unknown edition {edition!r} for {game}. Known: {list(editions)}")
     docs = editions[edition]["docs"]
+    doc_ids = [d["id"] for d in docs]
+    if doc_id is not None:
+        if doc_id not in doc_ids:
+            raise IngestError(f"Unknown document {doc_id!r} for {game} {edition}. Known: {doc_ids}")
+        docs = [d for d in docs if d["id"] == doc_id]
     if file and len(docs) > 1:
-        raise IngestError("--file only works for editions with a single document.")
+        raise IngestError(f"{game} {edition} has several documents {doc_ids}; say which one this file is with --doc.")
 
     db = store.connect()
     report = []
@@ -58,7 +63,7 @@ def add(game: str, edition: str | None = None, file: str | None = None, log=prin
             raise IngestError(
                 f"{game} {edition} '{doc['title']}' has no official download link "
                 f"({doc.get('source', 'no source')}). Get the PDF yourself, then run:\n"
-                f"  bgrules add {game} --edition {edition} --file /path/to/rulebook.pdf"
+                f"  bgrules add {game} --edition {edition} --doc {doc['id']} --file /path/to/{doc['id']}.pdf"
             )
 
         digest = sha256_of(dest)

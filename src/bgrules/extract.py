@@ -22,6 +22,7 @@ class Line:
     bbox: tuple[float, float, float, float]  # x0, top, x1, bottom in PDF points
     is_heading: bool
     is_subheading: bool = False  # a labelled step ("b) Settlement ...") that starts a subsection
+    is_part: bool = False  # a page title ("BIRD POWERS") that heads the sections after it
 
 
 @dataclass
@@ -203,62 +204,138 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             if re.fullmatch(r"[A-Z]|\d{1,3}", ln["text"].strip()):
                 continue  # almanac divider letters; page numbers
             subheading = not heading and is_subheading(ln)
+            part = heading and sum(any(h.get("part") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts) for c in chars) > len(chars) / 2
             out.append(
                 Line(
                     text=ln["text"], page=page_no, column=column, bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]),
-                    is_heading=heading, is_subheading=subheading,
+                    is_heading=heading, is_subheading=subheading, is_part=part,
                 )
             )
         return out
 
-    lines: list[Line] = []
-    if hints.get("layout") == "boxes":
-        for page_no, box_no, raw in _box_lines(pdf_path, pages, keep_char):
-            lines += to_lines([raw], page_no, box_no)
-        return lines
+    def table_lines(page, page_no: int) -> list[Line]:
+        """`layout: table`: rows of names beside shared text (Wingspan's bird
+        powers), split into records by the table's horizontal divider lines.
+        Within each record, headings and full-width text come first, then the
+        cells column by column, so each power sentence stays intact with its
+        birds listed before it instead of woven through it."""
+        bounds = hints["table"]["column_bounds"]
+        words = page.extract_words(extra_attrs=["fontname", "size"])
+        words.sort(key=lambda w: (w["top"], w["x0"]))
+        rows: list[list[dict]] = []
+        for w in words:
+            if rows and abs(rows[-1][0]["top"] - w["top"]) < 2.5:
+                rows[-1].append(w)
+            else:
+                rows.append([w])
+        cells: list[tuple[int, list[dict]]] = []  # (row index, words)
+        for r, row in enumerate(rows):
+            row.sort(key=lambda w: w["x0"])
+            cells.append((r, [row[0]]))
+            for a, b in zip(row, row[1:]):
+                # Split at a wide gap, or where a cell inside the table crosses a
+                # column edge (power text runs close to the explanation beside it).
+                # Cells starting in the first column may run across: those are
+                # full-width intro lines.
+                inside = cells[-1][1][0]["x0"] >= bounds[0] - 4
+                crosses = inside and any(a["x1"] <= bd + 2 and b["x0"] >= bd - 2 for bd in bounds[1:])
+                if b["x0"] - a["x1"] > GUTTER_MIN_GAP or crosses:
+                    cells.append((r, [b]))
+                else:
+                    cells[-1][1].append(b)
 
+        seps = sorted({l["top"] for l in page.lines if abs(l["top"] - l["bottom"]) < 1 and l["x0"] >= 0 and l["x1"] - l["x0"] > 50})
+        # Order within a column by row, then left to right: an icon glyph
+        # mid-sentence ("Discard 1 [egg] from ...") nudges words a fraction of
+        # a point up or down, so exact heights would scramble the sentence.
+        bands: dict[int, list[tuple[int, tuple, Line]]] = {}
+        for r, ws in cells:
+            raw = {"text": " ".join(w["text"] for w in ws), "chars": ws,
+                   "x0": min(w["x0"] for w in ws), "x1": max(w["x1"] for w in ws),
+                   "top": min(w["top"] for w in ws), "bottom": max(w["bottom"] for w in ws)}
+            col = sum(raw["x0"] >= b - 4 for b in bounds)
+            wide = col == 0 and raw["x1"] > bounds[0] + 20
+            for ln in to_lines([raw], page_no, col):
+                lead = wide or ln.is_heading or ln.is_subheading
+                key = (r, raw["x0"]) if lead else (col, r, raw["x0"])
+                bands.setdefault(sum(s <= raw["top"] for s in seps), []).append((0 if lead else 1, key, ln))
+        out: list[Line] = []
+        for band in sorted(bands):
+            items = bands[band]
+            # A heading or intro line mid-band starts a new piece: cells above
+            # it (the end of the previous record) stay before it.
+            lead_rows = sorted(key[0] for kind, key, _ in items if kind == 0)
+            def piece(kind, key):
+                row = key[0] if kind == 0 else key[1]
+                return sum(lr <= row for lr in lead_rows)
+            out += [ln for _, _, ln in sorted(items, key=lambda i: (piece(i[0], i[1]), i[0], i[1]))]
+        return out
+
+    def layout_for(page_no: int) -> str:
+        """`layout` is one mode for the whole document, or a list of
+        {pages: [first, last], layout: mode}; pages not listed use columns.
+        Modes: columns (fixed columns, `columns` hint), rows (read straight
+        across the page: keeps table rows together), boxes (pdfminer text boxes)."""
+        spec = hints.get("layout", "columns")
+        if isinstance(spec, list):
+            return next((r["layout"] for r in spec if r["pages"][0] <= page_no <= r["pages"][1]), "columns")
+        return spec
+
+    def page_lines(page, page_no: int, columns: int) -> list[Line]:
+        if columns == 1:
+            return to_lines(page.extract_text_lines(return_chars=True), page_no, 0)
+        # Full-width lines (an intro paragraph across both columns) are read
+        # whole; the stretches between them are read column by column, so
+        # reading order stays top to bottom.
+        out: list[Line] = []
+        mid = page.width / 2
+        full = [ln for ln in page.extract_text_lines(return_chars=True) if _is_full_width(ln, mid)]
+        full_keys = {_char_key(c) for ln in full for c in ln["chars"]}
+        cols_only = page.filter(lambda o: o["object_type"] != "char" or _char_key(o) not in full_keys)
+        width = page.width / columns
+        y = 0.0
+        for band in [*full, None]:
+            y_end = band["top"] if band else page.height
+            if y_end > y:
+                for col in range(columns):
+                    region = cols_only.crop((col * width, y, (col + 1) * width, y_end))
+                    out += to_lines(region.extract_text_lines(return_chars=True), page_no, col)
+            if band:
+                out += to_lines([band], page_no, FULL_WIDTH)
+                y = max(y, band["bottom"])
+        return out
+
+    by_page: dict[int, list[Line]] = {}
     with pdfplumber.open(pdf_path) as pdf:
-        for page_no, page in enumerate(pdf.pages, start=1):
-            if page_no not in pages:
+        wanted = [p for p in pages if p <= len(pdf.pages)]
+        box_pages = [p for p in wanted if layout_for(p) == "boxes"]
+        for page_no in wanted:
+            if page_no in box_pages:
                 continue
-            page = page.dedupe_chars().filter(keep)
-            if columns == 1:
-                lines += to_lines(page.extract_text_lines(return_chars=True), page_no, 0)
-                continue
-
-            # Full-width lines (an intro paragraph across both columns) are read
-            # whole; the stretches between them are read column by column, so
-            # reading order stays top to bottom.
-            mid = page.width / 2
-            full = [ln for ln in page.extract_text_lines(return_chars=True) if _is_full_width(ln, mid)]
-            full_keys = {_char_key(c) for ln in full for c in ln["chars"]}
-            cols_only = page.filter(lambda o: o["object_type"] != "char" or _char_key(o) not in full_keys)
-            width = page.width / columns
-
-            y = 0.0
-            for band in [*full, None]:
-                y_end = band["top"] if band else page.height
-                if y_end > y:
-                    for col in range(columns):
-                        region = cols_only.crop((col * width, y, (col + 1) * width, y_end))
-                        lines += to_lines(region.extract_text_lines(return_chars=True), page_no, col)
-                if band:
-                    lines += to_lines([band], page_no, FULL_WIDTH)
-                    y = max(y, band["bottom"])
-    return lines
+            page = pdf.pages[page_no - 1].dedupe_chars().filter(keep)
+            if layout_for(page_no) == "table":
+                by_page[page_no] = table_lines(page, page_no)
+            else:
+                by_page[page_no] = page_lines(page, page_no, 1 if layout_for(page_no) == "rows" else columns)
+    for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char):
+        by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
+    return [ln for p in sorted(by_page) for ln in by_page[p]]
 
 
-def _box_lines(pdf_path: str, pages: range, keep_char):
+def _box_lines(pdf_path: str, pages: list[int], keep_char):
     """Free-form layouts (`layout: boxes`): let pdfminer group characters into
     text boxes, so side-by-side boxes (main text, sidebars, card text) stay
     apart, then yield each box's lines in reading order, as
     (page_no, box_no, line) with `line` shaped like a pdfplumber text line
-    and holding only the characters `keep_char` accepts."""
+    and holding only the characters `keep_char` accepts. `pages` must exist
+    in the document."""
     from pdfminer.high_level import extract_pages
     from pdfminer.layout import LAParams, LTAnno, LTChar, LTTextBox
 
-    page_numbers = [p - 1 for p in pages if p < 10_000]
-    for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=page_numbers or None, laparams=LAParams())):
+    if not pages:
+        return
+    pages = sorted(pages)
+    for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=LAParams())):
         h = layout.height
         for box_no, box in enumerate(b for b in layout if isinstance(b, LTTextBox)):
             for tl in box:
@@ -297,8 +374,22 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
     sections: list[Section] = []
     current: Section | None = None
     for ln in lines:
+        if ln.is_part:
+            # A page title ("BIRD POWERS"): the sections after it sit under it.
+            # The same title atop a later page is a running header: skip it.
+            name = normalize_heading(ln.text)
+            if name != part:
+                part = name
+                current = Section(heading=name, page_start=ln.page, heading_lines=[ln])
+                sections.append(current)
+            continue
         if ln.is_heading:
-            if current is not None and not current.lines:
+            title_only = current is not None and current.part is None and current.heading == part
+            if current is not None and current.lines and normalize_heading(ln.text) == current.heading and ln.page != current.page_start:
+                # Running header: the same title printed atop a later page
+                # ("BIRD POWERS"). The current section continues.
+                continue
+            if current is not None and not current.lines and not title_only:
                 # Heading wrapped onto a second line: merge into the same heading.
                 current.heading = f"{current.heading} {normalize_heading(ln.text)}"
                 current.heading_lines.append(ln)

@@ -40,6 +40,26 @@ def test_sections_merge_wrapped_headings_and_switch_parts():
     assert secs[2].page_start == 6
 
 
+def test_page_titles_head_sections_and_repeat_as_running_headers():
+    def title(text, page):
+        ln = line(text, page=page, heading=True)
+        ln.is_part = True
+        return ln
+
+    lines = [
+        title("BIRD POWERS", 6),
+        line("food-gaining powers", page=6, heading=True),
+        line("Gain 1 food.", page=6),
+        title("BIRD POWERS", 8),  # running header: same title atop a later page
+        line("More food powers.", page=8),
+        line("egg-laying powers", page=8, heading=True),
+        line("Lay 1 egg.", page=8),
+    ]
+    secs = build_sections(lines)
+    assert [s.path for s in secs] == [["Bird Powers", "Food-Gaining Powers"], ["Bird Powers", "Egg-Laying Powers"]]
+    assert secs[0].text == "Gain 1 food. More food powers."
+
+
 def test_passages_split_on_sentence_and_fold_short_tail():
     sec = Section(heading="Long", page_start=1)
     sec.lines = [line("x" * 400 + "."), line("y" * 400 + "."), line("z" * 50 + ".")]
