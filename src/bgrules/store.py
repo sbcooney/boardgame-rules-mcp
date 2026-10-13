@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS passages (
     citation_id TEXT PRIMARY KEY, section_id TEXT, game TEXT, edition TEXT, doc_id TEXT,
     ord INTEGER, page INTEGER, text TEXT, spans TEXT
 );
+-- Official changes published after a rulebook was printed (errata): which
+-- section of the errata document changes which section of the rulebook.
+CREATE TABLE IF NOT EXISTS amendments (
+    game TEXT, edition TEXT, doc_id TEXT, source_section TEXT, target_doc TEXT,
+    target_section TEXT, summary TEXT, printed_rule TEXT, included_in TEXT
+);
 """
 
 
@@ -53,7 +59,19 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     db.row_factory = sqlite3.Row
     db.executescript(SCHEMA)
     _migrate_shared_fts(db)
+    _migrate_doc_columns(db)
     return db
+
+
+def _migrate_doc_columns(db: sqlite3.Connection) -> None:
+    """Add columns introduced after the first indexes were built."""
+    cols = {r["name"] for r in db.execute("PRAGMA table_info(docs)")}
+    with db:
+        if "source_type" not in cols:
+            db.execute("ALTER TABLE docs ADD COLUMN source_type TEXT DEFAULT 'rulebook'")
+        if "page_offset" not in cols:
+            # printed page = PDF page + page_offset (a cover or insert shifts them)
+            db.execute("ALTER TABLE docs ADD COLUMN page_offset INTEGER DEFAULT 0")
 
 
 def slug(text: str) -> str:
@@ -97,13 +115,20 @@ def replace_doc(db: sqlite3.Connection, game: str, edition: str, doc: dict, pdf_
     """Replace everything indexed for one document. Returns passage count."""
     doc_id = doc["id"]
     with db:
-        for table in ("passages", "sections", "docs"):
+        for table in ("passages", "sections", "docs", "amendments"):
             db.execute(f"DELETE FROM {table} WHERE game=? AND edition=? AND doc_id=?", (game, edition, doc_id))
 
         db.execute(
-            "INSERT INTO docs VALUES (?, ?, ?, ?, ?, ?)",
-            (game, edition, doc_id, doc.get("title", doc_id), str(pdf_path), sha256),
+            "INSERT INTO docs (game, edition, doc_id, title, pdf_path, sha256, source_type, page_offset) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (game, edition, doc_id, doc.get("title", doc_id), str(pdf_path), sha256,
+             doc.get("source_type", "rulebook"), doc.get("extraction", {}).get("printed_page_offset", 0)),
         )
+        for a in doc.get("amends", []):
+            db.execute(
+                "INSERT INTO amendments VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (game, edition, doc_id, a["source_section"], a["target_doc"], a["target_section"],
+                 a["summary"], a.get("printed_rule", ""), a.get("included_in", "")),
+            )
         seen: set[str] = set()
         n_passages = 0
         for ord_, sec in enumerate(sections):
@@ -138,7 +163,7 @@ class LookupError_(Exception):
 
 def installed(db: sqlite3.Connection) -> list[dict]:
     rows = db.execute(
-        """SELECT d.game, d.edition, d.doc_id, d.title, COUNT(s.section_id) AS sections
+        """SELECT d.game, d.edition, d.doc_id, d.title, d.source_type, COUNT(s.section_id) AS sections
            FROM docs d LEFT JOIN sections s USING (game, edition, doc_id)
            GROUP BY d.game, d.edition, d.doc_id ORDER BY d.game, d.edition"""
     )
@@ -159,27 +184,69 @@ def resolve_edition(db: sqlite3.Connection, game: str, edition: str | None) -> s
     return edition
 
 
+def _doc(db: sqlite3.Connection, game: str, edition: str, doc_id: str) -> sqlite3.Row:
+    return db.execute(
+        "SELECT title, pdf_path, source_type, page_offset FROM docs WHERE game=? AND edition=? AND doc_id=?",
+        (game, edition, doc_id),
+    ).fetchone()
+
+
+def amendments_for(db: sqlite3.Connection, game: str, edition: str, doc_id: str, path: list[str]) -> list[dict]:
+    """Official changes to this rulebook section, each with a citation of the
+    errata text, what the printed rule says, and which printings include it."""
+    path_str = " > ".join(path)
+    out = []
+    for a in db.execute("SELECT * FROM amendments WHERE game=? AND edition=? AND target_doc=?", (game, edition, doc_id)):
+        if not (path_str == a["target_section"] or path_str.startswith(a["target_section"] + " > ")):
+            continue
+        src = db.execute(
+            """SELECT p.* FROM passages p JOIN sections s USING (section_id)
+               WHERE p.game=? AND p.edition=? AND p.doc_id=? AND
+                     (SELECT group_concat(value, ' > ') FROM json_each(s.path)) LIKE ? ORDER BY s.ord, p.ord LIMIT 1""",
+            (game, edition, a["doc_id"], a["source_section"] + "%"),
+        ).fetchone()
+        entry = {"summary": a["summary"], "printed_rule": a["printed_rule"], "included_in": a["included_in"]}
+        if src is not None:
+            sdoc = _doc(db, game, edition, a["doc_id"])
+            spath = db.execute("SELECT path FROM sections WHERE section_id=?", (src["section_id"],)).fetchone()["path"]
+            entry["source"] = {
+                "citation_id": src["citation_id"], "document": sdoc["title"], "source_type": sdoc["source_type"],
+                "section_path": json.loads(spath), "printed_page": src["page"] + (sdoc["page_offset"] or 0), "quote": src["text"],
+            }
+        out.append(entry)
+    return out
+
+
 def citation(db: sqlite3.Connection, row: sqlite3.Row) -> dict:
     sec = db.execute("SELECT path FROM sections WHERE section_id=?", (row["section_id"],)).fetchone()
-    doc = db.execute(
-        "SELECT title, pdf_path FROM docs WHERE game=? AND edition=? AND doc_id=?",
-        (row["game"], row["edition"], row["doc_id"]),
-    ).fetchone()
-    return {
+    doc = _doc(db, row["game"], row["edition"], row["doc_id"])
+    path = json.loads(sec["path"])
+    out = {
         "citation_id": row["citation_id"],
         "section_id": row["section_id"],
         "game": row["game"],
         "edition": row["edition"],
         "document": doc["title"],
-        "source_type": "rulebook",
-        "section_path": json.loads(sec["path"]),
-        # M0: printed page numbers match PDF pages for the documents indexed so far.
-        "printed_page": row["page"],
+        "source_type": doc["source_type"] or "rulebook",
+        "section_path": path,
+        "printed_page": row["page"] + (doc["page_offset"] or 0),
         "pdf_page": row["page"],
         "quote": row["text"],
         "spans": json.loads(row["spans"]),
         "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={row['page']}",
     }
+    amended = amendments_for(db, row["game"], row["edition"], row["doc_id"], path)
+    if amended:
+        out["amended_by"] = amended
+    return out
+
+
+def official_changes(db: sqlite3.Connection) -> dict:
+    """Per game edition, the official changes not in older printed rulebooks."""
+    out: dict[str, list[dict]] = {}
+    for a in db.execute("SELECT game, edition, summary, included_in FROM amendments ORDER BY game"):
+        out.setdefault(f"{a['game']} {a['edition']}", []).append({"summary": a["summary"], "included_in": a["included_in"]})
+    return out
 
 
 def query_terms(query: str) -> list[str]:
@@ -272,27 +339,29 @@ def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | N
     if len(docs) > 1:
         raise LookupError_(f"{game} {edition} has several documents {[d['doc_id'] for d in docs]}; pass document=.")
     doc = docs[0]
+    pdf_page = page - (_doc(db, game, edition, doc["doc_id"])["page_offset"] or 0)
     rows = db.execute(
         """SELECT p.* FROM passages p JOIN sections s USING (section_id)
            WHERE p.game=? AND p.edition=? AND p.doc_id=? ORDER BY s.ord, p.ord""",
         (game, edition, doc["doc_id"]),
     ).fetchall()
-    on_page = [r for r in rows if any(s["page"] == page for s in json.loads(r["spans"]))]
+    on_page = [r for r in rows if any(s["page"] == pdf_page for s in json.loads(r["spans"]))]
     if not on_page:
         raise LookupError_(f"No indexed rules text on page {page} of {doc['title']}.")
     passages = [
         {"citation_id": r["citation_id"], "section_path": json.loads(db.execute("SELECT path FROM sections WHERE section_id=?", (r["section_id"],)).fetchone()["path"])}
         for r in on_page
     ]
-    boxes = [s["bbox"] for r in on_page for s in json.loads(r["spans"]) if s["page"] == page]
+    boxes = [s["bbox"] for r in on_page for s in json.loads(r["spans"]) if s["page"] == pdf_page]
     return {
         "game": game,
         "edition": edition,
         "document": doc["title"],
         "printed_page": page,
         "passages": passages,
-        "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={page}",
+        "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={pdf_page}",
         "_boxes": boxes,
+        "_pdf_page": pdf_page,
     }, doc["pdf_path"]
 
 
@@ -336,25 +405,31 @@ def get_section(db: sqlite3.Connection, section_id: str) -> dict:
     sec = db.execute("SELECT * FROM sections WHERE section_id=?", (section_id,)).fetchone()
     if sec is None:
         raise LookupError_(f"No section {section_id!r}. Use search_rules or lookup_term to find section ids.")
-    doc = db.execute("SELECT title, pdf_path FROM docs WHERE game=? AND edition=? AND doc_id=?", (sec["game"], sec["edition"], sec["doc_id"])).fetchone()
+    doc = _doc(db, sec["game"], sec["edition"], sec["doc_id"])
+    offset = doc["page_offset"] or 0
     neighbours = db.execute(
         "SELECT section_id, path, ord FROM sections WHERE game=? AND edition=? AND doc_id=? AND ord IN (?, ?) ORDER BY ord",
         (sec["game"], sec["edition"], sec["doc_id"], sec["ord"] - 1, sec["ord"] + 1),
     ).fetchall()
-    return {
+    out = {
         "section_id": sec["section_id"],
         "game": sec["game"],
         "edition": sec["edition"],
         "document": doc["title"],
+        "source_type": doc["source_type"] or "rulebook",
         "section_path": json.loads(sec["path"]),
-        "printed_page_start": sec["page_start"],
-        "printed_page_end": sec["page_end"],
+        "printed_page_start": sec["page_start"] + offset,
+        "printed_page_end": sec["page_end"] + offset,
         "text": sec["text"],
         "spans": json.loads(sec["spans"]),
         "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={sec['page_start']}",
         "previous_section": next(({"section_id": n["section_id"], "section_path": json.loads(n["path"])} for n in neighbours if n["ord"] < sec["ord"]), None),
         "next_section": next(({"section_id": n["section_id"], "section_path": json.loads(n["path"])} for n in neighbours if n["ord"] > sec["ord"]), None),
     }
+    amended = amendments_for(db, sec["game"], sec["edition"], sec["doc_id"], json.loads(sec["path"]))
+    if amended:
+        out["amended_by"] = amended
+    return out
 
 
 def lookup_term(db: sqlite3.Connection, game: str, term: str, edition: str | None = None) -> dict:

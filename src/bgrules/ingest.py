@@ -77,7 +77,7 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
 
         log(f"Extracting {doc['title']}…")
         lines = extract_lines(str(dest), doc.get("extraction", {}))
-        sections = build_sections(lines, doc.get("parts"))
+        sections = build_sections(lines, doc.get("parts"), preamble_heading=doc.get("extraction", {}).get("preamble_heading", "Introduction"))
         n = store.replace_doc(db, game, edition, doc, dest, digest, sections)
         content = doc.get("extraction", {}).get("content_pages")
         pages_with_text = {ln.page for ln in lines}

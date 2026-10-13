@@ -1,5 +1,11 @@
 # Official rulebook sources. Links and checksums only — never rulebook content.
 #
+# SOURCE RULE: only publisher-issued documents (rulebooks, official errata in a
+# publisher's rulebook or document). Never community FAQs, wikis or forum posts,
+# however reliable: they may point to an official change, but the change goes in
+# only once a publisher document states it. `source_type: errata` documents can
+# `amend` a rulebook section; answers then give both the printed and the changed rule.
+#
 # extraction hints (from the M0 spike):
 #   columns:       text columns per page; extract each separately, or lines
 #                  from side-by-side columns get interleaved
@@ -190,3 +196,39 @@ spirit-island:
             # map and component labels (FlingaLing), page numbers (20pt).
             body_fonts: [ReemKufi-Regular]
             body_size: [8.5, 12.5]
+        - id: nature-incarnate-changes
+          title: Nature Incarnate Rulebook (Significant Changes)
+          # Official errata: the publisher's Nature Incarnate rulebook (linked as
+          # "Download here" from https://shop.greaterthangames.com/products/spirit-island-nature-incarnate)
+          # lists changes that apply "whether or not you use any content from it".
+          # Only those pages are indexed, so expansion rules never reach core answers.
+          source_type: errata
+          url: https://www.dropbox.com/scl/fi/h5afz14hti4ldfz69dx7l/SISL-NINC-Rulebook_Web.pdf?rlkey=c8de84rz5wea7xvvsnebgan6s&dl=1
+          sha256: 735ed5bedee3081d1ab1f2a4030023ab4b213aea1391cede252a6eb96effbe34
+          extraction:
+            layout: boxes
+            content_pages: [6, 7]  # PDF pages; printed pages 5-6
+            printed_page_offset: -1  # the cover isn't numbered: printed page = PDF page - 1
+            preamble_heading: Significant Changes  # the page title is drawn as a graphic, not text
+            heading_fonts:
+              - {name: FlingaLingBold, min_size: 30, part: true}  # "SIGNIFICANT CHANGES"
+            subheadings:
+              - {pattern: '^[^a-z]{6,}$', fonts: [ReemKufi-Regular], min_size: 11.5, max_size: 12.5}  # "BLIGHT ERRATA"
+              - {fonts: [FlingaLingBold], min_size: 16.5, max_size: 17.5}  # sidebar titles
+            body_fonts: [ReemKufi-Regular]
+            body_size: [8.5, 12.5]
+          amends:
+            - source_section: Significant Changes > BLIGHT ERRATA
+              target_doc: rulebook
+              target_section: Game Setup > Invader Board
+              summary: >-
+                Setup: start with exactly 1 additional Blight on the Blight Card or Blight space. A Healthy
+                Island card counts as "2 per player, +1"; without a Blight Card, the Blight space counts as
+                "5 per player, +1" (e.g. 1 player: 3 Blight; 4 players: 9). Setup only: nothing changes when
+                the Blight Card flips.
+              printed_rule: >-
+                Core rulebooks printed before the 14th printing (including the PDF indexed here) say to place
+                the amount of Blight shown on the card, with no extra Blight.
+              included_in: >-
+                Published in the Nature Incarnate rulebook, which says it applies whether or not you use any
+                Nature Incarnate content; printed in the core rulebook from the 14th printing onward.

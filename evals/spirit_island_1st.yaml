@@ -14,6 +14,7 @@ core: [
   si-phases, si-health, si-lose, si-terror-victory,
   si-ravage-blight-once, si-dahan-fight-back-defend, si-cascade, si-pay-slow, si-remove-fear,
   si-timer, si-vocab-natives, si-vocab-mana,
+  si-errata-2p, si-errata-flip,
   si-na-trade-cards, si-na-competitive,
 ]
 
@@ -218,6 +219,31 @@ questions:
     question: How do we scare the colonists away for good?
     answer: Generate Fear to earn Fear Cards and raise the Terror Level, which makes the victory condition easier (Level 2 no Towns or Cities, Level 3 no Cities).
     sections: ["Game Concepts > Fear and Terror", "Game Concepts > Victory and Defeat"]
+
+  # ---- errata ----------------------------------------------------------
+  # Answers depend on an official change missing from older printed rulebooks
+  # (Blight Errata, Nature Incarnate rulebook p.5). A correct answer gives BOTH
+  # the printed rule and the official change, and which printings have which.
+  - id: si-errata-2p
+    category: errata
+    question: How much Blight goes on the Healthy Island card in a 2-player game?
+    answer: Officially 5 - the Blight Errata adds exactly 1 to the card's 2 per player. Core rulebooks before the 14th printing say to place only the amount shown (4).
+    sections: ["Significant Changes > BLIGHT ERRATA", "Game Setup > Invader Board"]
+  - id: si-errata-no-card
+    category: errata
+    question: If we play without a Blight Card, how much Blight goes on the Blight space?
+    answer: Officially 5 per player, +1. Core rulebooks before the 14th printing say to use the amount printed on the Invader Board, with no extra Blight.
+    sections: ["Significant Changes > BLIGHT ERRATA", "Game Setup > Invader Board"]
+  - id: si-errata-flip
+    category: errata
+    question: When the Blight Card flips to its Blighted Island side, do we add the extra Blight again?
+    answer: No - the Blight Errata is a setup-only change; nothing changes when the Blight Card flips.
+    sections: ["Significant Changes > BLIGHT ERRATA"]
+  - id: si-errata-setup-3p
+    category: errata
+    question: We're setting up for 3 players. How much Blight do we start with?
+    answer: Officially 7 on a Healthy Island card (2 per player, +1 from the Blight Errata). Core rulebooks before the 14th printing say 6.
+    sections: ["Significant Changes > BLIGHT ERRATA", "Game Setup > Invader Board"]
 
   # ---- not_addressed -----------------------------------------------------
   - id: si-na-trade-cards

@@ -252,6 +252,12 @@ def main() -> int:
                     if q["category"] == "not_addressed"
                     else f"Expected ruling: {q['answer']}\nRulebook sections that settle it: {', '.join(q['sections'])}"
                 )
+                if q["category"] == "errata":
+                    expectation += (
+                        "\nThis rule was officially changed after older rulebooks were printed. 'correct' requires BOTH the "
+                        "official change and what older printed rulebooks say, with which printings have which; an answer "
+                        "giving only one of them is 'partial'."
+                    )
                 grade_key = sha(key, expectation, args.grader_model, GRADER_PROMPT)
                 if rec.get("grade_key") != grade_key or args.fresh:
                     gcmd = ["claude", "-p", GRADER_PROMPT.format(question=q["question"], expectation=expectation, answer=answer_text),

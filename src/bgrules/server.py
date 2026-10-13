@@ -25,7 +25,16 @@ When answering a rules question:
 - Rules differ between editions; always state which edition you are citing.
 - Copy quotes exactly from `quote`. If you shorten or splice a quote, check it with verify_quote first.
 - To let the user check a citation: show_passage shows the rulebook page with the passage highlighted;
-  open_in_rulebook opens the PDF on their computer at that page."""
+  open_in_rulebook opens the PDF on their computer at that page.
+
+Official changes (errata):
+- Some rules were officially changed after older rulebooks were printed. A result with `amended_by` is one of
+  them. Then give BOTH: what the printed rule says (cite the rulebook), and the official change (cite its
+  source document and page), and say which printings include the change - the player's own rulebook may show
+  either version. Do not silently give only one.
+- list_games lists each game's official changes. When a user starts playing or sets up a game, mention that
+  game's official changes up front, before they matter.
+- Only official, publisher-issued documents are indexed. Don't present fan FAQs or wikis as official rules."""
 
 mcp = MCPServer("bgrules", instructions=INSTRUCTIONS)
 
@@ -42,8 +51,9 @@ def _call(fn, *args, **kwargs) -> dict:
 
 @mcp.tool()
 def list_games() -> dict:
-    """List the games, editions and rulebook documents installed on this machine."""
-    return _call(lambda db: {"installed": store.installed(db)})
+    """List the games, editions and rulebook documents installed on this machine,
+    and each game's official changes (errata) that older printed rulebooks lack."""
+    return _call(lambda db: {"installed": store.installed(db), "official_changes": store.official_changes(db)})
 
 
 @mcp.tool()
@@ -110,7 +120,8 @@ def get_page(game: str, page: int, edition: str | None = None, document: str | N
     finally:
         db.close()
     boxes = info.pop("_boxes")
-    return [info, Image(data=render.render(pdf_path, page, boxes, scale=1.25), format="png")]
+    pdf_page = info.pop("_pdf_page")
+    return [info, Image(data=render.render(pdf_path, pdf_page, boxes, scale=1.25), format="png")]
 
 
 def _open_pdf_at(pdf_path: str, page: int) -> str:
@@ -152,7 +163,7 @@ def open_in_rulebook(citation_id: str) -> dict:
     finally:
         db.close()
     try:
-        app = _open_pdf_at(pdf_path, cite["printed_page"])
+        app = _open_pdf_at(pdf_path, cite["pdf_page"])
     except (OSError, subprocess.CalledProcessError) as e:
         return {"opened": False, "error": str(e), "open_link": cite["open_link"]}
     return {"opened": True, "app": app, "printed_page": cite["printed_page"], "section_path": cite["section_path"]}
@@ -164,6 +175,16 @@ def verify_quote(citation_id: str, text: str) -> dict:
     whitespace and curly vs straight quotes; '...' may join fragments in order).
     Use before presenting a shortened or spliced quote."""
     return _call(store.verify_quote, citation_id, text)
+
+
+@mcp.prompt(name="setup-game")
+def setup_game(game: str, players: int) -> str:
+    """Walk through setting up a game from the rulebook, flagging official changes."""
+    return (
+        f"Walk me through setting up {game} for {players} players, using only the bgrules tools. "
+        "First call list_games and tell me about any official changes for this game that affect setup, "
+        "including what older printed rulebooks say instead. Then go step by step, citing section and page."
+    )
 
 
 @mcp.prompt(name="ask-rules")

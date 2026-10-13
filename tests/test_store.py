@@ -60,6 +60,41 @@ def test_other_games_do_not_change_a_games_ranking(db, tmp_path):
     assert all(r["game"] == "demo" for r in after["results"])
 
 
+def test_errata_amend_rulebook_sections_and_use_printed_page_numbers(db, tmp_path):
+    change = Section(heading="Significant Changes", page_start=6, subheading="BLIGHT ERRATA")
+    change.lines = [_line("Start the game with exactly 1 additional Blight on the card.", 6, 100)]
+    errata = {
+        "id": "changes", "title": "Later Rulebook (Significant Changes)", "source_type": "errata",
+        "extraction": {"printed_page_offset": -1},
+        "amends": [{
+            "source_section": "Significant Changes > BLIGHT ERRATA", "target_doc": "rules",
+            "target_section": "Almanac > Robber", "summary": "Add 1 Blight at setup.",
+            "printed_rule": "Older printings add none.", "included_in": "14th printing onward.",
+        }],
+    }
+    store.replace_doc(db, "demo", "1", errata, tmp_path / "later.pdf", "y", [change])
+
+    robber = store.search(db, "demo", "How is the robber moved?")["results"][0]
+    [amendment] = robber["amended_by"]
+    assert amendment["printed_rule"] == "Older printings add none."
+    assert amendment["source"]["source_type"] == "errata"
+    assert amendment["source"]["printed_page"] == 5  # PDF page 6, cover unnumbered
+    assert amendment["source"]["quote"].startswith("Start the game with exactly 1 additional Blight")
+
+    # Sections the erratum doesn't target are untouched.
+    roads = store.search(db, "demo", "How many roads per path?")["results"][0]
+    assert roads["section_path"] == ["Almanac", "Roads"] and "amended_by" not in roads
+
+    # The erratum itself is searchable, labelled as errata, cited by printed page.
+    hit = store.search(db, "demo", "additional Blight at the start")["results"][0]
+    assert (hit["source_type"], hit["printed_page"], hit["pdf_page"]) == ("errata", 5, 6)
+    assert store.official_changes(db) == {"demo 1": [{"summary": "Add 1 Blight at setup.", "included_in": "14th printing onward."}]}
+
+    # Page lookups take printed page numbers.
+    info, _ = store.page_contents(db, "demo", 5, document="changes")
+    assert (info["printed_page"], info["_pdf_page"]) == (5, 6)
+
+
 def test_page_contents_lists_passages_on_page(db):
     info, _ = store.page_contents(db, "demo", 11)
     assert [p["section_path"] for p in info["passages"]] == [["Almanac", "Robber"], ["Almanac", "Roads"]]

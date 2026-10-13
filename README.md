@@ -63,7 +63,7 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 | --- | --- | --- |
 | Catan (2020 edition) | Official PDF, auto-downloaded | Working |
 | Wingspan (base game: rulebook r24 + appendix r17) | User-supplied PDFs from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0): `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` | Working |
-| Spirit Island (core rulebook) | Official PDF, auto-downloaded (Greater Than Games' link): `bgrules add spirit-island` | Working |
+| Spirit Island (core rulebook + official errata) | Official PDFs, auto-downloaded (Greater Than Games' links): `bgrules add spirit-island` | Working |
 
 ## Results
 
@@ -106,10 +106,13 @@ Wingspan's synonym list ("dice tower" → birdfeeder, "reroll" → throw, "marke
 | lookup | 14 | 57% | 86% | 86% | – |
 | edge | 20 | 70% | 90% | 90% | – |
 | vocab | 5 | 40% | 80% | 80% | – |
+| errata (official changes) | 4 | 75% | 75% | 100% | – |
 | not_addressed | 4 | – | – | – | 50% |
-| **all answerable** | 39 | 62% | 87% | 87% | – |
+| **all answerable** | 43 | 63% | 86% | 88% | – |
 
 The densest of the three rulebooks (32 pages, about twice Catan's text), with no synonym list yet. Several questions that sound unanswerable are covered by sidebars ("Is there a time limit?" by *The Urgency of War*; "Do we rewind a mistake?" by *Whoops!*), so the not-addressed set was chosen with care.
+
+**Official changes (errata).** Spirit Island's setup rules were officially changed after older printings: the Nature Incarnate rulebook (p. 5) adds 1 Blight at setup, and says the change applies whether or not you use the expansion. Only that publisher-issued page is indexed (community FAQs are not used as sources), and it's linked to the core rulebook's setup section: any answer drawing on that section carries the change (`amended_by`), and the server instructs the model to give both the printed rule and the official change, with which printings have which. `list_games` reports each game's official changes so they can be raised when a game is set up.
 
 Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording, so their 100% is optimistic. The *independent* questions are the fairer test: written by a Catan player without seeing the synonym list, they score 80%. The miss ("How many cards do I deal out?") assumes a mechanic Catan doesn't have; no cards are dealt, which keyword search can't bridge.
 
