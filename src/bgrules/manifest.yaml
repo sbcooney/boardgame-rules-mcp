@@ -17,11 +17,14 @@ catan:
           sha256: 3fed941bf202314ed462d4d0cdfb0384c97fe04166b48a7186833b3f6f4ac024
           extraction:
             columns: 2
-            heading_fonts: [{name: Garamond-BoldCondensed-SC800, min_size: 12}]  # small caps: normalize case
+            content_pages: [2, 14]  # skip cover, credits, index
+            heading_fonts:
+              - {name: Garamond-BoldCondensed-SC800, min_size: 12}  # small caps: normalize case
+              - {name: Garamond-BoldCondensed, min_size: 13}  # "The Turn in Detail", "2. Trade"
             body_fonts: [Garamond-BookCondensed, Garamond-BoldCondensed]
-          structure_hints:
-            rules_pages: [2, 6]
-            almanac_pages: [6, 15]
+          parts:  # top level of each section's path; a part starts at its first heading
+            - {name: Game Rules}
+            - {name: Almanac, first_heading: Build (Building)}
     "2025":
       docs:
         - id: rulebook
