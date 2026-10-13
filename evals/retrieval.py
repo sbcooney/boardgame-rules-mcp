@@ -18,6 +18,12 @@ from bgrules import store
 CATEGORY_ORDER = ["lookup", "edge", "vocab", "vocab_holdout", "independent", "not_addressed"]
 
 
+def is_hit(got: str, expected: list[str]) -> bool:
+    """A result hits if it is an expected section or a subsection of one
+    ("Game Rules > 3. Build > b) Settlement ..." is within "Game Rules > 3. Build")."""
+    return any(got == e or got.startswith(e + " > ") for e in expected)
+
+
 def run(path: Path, k_values=(1, 3, 5)) -> tuple[list[dict], dict]:
     spec = yaml.safe_load(path.read_text())
     db = store.connect()
@@ -30,7 +36,7 @@ def run(path: Path, k_values=(1, 3, 5)) -> tuple[list[dict], dict]:
             row["correct"] = not res["found"]
         else:
             for k in k_values:
-                row[f"hit@{k}"] = any(s in q["sections"] for s in got[:k])
+                row[f"hit@{k}"] = any(is_hit(s, q["sections"]) for s in got[:k])
             row["correct"] = row[f"hit@{max(k_values)}"]
         rows.append(row)
 

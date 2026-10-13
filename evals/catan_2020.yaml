@@ -59,7 +59,7 @@ questions:
     category: lookup
     question: How many knights do you need for Largest Army?
     answer: The first player to play 3 knight cards takes it; another player who has played more knights takes it from them.
-    sections: ["Almanac > Largest Army", "Almanac > Knight Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Largest Army", "Almanac > Knight Cards", "Game Rules > 4. Special Cases"]
   - id: longest-road-length
     category: lookup
     question: How long does a road have to be to get the Longest Road card?
@@ -84,7 +84,7 @@ questions:
     category: lookup
     question: A 7 is rolled and I have 9 resource cards. How many do I discard?
     answer: 4 (half, rounded down). Only players with more than 7 cards discard.
-    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 3. Build"]
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 4. Special Cases"]
   - id: most-common-numbers
     category: lookup
     question: Which numbers get rolled most often?
@@ -106,7 +106,7 @@ questions:
     category: edge
     question: Can I play a development card on the same turn I bought it?
     answer: No, except a victory point card that brings you to 10 points (VP cards can be revealed the turn you buy them).
-    sections: ["Almanac > Development Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Development Cards", "Game Rules > 4. Special Cases"]
   - id: knight-before-roll
     category: edge
     question: Can I play a knight card before I roll the dice?
@@ -116,7 +116,7 @@ questions:
     category: edge
     question: Can I play two knight cards in the same turn?
     answer: No, only 1 development card (a knight or a progress card) per turn.
-    sections: ["Almanac > Development Cards", "Almanac > Progress Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Development Cards", "Almanac > Progress Cards", "Game Rules > 4. Special Cases"]
   - id: trade-off-turn
     category: edge
     question: Can two other players trade with each other while it's my turn?
@@ -146,7 +146,7 @@ questions:
     category: edge
     question: Can the robber be moved back to the desert?
     answer: Yes, it can go on any other terrain hex's number token or on the desert.
-    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards", "Game Rules > 4. Special Cases"]
   - id: break-longest-road
     category: edge
     question: Can I break someone's longest road?
@@ -247,7 +247,7 @@ questions:
     category: vocab_holdout
     question: Am I allowed to put the bandit on the desert?
     answer: Yes, the robber can be moved to any other terrain hex's number token or to the desert.
-    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Almanac > Knight Cards", "Game Rules > 4. Special Cases"]
   - id: holdout-town-cards
     category: vocab_holdout
     question: How many cards does a town get when its number is rolled?
@@ -262,7 +262,7 @@ questions:
     category: vocab_holdout
     question: What happens to a player with a huge hand when someone throws a seven?
     answer: Anyone holding more than 7 resource cards discards half of them, rounded down.
-    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 3. Build"]
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 4. Special Cases"]
   - id: holdout-house-adjacent
     category: vocab_holdout
     question: Can I put a house on the corner right next to another house?
@@ -272,12 +272,12 @@ questions:
     category: vocab_holdout
     question: How many soldiers do I need to play to get the biggest army bonus?
     answer: 3 knight cards for Largest Army (worth 2 VP); someone who plays more takes it.
-    sections: ["Almanac > Largest Army", "Almanac > Knight Cards", "Almanac > Soldier Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Largest Army", "Almanac > Knight Cards", "Almanac > Soldier Cards", "Game Rules > 4. Special Cases"]
   - id: holdout-action-card
     category: vocab_holdout
     question: Can I use an action card the moment I buy it?
     answer: No, a development card can't be played the turn it was bought, except a victory point card that wins the game.
-    sections: ["Almanac > Development Cards", "Game Rules > 3. Build"]
+    sections: ["Almanac > Development Cards", "Game Rules > 4. Special Cases"]
   - id: holdout-road-water
     category: vocab_holdout
     question: Can roads go along the water's edge?
@@ -311,7 +311,7 @@ questions:
     category: independent
     question: Do I have to steal a card from someone when I roll a 7 in Catan?
     answer: Stealing 1 random card from a player with a settlement or city next to the robber's new hex is a step of the procedure (the rules don't offer it as optional); if no one is adjacent or they have no cards, you get nothing.
-    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 3. Build", "Almanac > Knight Cards"]
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 4. Special Cases", "Almanac > Knight Cards"]
   - id: user-settlement-cost
     category: independent
     question: What does it cost to build a settlement in Catan?

@@ -21,6 +21,7 @@ class Line:
     column: int  # 0-based column on the page
     bbox: tuple[float, float, float, float]  # x0, top, x1, bottom in PDF points
     is_heading: bool
+    is_subheading: bool = False  # a labelled step ("b) Settlement ...") that starts a subsection
 
 
 @dataclass
@@ -48,10 +49,12 @@ class Section:
     part: str | None = None  # top-level division, e.g. "Game Rules" or "Almanac"
     lines: list[Line] = field(default_factory=list)
     heading_lines: list[Line] = field(default_factory=list)
+    subheading: str | None = None  # set for a subsection: its label line, e.g. "b) Settlement Requires: ..."
 
     @property
     def path(self) -> list[str]:
-        return [self.part, self.heading] if self.part else [self.heading]
+        path = [self.part, self.heading] if self.part else [self.heading]
+        return path + [self.subheading] if self.subheading else path
 
     @property
     def page_end(self) -> int:
@@ -155,6 +158,8 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     heading_fonts = hints.get("heading_fonts", [])
     body_fonts = hints.get("body_fonts", [])
     body_min, body_max = hints.get("body_size", [0, 1_000])
+    sub = hints.get("subheadings", {})
+    sub_pattern = re.compile(sub["pattern"]) if sub.get("pattern") else None
     first, last = hints.get("content_pages", [1, 10_000])
     pages = range(first, last + 1)
 
@@ -182,7 +187,18 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 continue  # heading-font symbols in diagrams ("=", "+")
             if re.fullmatch(r"[A-Z]", ln["text"].strip()):
                 continue  # alphabetical divider letters between almanac entries
-            out.append(Line(text=ln["text"], page=page_no, column=column, bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]), is_heading=heading))
+            subheading = (
+                not heading
+                and sub_pattern is not None
+                and sub_pattern.match(ln["text"]) is not None
+                and sum(_matches(c["fontname"], sub.get("fonts", [])) for c in chars) > len(chars) / 2
+            )
+            out.append(
+                Line(
+                    text=ln["text"], page=page_no, column=column, bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]),
+                    is_heading=heading, is_subheading=subheading,
+                )
+            )
         return out
 
     lines: list[Line] = []
@@ -237,6 +253,12 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
         else:
             if current is None:
                 current = Section(heading=preamble_heading, page_start=ln.page, part=part)
+                sections.append(current)
+            elif ln.is_subheading:
+                # A labelled step starts a subsection of the current section. The
+                # label line stays in the text: "b) Settlement Requires: Brick, ..."
+                # is itself the rule.
+                current = Section(heading=current.heading, page_start=ln.page, part=current.part, subheading=" ".join(ln.text.split()))
                 sections.append(current)
             current.lines.append(ln)
         # A part may start at a heading that wraps, so check after merging.

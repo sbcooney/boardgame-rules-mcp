@@ -58,6 +58,10 @@ catan:
             heading_fonts:
               - {name: Garamond-BoldCondensed-SC800, min_size: 12}  # small caps (initials print larger): normalize case
               - {name: Garamond-BoldCondensed, min_size: 13, max_size: 13}  # "The Turn in Detail"; larger = diagram symbols
+              - {name: Garamond-BookCondensed, min_size: 13, max_size: 13}  # "4. Special Cases" (regular weight)
+            subheadings:  # labelled steps inside a section: "a) Road Requires: ...", "1. Resource Production"
+              pattern: '^(?:[a-z]\)|\d+\.)\s'
+              fonts: [Garamond-BoldCondensed]
             body_fonts: [Garamond-BookCondensed, Garamond-BoldCondensed]
             body_size: [9, 12.5]  # rules text is 11-12pt; sidebars are 13-17pt, card art under 8pt
           parts:  # top level of each section's path; a part starts at its first heading
