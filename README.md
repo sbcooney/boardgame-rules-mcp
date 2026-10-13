@@ -63,7 +63,7 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 | --- | --- | --- |
 | Catan (2020 edition) | Official PDF, auto-downloaded | Working |
 | Wingspan (base game: rulebook r24 + appendix r17) | User-supplied PDFs from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0): `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` | Working |
-| Spirit Island (core rulebook) | Official PDF, auto-downloaded (Greater Than Games' link): `bgrules add spirit-island` | Working (no eval set yet) |
+| Spirit Island (core rulebook) | Official PDF, auto-downloaded (Greater Than Games' link): `bgrules add spirit-island` | Working |
 
 ## Results
 
@@ -99,9 +99,21 @@ The appendix explains every bird power and bonus card; questions about a specifi
 
 Wingspan's synonym list ("dice tower" → birdfeeder, "reroll" → throw, "market" → bird tray) leaves out words the rulebook already uses with a different meaning ("move" a cube, "score" a goal, player-mat "rows"), which had pushed two appendix answers down. Same caveat as Catan: the vocab questions were written by the list's author, so 80% is optimistic; "When am I allowed to reroll the birdfeeder?", an ordinary edge-case question, going from a miss to #2 is the more honest signal. So are the *independent* questions, written by a Wingspan player without seeing the list: 2 of 3 answerable ones land in the top 5 ("How many cards do I get to start?" loses to the Swift-Start guide section), and neither of their two questions the text can't answer (nest odds, dice faces, shown only as pictures) is flagged not-found.
 
+#### Spirit Island (core rulebook): [`evals/spirit_island_1st.yaml`](evals/spirit_island_1st.yaml)
+
+| Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
+| --- | --- | --- | --- | --- | --- |
+| lookup | 14 | 57% | 86% | 86% | – |
+| edge | 20 | 70% | 90% | 90% | – |
+| vocab | 5 | 40% | 80% | 80% | – |
+| not_addressed | 4 | – | – | – | 50% |
+| **all answerable** | 39 | 62% | 87% | 87% | – |
+
+The densest of the three rulebooks (32 pages, about twice Catan's text), with no synonym list yet. Several questions that sound unanswerable are covered by sidebars ("Is there a time limit?" by *The Urgency of War*; "Do we rewind a mistake?" by *Whoops!*), so the not-addressed set was chosen with care.
+
 Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording, so their 100% is optimistic. The *independent* questions are the fairer test: written by a Catan player without seeing the synonym list, they score 80%. The miss ("How many cards do I deal out?") assumes a mechanic Catan doesn't have; no cards are dealt, which keyword search can't bridge.
 
-Run it: `uv run python evals/retrieval.py --misses` (Catan) or `uv run python evals/retrieval.py evals/wingspan_1st.yaml --misses`
+Run it: `uv run python evals/retrieval.py [evals/<game>.yaml] --misses` (Catan by default)
 
 Keyword overlap can't reliably tell that a rulebook *doesn't* cover something, so that judgment is left to the model reading the returned passages. The end-to-end eval measures it.
 

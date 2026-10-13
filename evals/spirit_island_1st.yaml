@@ -1,0 +1,242 @@
+# Spirit Island (core rulebook) eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed rulebook text, and the sections that settle each one.
+# The glossary (Glossary/Index) and reference pages (Iconography, Presence
+# Track) restate many rules; they're credited where they state the rule in full.
+# Spirit Island has no synonym list yet, so `vocab` is untouched by one.
+game: spirit-island
+edition: "1st"
+game_name: Spirit Island
+edition_desc: core game rules
+
+core: [
+  si-phases, si-health, si-lose, si-terror-victory,
+  si-ravage-blight-once, si-dahan-fight-back-defend, si-cascade, si-pay-slow, si-remove-fear,
+  si-timer, si-vocab-natives, si-vocab-mana,
+  si-na-trade-cards, si-na-competitive,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: si-phases
+    category: lookup
+    question: What are the phases of a turn?
+    answer: Spirit Phase, Fast Power Phase, Invader Phase, Slow Power Phase, Time Passes.
+    sections: ["Sequence of Play > WHO DECIDES?", "Presence Track"]
+  - id: si-invader-deck
+    category: lookup
+    question: How is the Invader Deck made up?
+    answer: 12 cards - 3 Stage I on top, then 4 Stage II, then 5 Stage III on the bottom - chosen at random from each stage.
+    sections: ["Game Setup > MAKING THE INVADER DECK"]
+  - id: si-fear-markers
+    category: lookup
+    question: How many Fear Markers go in the Fear Pool?
+    answer: 4 per player.
+    sections: ["Game Setup > Invader Board"]
+  - id: si-fear-deck
+    category: lookup
+    question: How many Fear Cards are in the Fear Deck?
+    answer: 9, split into 3 groups of 3 by the Terror Level 2 and 3 dividers.
+    sections: ["Game Setup > Invader Board"]
+  - id: si-health
+    category: lookup
+    question: How much Health do Explorers, Towns and Cities have?
+    answer: Explorers 1, Towns 2, Cities 3 (and they deal the same amount of Damage when Ravaging).
+    sections: ["Game Concepts > Invaders", "Glossary/Index", "Iconography", "Game Concepts > Blight > TRACKING DAMAGE"]
+  - id: si-dahan-health
+    category: lookup
+    question: How much Health do the Dahan have?
+    answer: 2 Health; each Dahan deals 2 Damage when fighting back.
+    sections: ["Game Concepts > The Dahan", "Glossary/Index", "Iconography", "Game Concepts > Blight > TRACKING DAMAGE"]
+  - id: si-fear-destroy
+    category: lookup
+    question: How much Fear does destroying a Town or a City generate?
+    answer: 1 Fear per Town, 2 Fear per City.
+    sections: ["Game Concepts > Invaders", "Game Concepts > Fear and Terror", "Game Concepts > Single-Turn Effects > FEAR FROM DESTRUCTION", "Game Concepts > Power and Fear Effects", "Iconography", "Glossary/Index"]
+  - id: si-sacred-site
+    category: lookup
+    question: What is a Sacred Site?
+    answer: A land where a Spirit has more than one (2 or more) Presence.
+    sections: ["Game Concepts > Presence and Sacred Sites", "Glossary/Index", "Iconography"]
+  - id: si-lose
+    category: lookup
+    question: How can we lose the game?
+    answer: Too much Blight (the Blight Card runs out, usually "you lose"), a Spirit has no Presence left on the Island, or the Invader Deck is empty when you need to Explore.
+    sections: ["Game Concepts > Victory and Defeat"]
+  - id: si-terror-victory
+    category: lookup
+    question: What are the victory conditions at each Terror Level?
+    answer: Terror Level 1 - no Invaders on the Island; Level 2 - no Towns or Cities; Level 3 - no Cities.
+    sections: ["Game Concepts > Victory and Defeat", "Game Concepts > Fear and Terror"]
+  - id: si-gain-power
+    category: lookup
+    question: How do I gain a new Power Card?
+    answer: Choose Minor or Major, draw 4 from that deck and keep 1; after gaining a Major Power you must Forget one Power Card.
+    sections: ["Game Concepts > Gaining Power Cards", "Glossary/Index"]
+  - id: si-elements
+    category: lookup
+    question: What are the Elements?
+    answer: Sun, Moon, Fire, Air, Water, Earth, Plant and Animal.
+    sections: ["Game Concepts > Powers", "Game Concepts > Single-Turn Effects > ELEMENTS"]
+  - id: si-dahan-start
+    category: lookup
+    question: How many Dahan does each Island Board start with?
+    answer: 6.
+    sections: ["Game Concepts > The Dahan"]
+  - id: si-play-time
+    category: lookup
+    question: How long does a game take?
+    answer: About 90-120 minutes once you know the game; a bit shorter with 1-2 players, longer with 4.
+    sections: ["Gameplay Overview"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: si-ravage-blight-once
+    category: edge
+    question: If Ravaging Invaders deal 6 Damage to a land, how much Blight is added?
+    answer: One. 2 or more Damage adds a single Blight, no matter how much Damage is dealt.
+    sections: ["Sequence of Play > Invader Phase > 3a. RAVAGE", "Tips & Tricks > Basic Strategy > GAME TOO HARD?", "Glossary/Index"]
+  - id: si-dahan-fight-back-defend
+    category: edge
+    question: Do the Dahan still fight back if Defend stops all the Invaders' Damage?
+    answer: Yes, they fight back even if the Ravage deals no Damage, but not if the Ravage was skipped or stopped entirely.
+    sections: ["Sequence of Play > Invader Phase > 3a. RAVAGE"]
+  - id: si-cascade
+    category: edge
+    question: What happens when Blight is added to a land that already has Blight?
+    answer: It cascades - add one more Blight to one adjacent land, which can cascade again if that land had Blight too.
+    sections: ["Sequence of Play > Invader Phase > EFFECTS OF BLIGHT", "Game Concepts > Blight", "Glossary/Index"]
+  - id: si-blight-presence
+    category: edge
+    question: What happens to my Presence when Blight is added to its land?
+    answer: One Presence of each Spirit there is destroyed and removed from play (set next to the Island), not returned to the Spirit Panel.
+    sections: ["Sequence of Play > Invader Phase > EFFECTS OF BLIGHT", "Game Concepts > Blight"]
+  - id: si-build-what
+    category: edge
+    question: Does a Build add a Town or a City?
+    answer: A City if the land has more Towns than Cities, otherwise a Town; nothing is built in lands without Invaders.
+    sections: ["Sequence of Play > Invader Phase > 3b. BUILD"]
+  - id: si-explore-where
+    category: edge
+    question: Which lands get an Explorer when the Invaders Explore?
+    answer: Lands of the shown type that contain a Town or City or are adjacent to a Town, City or the Ocean; only one Explorer per land.
+    sections: ["Sequence of Play > Invader Phase > 3c. EXPLORE"]
+  - id: si-pay-slow
+    category: edge
+    question: When do I pay Energy for a Slow Power Card?
+    answer: Immediately in the Spirit Phase, like all Power Cards played, even though its effect resolves later.
+    sections: ["Sequence of Play > Spirit Phase", "Game Concepts > Powers"]
+  - id: si-delay-fast
+    category: edge
+    question: Can I hold a Fast Power and use it in the Slow phase instead?
+    answer: No, a Fast Power must be used in the Fast Power Phase or not at all.
+    sections: ["Sequence of Play > Fast Power Phase"]
+  - id: si-energy-share
+    category: edge
+    question: Can I give some of my Energy to another Spirit?
+    answer: No, Energy is individual and can't be transferred; unspent Energy carries over to your next turn.
+    sections: ["Game Concepts > Energy and Card Plays"]
+  - id: si-card-plays-carry
+    category: edge
+    question: Do unused Card Plays carry over to the next turn?
+    answer: No.
+    sections: ["Game Concepts > Energy and Card Plays"]
+  - id: si-elements-spent
+    category: edge
+    question: Are Elements used up when I meet an Elemental Threshold?
+    answer: No, Elements are only checked, never spent; the same Elements can meet several thresholds.
+    sections: ["Game Concepts > Spirits > ELEMENTAL THRESHOLDS", "Game Concepts > Powers"]
+  - id: si-defend-stack
+    category: edge
+    question: If two Defend effects are used on the same land, do they stack?
+    answer: Yes, they add together, and Defend lasts the whole turn.
+    sections: ["Game Concepts > Power and Fear Effects"]
+  - id: si-remove-fear
+    category: edge
+    question: Does removing a Town (not destroying it) generate Fear?
+    answer: No, only destroying a Town or City generates the automatic Fear; removing or replacing does not.
+    sections: ["Game Concepts > Single-Turn Effects > FEAR FROM DESTRUCTION", "Game Concepts > Power and Fear Effects", "Glossary/Index"]
+  - id: si-push-ocean
+    category: edge
+    question: Can I Push Invaders into the Ocean?
+    answer: No, you can only Push into a valid land, not off the board or into the Ocean.
+    sections: ["Game Concepts > Power and Fear Effects"]
+  - id: si-repeat-elements
+    category: edge
+    question: Does Repeating a Power give me its Elements again?
+    answer: No, and Repeats can't be chained.
+    sections: ["Game Concepts > Power and Fear Effects", "Glossary/Index"]
+  - id: si-damage-heals
+    category: edge
+    question: Does Damage on an Invader carry over to the next turn?
+    answer: No, all Damage clears at the end of the turn when Time Passes.
+    sections: ["Sequence of Play > Time Passes", "Game Concepts > Power and Fear Effects", "Game Concepts > Blight > TRACKING DAMAGE"]
+  - id: si-scenario-vs-adversary
+    category: edge
+    question: If a Scenario and an Adversary contradict each other, which wins?
+    answer: The Scenario takes precedence.
+    sections: ["Gameplay Options > Scenarios"]
+  - id: si-who-decides
+    category: edge
+    question: Who decides where Blight cascades if the players can't agree?
+    answer: For decisions about a land, the Spirit whose starting board it's on; otherwise the game's owner or organizer.
+    sections: ["Sequence of Play > WHO DECIDES?"]
+  - id: si-timer
+    category: edge
+    question: Is there a time limit on choosing Power Cards?
+    answer: Not by default, but any player may set one for the Spirit Phase (a timer or other condition).
+    sections: ["Sequence of Play > THE URGENCY OF WAR"]
+  - id: si-mistake
+    category: edge
+    question: We realised we've been playing a rule wrong for several turns. Do we rewind?
+    answer: No, don't rewind; note the correct rule and use it from then on.
+    sections: ["Tips & Tricks > WHOOPS!"]
+
+  # ---- vocab -----------------------------------------------------------
+  - id: si-vocab-houses
+    category: vocab
+    question: How much damage do the settlers' houses do?
+    answer: Towns deal 2 Damage (and have 2 Health).
+    sections: ["Game Concepts > Invaders", "Glossary/Index", "Iconography", "Sequence of Play > Invader Phase > 3a. RAVAGE"]
+  - id: si-vocab-natives
+    category: vocab
+    question: Do the natives fight back?
+    answer: Yes, surviving Dahan each deal 2 Damage to the Invaders after a Ravage in their land.
+    sections: ["Sequence of Play > Invader Phase > 3a. RAVAGE", "Game Concepts > The Dahan"]
+  - id: si-vocab-corruption
+    category: vocab
+    question: How does corruption spread to other areas?
+    answer: Blight cascades - adding Blight to a land that already has some adds one more to an adjacent land.
+    sections: ["Sequence of Play > Invader Phase > EFFECTS OF BLIGHT", "Game Concepts > Blight", "Glossary/Index"]
+  - id: si-vocab-mana
+    category: vocab
+    question: Does unused mana carry over between turns?
+    answer: Yes, unspent Energy carries over.
+    sections: ["Game Concepts > Energy and Card Plays", "Glossary/Index"]
+  - id: si-vocab-scare
+    category: vocab
+    question: How do we scare the colonists away for good?
+    answer: Generate Fear to earn Fear Cards and raise the Terror Level, which makes the victory condition easier (Level 2 no Towns or Cities, Level 3 no Cities).
+    sections: ["Game Concepts > Fear and Terror", "Game Concepts > Victory and Defeat"]
+
+  # ---- not_addressed -----------------------------------------------------
+  - id: si-na-trade-cards
+    category: not_addressed
+    question: Can one Spirit give a Power Card to another Spirit?
+    answer: null  # Energy and Card Plays can't be shared; Power Cards changing hands isn't addressed
+    sections: []
+  - id: si-na-competitive
+    category: not_addressed
+    question: Is there an official competitive variant?
+    answer: null
+    sections: []
+  - id: si-na-strongest
+    category: not_addressed
+    question: Which Spirit is the strongest?
+    answer: null
+    sections: []
+  - id: si-na-bumped
+    category: not_addressed
+    question: What do we do if someone bumps the table and pieces move?
+    answer: null
+    sections: []
