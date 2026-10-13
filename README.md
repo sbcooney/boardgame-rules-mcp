@@ -69,21 +69,35 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 
 ### Retrieval (server only, no model)
 
-62 Catan 2020 questions in [`evals/catan_2020.yaml`](evals/catan_2020.yaml): direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), questions written independently by a Catan player, and questions the rulebook doesn't answer. A hit means a section that settles the question is among the top results.
+Question sets cover direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), and questions the rulebook doesn't answer. A hit means a section that settles the question (or a subsection of it) is among the top results.
+
+#### Catan (2020 edition): [`evals/catan_2020.yaml`](evals/catan_2020.yaml)
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
-| lookup | 15 | 53% | 67% | 73% | 73% | – |
-| edge | 22 | 82% | 95% | 95% | 95% | – |
-| vocab | 5 | 40% | 60% | 80% | 60% | – |
-| vocab, held out | 10 | 60% | 100% | 100% | 30% | – |
-| independent | 5 | 60% | 60% | 80% | – | – |
+| lookup | 15 | 53% | 73% | 80% | 73% | – |
+| edge | 22 | 73% | 95% | 95% | 95% | – |
+| vocab | 5 | 40% | 80% | 80% | 60% | – |
+| vocab, held out | 10 | 70% | 90% | 100% | 30% | – |
+| independent | 5 | 60% | 80% | 80% | – | – |
 | not_addressed | 5 | – | – | – | – | 40% |
-| **all answerable** | 57 | 65% | 82% | 88% | – | – |
+| **all answerable** | 57 | 63% | 86% | 89% | – | – |
+
+#### Wingspan (base game, rulebook r24): [`evals/wingspan_1st.yaml`](evals/wingspan_1st.yaml)
+
+| Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
+| --- | --- | --- | --- | --- | --- |
+| lookup | 12 | 50% | 92% | 100% | – |
+| edge | 17 | 76% | 82% | 88% | – |
+| vocab | 5 | 20% | 40% | 40% | – |
+| not_addressed | 4 | – | – | – | 25% |
+| **all answerable** | 34 | 59% | 79% | 85% | – |
+
+Wingspan has no synonym list yet, so its numbers show the pipeline on a second publisher's layout with no game-specific tuning beyond fonts. Its misses are wording gaps, like Catan's were ("reroll the birdfeeder" vs the rulebook's "throw all 5 dice back"). Search ranking uses word rarity across everything indexed, so installing another game shifts a game's numbers slightly (results never mix games).
 
 Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording, so their 100% is optimistic. The *independent* questions are the fairer test: written by a Catan player without seeing the synonym list, they score 80%. The miss ("How many cards do I deal out?") assumes a mechanic Catan doesn't have; no cards are dealt, which keyword search can't bridge.
 
-Run it: `uv run python evals/retrieval.py --misses`
+Run it: `uv run python evals/retrieval.py --misses` (Catan) or `uv run python evals/retrieval.py evals/wingspan_1st.yaml --misses`
 
 Keyword overlap can't reliably tell that a rulebook *doesn't* cover something, so that judgment is left to the model reading the returned passages. The end-to-end eval measures it.
 

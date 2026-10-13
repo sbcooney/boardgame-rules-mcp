@@ -1,0 +1,216 @@
+# Wingspan (base game, rulebook r24) eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed rulebook text, and the sections that settle each one.
+# Wingspan has no synonym list yet, so the `vocab` questions here were written
+# before any exists and can test one honestly later.
+game: wingspan
+edition: "1st"
+game_name: Wingspan
+edition_desc: base game rules (rulebook r24)
+
+core: [
+  ws-turns-round2, ws-egg-cost-col3, ws-tie, ws-green-tie,
+  ws-two-for-one, ws-cached-food-pay, ws-reroll-feeder, ws-brown-on-play, ws-powers-optional,
+  ws-vocab-market, ws-vocab-stash,
+  ws-na-trade, ws-na-undo,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: ws-rounds
+    category: lookup
+    question: How many rounds are there in Wingspan?
+    answer: 4 rounds.
+    sections: ["Overview"]
+  - id: ws-turns-round2
+    category: lookup
+    question: How many turns does each player get in round 2?
+    answer: 7. You start with 8 action cubes and use one each round to mark the end-of-round goal (8, 7, 6, 5 turns).
+    sections: ["Overview > Round Structure"]
+  - id: ws-starting-items
+    category: lookup
+    question: What does each player get at the start of the game?
+    answer: A player mat, 8 action cubes of one color, 2 random bonus cards, 5 random bird cards and 5 food tokens (1 of each type).
+    sections: ["Setup > Player Setup"]
+  - id: ws-keep-birds-food
+    category: lookup
+    question: How many starting birds and food can I keep?
+    answer: Keep up to 5 bird cards, discarding 1 food token for each bird you keep (e.g. 2 birds and 3 food).
+    sections: ["Setup > Player Setup"]
+  - id: ws-egg-cost-col3
+    category: lookup
+    question: How many eggs does it cost to play a bird in column 3?
+    answer: 1 egg (columns 2-3 cost 1 egg, columns 4-5 cost 2, the first column costs none).
+    sections: ["Option 1. Play a Bird From Your Hand"]
+  - id: ws-egg-points
+    category: lookup
+    question: How many points is each egg worth?
+    answer: 1 point per egg on your birds at the end of the game.
+    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers", "Overview > Game End and Scoring"]
+  - id: ws-tie
+    category: lookup
+    question: How are ties broken at the end of the game?
+    answer: The tied player with the most unused food tokens wins; if still tied, they share the victory.
+    sections: ["Overview > Game End and Scoring"]
+  - id: ws-max-birds-habitat
+    category: lookup
+    question: How many birds can I have in one habitat?
+    answer: At most 5 birds in each habitat.
+    sections: ["Option 1. Play a Bird From Your Hand"]
+  - id: ws-pink-once
+    category: lookup
+    question: How often can I use a pink power?
+    answer: Once between each of your own turns, when an opponent triggers it.
+    sections: ["Bird Powers"]
+  - id: ws-blue-goal-max
+    category: lookup
+    question: On the blue side of the goal board, how many points can a goal give?
+    answer: 1 point per targeted item, up to a maximum of 5.
+    sections: ["Scoring End-of-Round Goals > Blue: One point per targeted item"]
+  - id: ws-green-tie
+    category: lookup
+    question: Two players tie for first on a green goal worth 5, 2 or 1 points. What do they score?
+    answer: 3 points each ((5 + 2) / 2, rounded down), and 2nd place is not awarded to anyone else.
+    sections: ["Scoring End-of-Round Goals > Green: Majority of the targeted item"]
+  - id: ws-bonus-start
+    category: lookup
+    question: How many bonus cards does each player start with?
+    answer: You're dealt 2 random bonus cards and keep 1.
+    sections: ["Setup > Player Setup", "Bonus Cards"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: ws-two-for-one
+    category: edge
+    question: Can I use the 2-food-for-1 exchange when I'm not playing a bird?
+    answer: No, spending any 2 food as 1 only works when playing birds, not in other parts of the game.
+    sections: ["Option 1. Play a Bird From Your Hand"]
+  - id: ws-cached-food-pay
+    category: edge
+    question: Can I pay for a bird with food cached on my other birds?
+    answer: No, food must come from next to your player mat; cached food can't be spent (it's worth 1 point at game end).
+    sections: ["Option 1. Play a Bird From Your Hand", "Bird Powers"]
+  - id: ws-reroll-feeder
+    category: edge
+    question: When am I allowed to reroll the birdfeeder?
+    answer: If all dice in the tray show the same face (including a single die) when you're about to gain food, you may reroll all 5; if the tray is empty, all 5 dice are thrown back in.
+    sections: ["Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder"]
+  - id: ws-choice-die
+    category: edge
+    question: Does a die face showing two food types give me two tokens?
+    answer: No, you gain 1 token of either type; always 1 food token per die.
+    sections: ["Option 2. Gain Food and Activate Forest Bird Powers"]
+  - id: ws-hand-limit
+    category: edge
+    question: Is there a hand limit for bird cards?
+    answer: No, there is no hand limit.
+    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers"]
+  - id: ws-tray-refill
+    category: edge
+    question: When I take a face-up bird card, when is the tray refilled?
+    answer: At the end of your turn, not immediately.
+    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck"]
+  - id: ws-deck-empty
+    category: edge
+    question: What happens if the bird deck runs out?
+    answer: Reshuffle all discarded bird cards to form a new deck.
+    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck"]
+  - id: ws-excess-eggs
+    category: edge
+    question: What if I can lay more eggs than my birds have room for?
+    answer: The excess is lost; a bird can never hold more eggs than its egg limit.
+    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers"]
+  - id: ws-when-played-again
+    category: edge
+    question: Can I use a bird's "when played" power again later in the game?
+    answer: No, white "when played" powers only work when the bird is played.
+    sections: ["Bird Powers", "Option 1. Play a Bird From Your Hand"]
+  - id: ws-brown-on-play
+    category: edge
+    question: Do brown powers trigger when I play a bird into that row?
+    answer: No, playing a bird only triggers its own "when played" power; it is the only action that doesn't activate a row.
+    sections: ["Option 1. Play a Bird From Your Hand", "Overview > Turn Structure"]
+  - id: ws-powers-optional
+    category: edge
+    question: Do I have to use a bird's power when it activates?
+    answer: No, bird powers are always optional.
+    sections: ["Bird Powers", "Overview > Turn Structure", "Option 2. Gain Food and Activate Forest Bird Powers", "Option 3. Lay Eggs and Activate Grassland Bird Powers", "Option 4. Draw Bird Cards and Activate Wetland Bird Powers"]
+  - id: ws-star-nest
+    category: edge
+    question: What nest type does a star nest count as?
+    answer: Star nests are wild and match any nest type for goals, bonus cards and bird powers.
+    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers"]
+  - id: ws-goal-zero
+    category: edge
+    question: Do I still put a cube on the goal board if I score nothing for that goal?
+    answer: Yes, every player places an action cube on the goal board, even for 0 points.
+    sections: ["Scoring End-of-Round Goals"]
+  - id: ws-cache-no-tokens
+    category: edge
+    question: What if there are no food tokens left when a power tells me to cache food?
+    answer: The rules say to cache discarded cards instead; elsewhere they say to use a temporary substitute for any food token type that runs out.
+    sections: ["Bird Powers", "Option 2. Gain Food and Activate Forest Bird Powers > Managing food tokens"]
+  - id: ws-hand-public
+    category: edge
+    question: Do I have to keep my hand of bird cards secret?
+    answer: No, you may keep your hand private or public.
+    sections: ["Setup > Player Setup"]
+  - id: ws-food-public
+    category: edge
+    question: Are my food tokens hidden from other players?
+    answer: No, food tokens are public information.
+    sections: ["Option 2. Gain Food and Activate Forest Bird Powers"]
+  - id: ws-card-for-food
+    category: edge
+    question: When gaining food, how many cards can I discard for extra food?
+    answer: At most 1, and only if the slot shows the card-to-food conversion; the extra food comes from dice still in the birdfeeder.
+    sections: ["Option 2. Gain Food and Activate Forest Bird Powers"]
+
+  # ---- vocab -----------------------------------------------------------
+  - id: ws-vocab-tower-empty
+    category: vocab
+    question: What do I do when the dice tower runs dry?
+    answer: When the birdfeeder tray is empty, throw all 5 dice back in.
+    sections: ["Option 2. Gain Food and Activate Forest Bird Powers > Managing the birdfeeder"]
+  - id: ws-vocab-food-for-egg
+    category: vocab
+    question: Can I buy an extra egg with food?
+    answer: If your lay-eggs slot shows the food-to-egg conversion, you may pay at most 1 food to lay 1 additional egg.
+    sections: ["Option 3. Lay Eggs and Activate Grassland Bird Powers"]
+  - id: ws-vocab-stash
+    category: vocab
+    question: What's a card stashed under a bird worth?
+    answer: Each tucked card is worth 1 point at the end of the game.
+    sections: ["Bird Powers", "Overview > Game End and Scoring"]
+  - id: ws-vocab-market
+    category: vocab
+    question: When does the card market get refreshed?
+    answer: Empty spaces on the bird tray refill at the end of a turn; at the end of each round the remaining face-up cards are discarded and replaced.
+    sections: ["Option 4. Draw Bird Cards and Activate Wetland Bird Powers > Managing the bird deck", "Overview > Round Structure", "End of the Round"]
+  - id: ws-vocab-moves-last
+    category: vocab
+    question: How many moves do I get in the final round?
+    answer: 5 turns in round 4.
+    sections: ["Overview > Round Structure"]
+
+  # ---- not_addressed -----------------------------------------------------
+  - id: ws-na-trade
+    category: not_addressed
+    question: Can I trade bird cards or food with another player?
+    answer: null
+    sections: []
+  - id: ws-na-timer
+    category: not_addressed
+    question: Is there a time limit on turns?
+    answer: null
+    sections: []
+  - id: ws-na-undo
+    category: not_addressed
+    question: Can I take back a bird after I've placed it on my mat?
+    answer: null
+    sections: []
+  - id: ws-na-tilted-die
+    category: not_addressed
+    question: Do we reroll a die that lands tilted in the birdfeeder?
+    answer: null
+    sections: []
