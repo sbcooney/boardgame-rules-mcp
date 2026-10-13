@@ -294,6 +294,35 @@ questions:
     answer: They show how likely the number is to be rolled; more dots means rolled more often (6 and 8 have 5).
     sections: ["Almanac > Number Tokens"]
 
+  # ---- independent -------------------------------------------------------
+  # Written by a Catan player (the project owner) without seeing the synonym
+  # list (M6). Wording is theirs, verbatim; rulings checked against the rulebook.
+  - id: user-who-goes-first
+    category: independent
+    question: Who goes first in Catan?
+    answer: With the beginners' set-up, the oldest player; with the variable set-up, everyone rolls both dice and the highest roller starts.
+    sections: ["Game Rules > Turn Overview", "Almanac > Starting Set-Up for Beginners", "Almanac > Round One"]
+  - id: user-deal-cards
+    category: independent
+    question: How many cards do I deal out in Catan?
+    answer: None are dealt. Resource cards sit in face-up stacks and development cards in a face-down deck; each player starts with resource cards from the hexes around a starting settlement (the starred one in the beginners' set-up, the second one in the variable set-up).
+    sections: ["Game Rules > Setting Up the Game", "Almanac > Starting Set-Up for Beginners", "Almanac > Round Two", "Almanac > Set-Up Phase"]
+  - id: user-must-steal
+    category: independent
+    question: Do I have to steal a card from someone when I roll a 7 in Catan?
+    answer: Stealing 1 random card from a player with a settlement or city next to the robber's new hex is a step of the procedure (the rules don't offer it as optional); if no one is adjacent or they have no cards, you get nothing.
+    sections: ["Almanac > Rolling a “7” and Activating the Robber", "Game Rules > 3. Build", "Almanac > Knight Cards"]
+  - id: user-settlement-cost
+    category: independent
+    question: What does it cost to build a settlement in Catan?
+    answer: Brick, lumber, wool and grain (one of each).
+    sections: ["Game Rules > 3. Build"]
+  - id: user-how-end
+    category: independent
+    question: How does catan end?
+    answer: When a player has 10 or more victory points during their own turn, they win and the game ends.
+    sections: ["Almanac > Ending the Game", "Game Rules > Ending the Game", "Almanac > Victory Points"]
+
   # ---- not_addressed -----------------------------------------------------
   - id: na-turn-timer
     category: not_addressed

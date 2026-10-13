@@ -69,18 +69,19 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 
 ### Retrieval (server only, no model)
 
-57 Catan 2020 questions in [`evals/catan_2020.yaml`](evals/catan_2020.yaml): direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), and questions the rulebook doesn't answer. A hit means a section that settles the question is among the top results.
+62 Catan 2020 questions in [`evals/catan_2020.yaml`](evals/catan_2020.yaml): direct lookups, rules arguments and edge cases, questions worded differently from the rulebook ("thief" for robber), questions written independently by a Catan player, and questions the rulebook doesn't answer. A hit means a section that settles the question is among the top results.
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
-| lookup | 15 | 53% | 73% | 73% | 73% | – |
+| lookup | 15 | 53% | 67% | 73% | 73% | – |
 | edge | 22 | 82% | 95% | 95% | 95% | – |
 | vocab | 5 | 40% | 60% | 80% | 60% | – |
 | vocab, held out | 10 | 60% | 100% | 100% | 30% | – |
+| independent | 5 | 60% | 60% | 80% | – | – |
 | not_addressed | 5 | – | – | – | – | 40% |
-| **all answerable** | 52 | 65% | 87% | 88% | 73% | – |
+| **all answerable** | 57 | 65% | 82% | 88% | – | – |
 
-Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording. Treat the 100% as optimistic until it's checked against questions written by someone else.
+Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording, so their 100% is optimistic. The *independent* questions are the fairer test: written by a Catan player without seeing the synonym list, they score 80%. The miss ("How many cards do I deal out?") assumes a mechanic Catan doesn't have; no cards are dealt, which keyword search can't bridge.
 
 Run it: `uv run python evals/retrieval.py --misses`
 
