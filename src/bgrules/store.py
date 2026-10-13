@@ -3,10 +3,12 @@
 Everything lives under BGRULES_HOME (default ~/.bgrules): downloaded PDFs and
 index.sqlite. Nothing here is ever committed to the repo.
 
-Search is SQLite FTS5 (porter stemming) over passages, scoped to one game and
-edition. Each result reports `coverage`, the share of the query's content words
-it contains; when the best result's coverage is below MIN_COVERAGE the search
-reports found=false instead of returning weak matches.
+Search is SQLite FTS5 (porter stemming) over passages. Each game edition has
+its own FTS table, so ranking statistics (how rare a word is) come from that
+edition's text alone: installing another game or edition never changes this
+one's results. Each result reports `coverage`, the share of the query's content
+words it contains; when the best result's coverage is below MIN_COVERAGE the
+search reports found=false instead of returning weak matches.
 """
 
 import json
@@ -37,10 +39,6 @@ CREATE TABLE IF NOT EXISTS passages (
     citation_id TEXT PRIMARY KEY, section_id TEXT, game TEXT, edition TEXT, doc_id TEXT,
     ord INTEGER, page INTEGER, text TEXT, spans TEXT
 );
-CREATE VIRTUAL TABLE IF NOT EXISTS passages_fts USING fts5(
-    heading, text, citation_id UNINDEXED, game UNINDEXED, edition UNINDEXED,
-    tokenize = 'porter unicode61'
-);
 """
 
 
@@ -54,11 +52,42 @@ def connect(path: Path | None = None) -> sqlite3.Connection:
     db = sqlite3.connect(path)
     db.row_factory = sqlite3.Row
     db.executescript(SCHEMA)
+    _migrate_shared_fts(db)
     return db
 
 
 def slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def fts_table(game: str, edition: str) -> str:
+    """Name of one game edition's search table (quoted for SQL)."""
+    return '"fts_' + re.sub(r"[^a-z0-9]+", "_", f"{game}__{edition}".lower()) + '"'
+
+
+def rebuild_fts(db: sqlite3.Connection, game: str, edition: str) -> None:
+    """(Re)build an edition's search table from its stored passages."""
+    t = fts_table(game, edition)
+    db.execute(f"DROP TABLE IF EXISTS {t}")
+    db.execute(f"CREATE VIRTUAL TABLE {t} USING fts5(heading, text, citation_id UNINDEXED, tokenize = 'porter unicode61')")
+    db.execute(
+        f"""INSERT INTO {t} (heading, text, citation_id)
+            SELECT (SELECT group_concat(value, ' > ') FROM json_each(s.path)), p.text, p.citation_id
+            FROM passages p JOIN sections s USING (section_id)
+            WHERE p.game=? AND p.edition=? ORDER BY s.ord, p.ord""",
+        (game, edition),
+    )
+
+
+def _migrate_shared_fts(db: sqlite3.Connection) -> None:
+    """Indexes built before per-edition search tables kept one shared table;
+    split it into per-edition tables once, from the stored passages."""
+    if db.execute("SELECT 1 FROM sqlite_master WHERE name='passages_fts'").fetchone() is None:
+        return
+    with db:
+        for r in db.execute("SELECT DISTINCT game, edition FROM docs").fetchall():
+            rebuild_fts(db, r["game"], r["edition"])
+        db.execute("DROP TABLE passages_fts")
 
 
 # ---- writing -------------------------------------------------------------
@@ -68,8 +97,6 @@ def replace_doc(db: sqlite3.Connection, game: str, edition: str, doc: dict, pdf_
     """Replace everything indexed for one document. Returns passage count."""
     doc_id = doc["id"]
     with db:
-        old = [r["citation_id"] for r in db.execute("SELECT citation_id FROM passages WHERE game=? AND edition=? AND doc_id=?", (game, edition, doc_id))]
-        db.executemany("DELETE FROM passages_fts WHERE citation_id=?", [(c,) for c in old])
         for table in ("passages", "sections", "docs"):
             db.execute(f"DELETE FROM {table} WHERE game=? AND edition=? AND doc_id=?", (game, edition, doc_id))
 
@@ -97,11 +124,8 @@ def replace_doc(db: sqlite3.Connection, game: str, edition: str, doc: dict, pdf_
                     (citation_id, section_id, game, edition, doc_id, p_ord, passage.page,
                      passage.text, json.dumps(passage.spans)),
                 )
-                db.execute(
-                    "INSERT INTO passages_fts VALUES (?, ?, ?, ?, ?)",
-                    (" > ".join(sec.path), passage.text, citation_id, game, edition),
-                )
                 n_passages += 1
+        rebuild_fts(db, game, edition)
     return n_passages
 
 
@@ -187,17 +211,17 @@ def search(db: sqlite3.Connection, game: str, query: str, edition: str | None = 
         return {"found": False, "game": game, "edition": edition, "reason": "Query has no searchable words.", "results": []}
 
     groups = expand_terms(game, terms)
+    t = fts_table(game, edition)
     rows = db.execute(
-        """SELECT citation_id, bm25(passages_fts, 4.0, 1.0) AS score FROM passages_fts
-           WHERE passages_fts MATCH ? AND game=? AND edition=? ORDER BY score LIMIT ?""",
-        (_fts_any([w for g in groups for w in g]), game, edition, max_results * 3),
+        f"SELECT citation_id, bm25({t}, 4.0, 1.0) AS score FROM {t} WHERE {t} MATCH ? ORDER BY score LIMIT ?",
+        (_fts_any([w for g in groups for w in g]), max_results * 3),
     ).fetchall()
 
     scored = []
     for r in rows:
         # A term is covered if the passage has it or any of its rulebook synonyms.
         hits = sum(
-            db.execute("SELECT 1 FROM passages_fts WHERE passages_fts MATCH ? AND citation_id=?", (_fts_any(g), r["citation_id"])).fetchone() is not None
+            db.execute(f"SELECT 1 FROM {t} WHERE {t} MATCH ? AND citation_id=?", (_fts_any(g), r["citation_id"])).fetchone() is not None
             for g in groups
         )
         scored.append((hits / len(terms), r["score"], r["citation_id"]))

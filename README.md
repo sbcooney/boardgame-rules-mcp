@@ -75,28 +75,28 @@ Question sets cover direct lookups, rules arguments and edge cases, questions wo
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
-| lookup | 15 | 53% | 80% | 80% | 73% | – |
+| lookup | 15 | 53% | 73% | 73% | 73% | – |
 | edge | 22 | 73% | 95% | 95% | 95% | – |
-| vocab | 5 | 40% | 80% | 80% | 60% | – |
-| vocab, held out | 10 | 70% | 90% | 100% | 30% | – |
-| independent | 5 | 40% | 60% | 80% | – | – |
+| vocab | 5 | 40% | 60% | 80% | 60% | – |
+| vocab, held out | 10 | 60% | 90% | 100% | 30% | – |
+| independent | 5 | 60% | 80% | 80% | – | – |
 | not_addressed | 5 | – | – | – | – | 40% |
-| **all answerable** | 57 | 61% | 86% | 89% | – | – |
+| **all answerable** | 57 | 61% | 84% | 88% | – | – |
 
 #### Wingspan (base game, rulebook r24 + appendix r17): [`evals/wingspan_1st.yaml`](evals/wingspan_1st.yaml)
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 rulebook only | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
-| lookup | 12 | 58% | 83% | 92% | 100% | – |
-| edge | 17 | 71% | 71% | 88% | 88% | – |
+| lookup | 12 | 33% | 83% | 92% | 100% | – |
+| edge | 17 | 71% | 71% | 82% | 88% | – |
 | vocab | 5 | 20% | 40% | 40% | 40% | – |
-| appendix (specific birds, bonus cards) | 12 | 92% | 100% | 100% | – | – |
+| appendix (specific birds, bonus cards) | 12 | 100% | 100% | 100% | – | – |
 | not_addressed | 4 | – | – | – | – | 0% (25%) |
-| **all answerable** | 46 | 67% | 78% | 87% | – | – |
+| **all answerable** | 46 | 63% | 78% | 85% | – | – |
 
-The appendix explains every bird power and bonus card; questions about a specific bird now find it 100% of the time. It costs a little elsewhere: one rulebook lookup ("How many birds per habitat?") drops out of the top 5, and the larger index gives off-topic questions more partial matches. Its bird-power pages are tables (bird names beside shared power text), read with a table layout that keeps each power sentence intact with its birds listed before it.
+The appendix explains every bird power and bonus card; questions about a specific bird now find it 100% of the time. It costs a little elsewhere: a few rulebook questions rank lower or drop out of the top 5 ("How many birds per habitat?"), and the larger index gives off-topic questions more partial matches. Its bird-power pages are tables (bird names beside shared power text), read with a table layout that keeps each power sentence intact with its birds listed before it.
 
-Wingspan has no synonym list yet, so its numbers show the pipeline on a second publisher's layout with no game-specific tuning beyond fonts. Its misses are wording gaps, like Catan's were ("reroll the birdfeeder" vs the rulebook's "throw all 5 dice back"). Search ranking uses word rarity across everything indexed, so installing another game shifts a game's numbers slightly (results never mix games).
+Wingspan has no synonym list yet, so its numbers show the pipeline on a second publisher's layout with no game-specific tuning beyond fonts. Its misses are wording gaps, like Catan's were ("reroll the birdfeeder" vs the rulebook's "throw all 5 dice back"). Each game edition is ranked using only its own text, so installing another game never changes a game's results (verified: Catan's rankings are identical with or without Wingspan installed).
 
 Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording, so their 100% is optimistic. The *independent* questions are the fairer test: written by a Catan player without seeing the synonym list, they score 80%. The miss ("How many cards do I deal out?") assumes a mechanic Catan doesn't have; no cards are dealt, which keyword search can't bridge.
 

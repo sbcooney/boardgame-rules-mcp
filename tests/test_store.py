@@ -49,6 +49,17 @@ def test_verify_quote_normalizes_quotes_and_allows_ellipsis(db):
     assert bad["verified"] is False and "closest_source_text" in bad
 
 
+def test_other_games_do_not_change_a_games_ranking(db, tmp_path):
+    before = store.search(db, "demo", "How is the robber moved?")
+    # Another game full of the same words must not shift demo's scores.
+    other = Section(heading="Robber Rules", page_start=1)
+    other.lines = [_line("robber robber moved moved robber " * 5, 1, 100)]
+    store.replace_doc(db, "other", "1", {"id": "rules", "title": "Rules"}, tmp_path / "o.pdf", "x", [other])
+    after = store.search(db, "demo", "How is the robber moved?")
+    assert [(r["citation_id"], r["coverage"]) for r in after["results"]] == [(r["citation_id"], r["coverage"]) for r in before["results"]]
+    assert all(r["game"] == "demo" for r in after["results"])
+
+
 def test_page_contents_lists_passages_on_page(db):
     info, _ = store.page_contents(db, "demo", 11)
     assert [p["section_path"] for p in info["passages"]] == [["Almanac", "Robber"], ["Almanac", "Roads"]]
