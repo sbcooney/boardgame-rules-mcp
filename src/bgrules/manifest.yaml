@@ -62,6 +62,8 @@ catan:
             subheadings:  # labelled steps inside a section: "a) Road Requires: ...", "1. Resource Production"
               pattern: '^(?:[a-z]\)|\d+\.)\s'
               fonts: [Garamond-BoldCondensed]
+              min_size: 11
+              max_size: 12  # body-size labels only; the 25pt "=" in cost diagrams uses this font too
             body_fonts: [Garamond-BookCondensed, Garamond-BoldCondensed]
             body_size: [9, 12.5]  # rules text is 11-12pt; sidebars are 13-17pt, card art under 8pt
           parts:  # top level of each section's path; a part starts at its first heading
@@ -79,12 +81,28 @@ catan:
 
 wingspan:
   name: Wingspan
+  # Stonemaier's official resources folder. A shared-folder link can only be
+  # downloaded as one large zip, so users fetch the rulebook themselves.
+  official_source: https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0
   editions:
     "1st":
       docs:
         - id: rulebook
-          title: Rulebook
-          source: user_supplied  # hosted on BoardGameGeek, login required
+          title: Rulebook (r24)
+          source: user_supplied  # WS_Rulebook_r24.pdf in the official folder
+          expected_sha256: a008c1ad227723ff644bf57ebcd4b55b6a7e586a973904aec046c2f0cb3ee07a
+          extraction:
+            layout: boxes  # free-form magazine layout: pdfminer text boxes, not fixed columns
+            content_pages: [1, 11]  # page 12 is credits
+            heading_fonts:
+              - {name: ATSMarker, min_size: 29}  # page titles: "THE FOUR ACTIONS"
+              - {name: CardenioModern-Bold, min_size: 19.5, max_size: 20.5}  # "OPTION 1. Play a Bird From Your Hand"
+            subheadings:
+              - {fonts: [CardenioModern-Bold], min_size: 16.5, max_size: 17.5}  # "When you choose to play a bird, do the following:"
+            # Rules text 10-12pt; Cardenio at 12pt labels sidebars ("Designer's Note:").
+            # Dropped: bird card text (8.3pt), Latin names, icon labels (16pt), print slug.
+            body_fonts: [FuturaPT-Light, FuturaPT-Medium, FuturaPT-LightObl, FuturaPTCond-BookObl, FuturaPTCond-Medium, CardenioModern-Bold]
+            body_size: [10, 12.5]
 
 spirit-island:
   name: Spirit Island

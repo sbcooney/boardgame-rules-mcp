@@ -158,41 +158,51 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     heading_fonts = hints.get("heading_fonts", [])
     body_fonts = hints.get("body_fonts", [])
     body_min, body_max = hints.get("body_size", [0, 1_000])
-    sub = hints.get("subheadings", {})
-    sub_pattern = re.compile(sub["pattern"]) if sub.get("pattern") else None
+    sub_rules = hints.get("subheadings", [])
+    if isinstance(sub_rules, dict):
+        sub_rules = [sub_rules]
     first, last = hints.get("content_pages", [1, 10_000])
     pages = range(first, last + 1)
 
-    def is_heading_char(c) -> bool:
-        return any(
-            h["name"] in c["fontname"] and h.get("min_size", 0) - 0.1 <= c["size"] <= h.get("max_size", 1_000) + 0.1
-            for h in heading_fonts
-        )
+    def in_size(c, rule) -> bool:
+        return rule.get("min_size", 0) - 0.1 <= c["size"] <= rule.get("max_size", 1_000) + 0.1
 
-    def keep(obj) -> bool:
-        if obj["object_type"] != "char":
-            return True
-        if is_heading_char(obj):
+    def is_heading_char(c) -> bool:
+        return any(h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts)
+
+    def keep_char(c) -> bool:
+        if is_heading_char(c) or any(_matches(c["fontname"], r.get("fonts", [])) and in_size(c, r) for r in sub_rules):
             return True
         # Body text only in body fonts at body sizes: drops card art, sidebars,
         # decorative borders, watermarks and oversized diagram symbols.
-        return (not body_fonts or _matches(obj["fontname"], body_fonts)) and body_min - 0.1 <= obj["size"] <= body_max + 0.1
+        return (not body_fonts or _matches(c["fontname"], body_fonts)) and body_min - 0.1 <= c["size"] <= body_max + 0.1
+
+    def keep(obj) -> bool:
+        return obj["object_type"] != "char" or keep_char(obj)
+
+    def is_subheading(ln: dict) -> bool:
+        """A labelled step or lead-in that starts a subsection: matches a rule's
+        `pattern` (if any) with most characters in the rule's fonts and sizes."""
+        chars = ln["chars"]
+        for rule in sub_rules:
+            if rule.get("pattern") and not re.match(rule["pattern"], ln["text"]):
+                continue
+            if sum(_matches(c["fontname"], rule.get("fonts", [])) and in_size(c, rule) for c in chars) > len(chars) / 2:
+                return True
+        return False
 
     def to_lines(raw: list[dict], page_no: int, column: int) -> list[Line]:
         out = []
         for ln in raw:
             chars = ln["chars"]
+            if not chars or not ln["text"].strip():
+                continue
             heading = sum(is_heading_char(c) for c in chars) > len(chars) / 2
             if heading and not re.search(r"[A-Za-z]", ln["text"]):
                 continue  # heading-font symbols in diagrams ("=", "+")
-            if re.fullmatch(r"[A-Z]", ln["text"].strip()):
-                continue  # alphabetical divider letters between almanac entries
-            subheading = (
-                not heading
-                and sub_pattern is not None
-                and sub_pattern.match(ln["text"]) is not None
-                and sum(_matches(c["fontname"], sub.get("fonts", [])) for c in chars) > len(chars) / 2
-            )
+            if re.fullmatch(r"[A-Z]|\d{1,3}", ln["text"].strip()):
+                continue  # almanac divider letters; page numbers
+            subheading = not heading and is_subheading(ln)
             out.append(
                 Line(
                     text=ln["text"], page=page_no, column=column, bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]),
@@ -202,6 +212,11 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
         return out
 
     lines: list[Line] = []
+    if hints.get("layout") == "boxes":
+        for page_no, box_no, raw in _box_lines(pdf_path, pages, keep_char):
+            lines += to_lines([raw], page_no, box_no)
+        return lines
+
     with pdfplumber.open(pdf_path) as pdf:
         for page_no, page in enumerate(pdf.pages, start=1):
             if page_no not in pages:
@@ -231,6 +246,46 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                     lines += to_lines([band], page_no, FULL_WIDTH)
                     y = max(y, band["bottom"])
     return lines
+
+
+def _box_lines(pdf_path: str, pages: range, keep_char):
+    """Free-form layouts (`layout: boxes`): let pdfminer group characters into
+    text boxes, so side-by-side boxes (main text, sidebars, card text) stay
+    apart, then yield each box's lines in reading order, as
+    (page_no, box_no, line) with `line` shaped like a pdfplumber text line
+    and holding only the characters `keep_char` accepts."""
+    from pdfminer.high_level import extract_pages
+    from pdfminer.layout import LAParams, LTAnno, LTChar, LTTextBox
+
+    page_numbers = [p - 1 for p in pages if p < 10_000]
+    for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=page_numbers or None, laparams=LAParams())):
+        h = layout.height
+        for box_no, box in enumerate(b for b in layout if isinstance(b, LTTextBox)):
+            for tl in box:
+                chars, text, last = [], "", None
+                for obj in tl:
+                    if isinstance(obj, LTAnno):
+                        if text and not text.endswith(" "):
+                            text += " "
+                        continue
+                    if not isinstance(obj, LTChar):
+                        continue
+                    c = {"fontname": obj.fontname, "size": obj.size, "text": obj.get_text(),
+                         "x0": obj.x0, "x1": obj.x1, "top": h - obj.y1, "bottom": h - obj.y0}
+                    if not keep_char(c):
+                        continue
+                    key = (c["text"], round(c["x0"]), round(c["top"]))
+                    if key == last:
+                        continue  # overprinted duplicate glyph
+                    last = key
+                    chars.append(c)
+                    text += c["text"]
+                if chars:
+                    yield page_no, box_no, {
+                        "text": " ".join(text.split()), "chars": chars,
+                        "x0": min(c["x0"] for c in chars), "x1": max(c["x1"] for c in chars),
+                        "top": min(c["top"] for c in chars), "bottom": max(c["bottom"] for c in chars),
+                    }
 
 
 def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_heading: str = "Introduction") -> list[Section]:
