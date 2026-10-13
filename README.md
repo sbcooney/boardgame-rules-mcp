@@ -89,14 +89,15 @@ Question sets cover direct lookups, rules arguments and edge cases, questions wo
 | --- | --- | --- | --- | --- | --- | --- |
 | lookup | 12 | 33% | 83% | 92% | 92% | – |
 | edge | 17 | 71% | 76% | 88% | 82% | – |
-| vocab | 5 | 40% | 40% | 80% | 40% | – |
+| vocab | 5 | 20% | 40% | 80% | 40% | – |
 | appendix (specific birds, bonus cards) | 12 | 100% | 100% | 100% | 100% | – |
-| not_addressed | 4 | – | – | – | – | 0% (25%) |
-| **all answerable** | 46 | 65% | 80% | 91% | 85% | – |
+| independent | 3 | 0% | 67% | 67% | – | – |
+| not_addressed | 6 | – | – | – | – | 0% |
+| **all answerable** | 49 | 59% | 80% | 90% | – | – |
 
 The appendix explains every bird power and bonus card; questions about a specific bird now find it 100% of the time. It costs a little elsewhere: a few rulebook questions rank lower or drop out of the top 5 ("How many birds per habitat?"), and the larger index gives off-topic questions more partial matches. Its bird-power pages are tables (bird names beside shared power text), read with a table layout that keeps each power sentence intact with its birds listed before it.
 
-Wingspan's synonym list ("dice tower" → birdfeeder, "reroll" → throw, "market" → bird tray) leaves out words the rulebook already uses with a different meaning ("move" a cube, "score" a goal, player-mat "rows"), which had pushed two appendix answers down. Same caveat as Catan: the vocab questions were written by the list's author, so 80% is optimistic; "When am I allowed to reroll the birdfeeder?", an ordinary edge-case question, going from a miss to #2 is the more honest signal.
+Wingspan's synonym list ("dice tower" → birdfeeder, "reroll" → throw, "market" → bird tray) leaves out words the rulebook already uses with a different meaning ("move" a cube, "score" a goal, player-mat "rows"), which had pushed two appendix answers down. Same caveat as Catan: the vocab questions were written by the list's author, so 80% is optimistic; "When am I allowed to reroll the birdfeeder?", an ordinary edge-case question, going from a miss to #2 is the more honest signal. So are the *independent* questions, written by a Wingspan player without seeing the list: 2 of 3 answerable ones land in the top 5 ("How many cards do I get to start?" loses to the Swift-Start guide section), and neither of their two questions the text can't answer (nest odds, dice faces, shown only as pictures) is flagged not-found.
 
 Synonyms map table talk to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in [`manifest.yaml`](src/bgrules/manifest.yaml)). **Caveat:** the held-out questions were committed before the synonym list, but by the same author in the same session, and the list ended up covering most of their wording, so their 100% is optimistic. The *independent* questions are the fairer test: written by a Catan player without seeing the synonym list, they score 80%. The miss ("How many cards do I deal out?") assumes a mechanic Catan doesn't have; no cards are dealt, which keyword search can't bridge.
 
