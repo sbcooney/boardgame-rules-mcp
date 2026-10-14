@@ -1,14 +1,42 @@
 # boardgame-rules-mcp
 
+[![tests](https://github.com/sbcooney/boardgame-rules-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/sbcooney/boardgame-rules-mcp/actions/workflows/tests.yml)
+
 An MCP server that answers board game rules questions from the **official rulebook**, and points you to the exact section and page every answer comes from.
 
-> Status: early development (milestone M2: checkable citations).
+Ask a rules question in Claude (or any MCP client) and get the rulebook's own words back, with section, page and a highlighted image of the page. If the rulebook doesn't cover it, the answer says so instead of guessing.
+
+## Example
+
+> **How much Blight goes on the Healthy Island card in a 2-player game of Spirit Island?**
+>
+> **Under the current rules, 5 Blight go on the card in a 2-player game.** Older rulebooks give 4, because an official change added 1.
+>
+> **What the printed core rulebook says** (before the 14th printing): *Game Setup > Invader Board, p. 6* says to place "the shown amount of Blight onto the card": 2 per player, so **4**.
+>
+> **The official change** (*Nature Incarnate Rulebook, Significant Changes > Blight Errata, p. 5*): "If you are using a Healthy Island card, treat it as if it said "2 per player, +1"." That makes **5**. It's printed in the core rulebook from the 14th printing onward.
+
+Every quote above is verbatim, and `show_passage` returns the cited region of the page:
+
+![The Blight Errata passage highlighted on page 5 of the Nature Incarnate rulebook](docs/demo-errata.png)
+
+Answering the same question from memory, Claude gave "5" and never mentioned that the player's own rulebook may say 4. Across 44 eval questions, answers using the server had **no invented quotes**, while most quotes given from memory were paraphrases; see [Results](#results).
 
 ## How it works
 
-- You add a game; the server downloads the official rulebook PDF (or uses one you provide) and indexes it **locally** in `~/.bgrules`. No rulebook content is stored in this repo.
-- Your AI assistant (Claude, ChatGPT, etc.) calls the server's tools, which return verbatim rulebook passages with citations: section, page, and a link that opens the PDF at that page.
-- The assistant answers only from those passages, or says the rulebook doesn't address the question.
+```mermaid
+flowchart LR
+    U["You, in Claude / ChatGPT"] --> M[AI assistant]
+    M -- "search_rules, show_passage, ..." --> S["bgrules MCP server<br/>(runs locally)"]
+    S --> I[("SQLite FTS5 index<br/>~/.bgrules")]
+    S --> P["Official rulebook PDFs<br/>(downloaded or user-supplied)"]
+    S -- "verbatim passages +<br/>section, page, image" --> M
+```
+
+- **Official sources only.** `bgrules add <game>` downloads the publisher's PDF (checksum-verified) or uses one you supply. Official errata are indexed as their own documents and linked to the rules they change. Fan FAQs are never used.
+- **The server never writes answers.** It returns exact rulebook text and where it is; the assistant answers only from that.
+- **Layout-aware extraction.** Multi-column pages, magazine-style text boxes and tables are read in order, with headings turned into section paths ("Almanac > Robber").
+- **Local.** No rulebook content is stored in this repo; the index lives on your machine.
 
 ## Quick start
 
@@ -64,6 +92,16 @@ If Claude Desktop can't find `uv`, use its full path (`which uv`).
 | Catan (2020 edition) | Official PDF, auto-downloaded | Working |
 | Wingspan (base game: rulebook r24 + appendix r17) | User-supplied PDFs from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0): `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` | Working |
 | Spirit Island (core rulebook + official errata) | Official PDFs, auto-downloaded (Greater Than Games' links): `bgrules add spirit-island` | Working |
+
+## Adding a game
+
+Games are entries in [`src/bgrules/manifest.yaml`](src/bgrules/manifest.yaml): links and checksums, never rulebook text.
+
+1. **Find the official PDF** on the publisher's site. Only publisher-issued rulebooks and errata qualify. With a direct link, add `url` and `sha256`; otherwise use `source: user_supplied` and `expected_sha256`, and add it with `--file`.
+2. **Add extraction hints.** Run `uv run python spikes/m0_extract.py <pdf>` to see the fonts and sizes on each page, then set `layout` (`columns`, `rows`, `boxes` or `table`), `heading_fonts`, `body_fonts`, `body_size` and `content_pages`. The Catan, Wingspan and Spirit Island entries cover the common layouts.
+3. **Index and check:** `uv run bgrules add <game>`, then `uv run bgrules search <game> "..."`. Look at the section paths and quotes; garbled or interleaved text means a hint needs adjusting.
+4. **Add eval questions** in `evals/<game>_<edition>.yaml` and run `uv run python evals/retrieval.py evals/<game>_<edition>.yaml` (free; no model calls).
+5. **Official changes:** add errata as their own document with `source_type: errata` and `amends:` linking each change to the section it changes.
 
 ## Results
 

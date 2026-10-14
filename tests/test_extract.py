@@ -103,3 +103,10 @@ def test_expand_terms_adds_rulebook_words_including_plurals():
     groups = expand_terms("catan", ["thief", "ports", "settlement"])
     assert groups == [["thief", "robber"], ["ports", "harbor"], ["settlement"]]
     assert expand_terms("unknown-game", ["thief"]) == [["thief"]]
+
+
+def test_overlapping_crop_regions_merge_but_columns_stay_separate():
+    from bgrules.render import merge_regions
+    # Two overlapping boxes in one text block merge; a box in the next column stays its own crop.
+    regions = [(10, 10, 100, 40), (50, 30, 120, 60), (300, 10, 400, 40)]
+    assert merge_regions(regions) == [(10, 10, 120, 60), (300, 10, 400, 40)]

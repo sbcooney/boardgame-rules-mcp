@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv sync
+      # The official Catan PDF lets the MCP stdio test run end to end. It's
+      # checksum-verified on download; if catan.com is unreachable, that test skips.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bgrules/pdfs
+          key: rulebook-pdfs-${{ hashFiles('src/bgrules/manifest.yaml') }}
+      - run: uv run bgrules add catan --edition 2020
+        continue-on-error: true
+      - run: uv run pytest -v

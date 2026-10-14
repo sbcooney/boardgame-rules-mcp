@@ -15,6 +15,30 @@ HIGHLIGHT_EDGE = (0, 80, 220, 255)
 STACK_GAP = 12  # pixels between stacked crops
 
 
+def merge_regions(regions: list[tuple[float, float, float, float]]) -> list[tuple[float, float, float, float]]:
+    """Merge overlapping crop regions, keeping reading order (by each group's first region).
+
+    Text-box layouts give many small boxes for one passage; cropping each
+    separately would repeat the same text in overlapping crops. Columns stay
+    separate crops, so a passage that continues in the next column still stacks.
+    """
+    groups = [list(r) + [i] for i, r in enumerate(regions)]
+    merged = True
+    while merged:
+        merged = False
+        for a in range(len(groups)):
+            for b in range(a + 1, len(groups)):
+                ga, gb = groups[a], groups[b]
+                if ga[0] < gb[2] and gb[0] < ga[2] and ga[1] < gb[3] and gb[1] < ga[3]:
+                    groups[a] = [min(ga[0], gb[0]), min(ga[1], gb[1]), max(ga[2], gb[2]), max(ga[3], gb[3]), min(ga[4], gb[4])]
+                    del groups[b]
+                    merged = True
+                    break
+            if merged:
+                break
+    return [tuple(g[:4]) for g in sorted(groups, key=lambda g: g[4])]
+
+
 def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.5, crop_margin: float | None = None) -> bytes:
     """Render one page (1-based) with `boxes` highlighted.
 
@@ -39,15 +63,12 @@ def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.
 
     if crop_margin is not None and boxes:
         w, h = img.size
-        crops = []
-        for x0, top, x1, bottom in boxes:
-            region = (
-                max(0, (x0 - crop_margin) * scale),
-                max(0, (top - crop_margin) * scale),
-                min(w, (x1 + crop_margin) * scale),
-                min(h, (bottom + crop_margin) * scale),
-            )
-            crops.append(img.crop(tuple(round(v) for v in region)))
+        regions = merge_regions([
+            (max(0, (x0 - crop_margin) * scale), max(0, (top - crop_margin) * scale),
+             min(w, (x1 + crop_margin) * scale), min(h, (bottom + crop_margin) * scale))
+            for x0, top, x1, bottom in boxes
+        ])
+        crops = [img.crop(tuple(round(v) for v in r)) for r in regions]
         stacked = Image.new("RGB", (max(c.width for c in crops), sum(c.height for c in crops) + STACK_GAP * (len(crops) - 1)), "white")
         y = 0
         for c in crops:
