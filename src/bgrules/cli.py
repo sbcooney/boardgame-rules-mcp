@@ -32,8 +32,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "add":
         try:
             ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, log=lambda m: print(m, file=sys.stderr))
-        except (ingest.IngestError, KeyError) as e:
-            print(f"error: {e}", file=sys.stderr)
+        except (ingest.IngestError, KeyError, OSError) as e:
+            print(f"error: {e.args[0] if isinstance(e, KeyError) else e}", file=sys.stderr)
             return 1
     elif args.cmd == "list":
         for row in store.installed(store.connect()):

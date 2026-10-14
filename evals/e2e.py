@@ -153,23 +153,15 @@ def quotes_in(answer: str, min_words: int = 6) -> list[str]:
     return [q for q in quotes if q and len(q.split()) >= min_words and " > " not in q]
 
 
-def _comparable(text: str) -> str:
-    """Normalise, then drop quotation marks (answers often write 7 for the rulebook's “7”),
-    markdown emphasis and list bullets."""
-    text = store._normalize(text).replace('"', "").replace("'", "").replace("*", "").replace("•", " ")
-    return " ".join(text.split())
-
-
 def fabricated_quotes(answer: str, rulebook_text: str) -> tuple[int, list[str]]:
-    """(number of quotes checked, quotes not found verbatim in the rulebook).
-    '...', ' — ' (a card name joined to its text) and [editorial insertions], such as an icon the
-    PDF text lacks, split a quote into fragments. Spacing is ignored: PDF text has stray spaces ("and/ or")."""
+    """(number of quotes checked, quotes not found verbatim in the rulebook), matched the
+    same way as the server's verify_quote (store.quote_fragments, store.quote_key), except
+    that fragments may come from anywhere in the rulebook and under 3 words are skipped."""
     quotes = quotes_in(answer)
-    source = re.sub(r"\s", "", _comparable(rulebook_text))
+    source = store.quote_key(rulebook_text)
     bad = []
     for q in quotes:
-        fragments = [f.strip(" .,;:") for f in re.split(r"\.\.\.|\s[—–-]\s|\[[^\]]*\]", _comparable(q).replace("…", "..."))]
-        if any(f and len(f.split()) >= 3 and re.sub(r"\s", "", f) not in source for f in fragments):
+        if any(len(f.split()) >= 3 and store.quote_key(f) not in source for f in store.quote_fragments(q)):
             bad.append(q)
     return len(quotes), bad
 

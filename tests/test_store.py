@@ -49,6 +49,17 @@ def test_verify_quote_normalizes_quotes_and_allows_ellipsis(db):
     assert bad["verified"] is False and "closest_source_text" in bad
 
 
+def test_verify_quote_ignores_pdf_spacing_and_editorial_brackets(tmp_path):
+    db = store.connect(tmp_path / "i.sqlite")
+    sec = Section(heading="Build", page_start=3)
+    sec.lines = [_line("You may build roads and/ or cities (see the costs card ). Add 1 additional on the card.", 3, 100)]
+    store.replace_doc(db, "demo", "1", {"id": "rules"}, tmp_path / "r.pdf", "x", [sec])
+    cid = store.search(db, "demo", "build roads cities")["results"][0]["citation_id"]
+    assert store.verify_quote(db, cid, "You may build roads and/or cities (see the costs card).")["verified"]
+    assert store.verify_quote(db, cid, "Add 1 additional [Blight] on the card.")["verified"]
+    assert not store.verify_quote(db, cid, "Add 2 additional [Blight] on the card.")["verified"]
+
+
 def test_other_games_do_not_change_a_games_ranking(db, tmp_path):
     before = store.search(db, "demo", "How is the robber moved?")
     # Another game full of the same words must not shift demo's scores.
@@ -100,3 +111,18 @@ def test_page_contents_lists_passages_on_page(db):
     assert [p["section_path"] for p in info["passages"]] == [["Almanac", "Robber"], ["Almanac", "Roads"]]
     with pytest.raises(store.LookupError_):
         store.page_contents(db, "demo", 99)
+
+
+def test_check_amendments_reports_sections_that_no_longer_match(db, tmp_path):
+    change = Section(heading="Significant Changes", page_start=6, subheading="BLIGHT ERRATA")
+    change.lines = [_line("Start with 1 additional Blight.", 6, 100)]
+    errata = {"id": "changes", "amends": [
+        {"source_section": "Significant Changes > BLIGHT ERRATA", "target_doc": "rules", "target_section": "Almanac > Robber", "summary": "ok"},
+        {"source_section": "Significant Changes > BLIGHT ERRATA", "target_doc": "rules", "target_section": "Almanac > Robbers", "summary": "renamed"},
+        {"source_section": "Significant Changes > FEAR ERRATA", "target_doc": "rules", "target_section": "Almanac > Roads", "summary": "missing"},
+    ]}
+    store.replace_doc(db, "demo", "1", errata, tmp_path / "later.pdf", "y", [change])
+    assert store.check_amendments(db, "demo", "1") == [
+        "rules: no section 'Almanac > Robbers' (changed by changes)",
+        "changes: no section 'Significant Changes > FEAR ERRATA'",
+    ]

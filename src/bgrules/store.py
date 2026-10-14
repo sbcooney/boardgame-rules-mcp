@@ -18,6 +18,7 @@ import sqlite3
 from pathlib import Path
 
 MIN_COVERAGE = 0.5  # tune against the M3 eval set
+CANDIDATES = 50  # keyword matches scored for coverage; a full-coverage passage ranked lower by bm25 still counts
 
 STOPWORDS = set(
     """a an and are as at be but by can could do does did for from get got has have
@@ -191,24 +192,45 @@ def _doc(db: sqlite3.Connection, game: str, edition: str, doc_id: str) -> sqlite
     ).fetchone()
 
 
+def _within(path: str, section: str) -> bool:
+    """True if a section path ("A > B > C") is `section` or one of its subsections."""
+    return path == section or path.startswith(section + " > ")
+
+
+def _section_paths(db: sqlite3.Connection, game: str, edition: str, doc_id: str) -> list[tuple[str, str]]:
+    """(section_id, "A > B > C") for a document's sections, in reading order."""
+    rows = db.execute("SELECT section_id, path FROM sections WHERE game=? AND edition=? AND doc_id=? ORDER BY ord", (game, edition, doc_id))
+    return [(r["section_id"], " > ".join(json.loads(r["path"]))) for r in rows]
+
+
+def check_amendments(db: sqlite3.Connection, game: str, edition: str) -> list[str]:
+    """Official changes whose errata section, or the rulebook section they change,
+    isn't among the indexed sections (e.g. after a heading was renamed). A target
+    document that isn't installed yet is not a problem."""
+    problems = []
+    for a in db.execute("SELECT * FROM amendments WHERE game=? AND edition=?", (game, edition)).fetchall():
+        if not any(_within(p, a["source_section"]) for _, p in _section_paths(db, game, edition, a["doc_id"])):
+            problems.append(f"{a['doc_id']}: no section {a['source_section']!r}")
+        targets = _section_paths(db, game, edition, a["target_doc"])
+        if targets and not any(_within(p, a["target_section"]) for _, p in targets):
+            problems.append(f"{a['target_doc']}: no section {a['target_section']!r} (changed by {a['doc_id']})")
+    return problems
+
+
 def amendments_for(db: sqlite3.Connection, game: str, edition: str, doc_id: str, path: list[str]) -> list[dict]:
     """Official changes to this rulebook section, each with a citation of the
     errata text, what the printed rule says, and which printings include it."""
     path_str = " > ".join(path)
     out = []
-    for a in db.execute("SELECT * FROM amendments WHERE game=? AND edition=? AND target_doc=?", (game, edition, doc_id)):
-        if not (path_str == a["target_section"] or path_str.startswith(a["target_section"] + " > ")):
+    for a in db.execute("SELECT * FROM amendments WHERE game=? AND edition=? AND target_doc=?", (game, edition, doc_id)).fetchall():
+        if not _within(path_str, a["target_section"]):
             continue
-        src = db.execute(
-            """SELECT p.* FROM passages p JOIN sections s USING (section_id)
-               WHERE p.game=? AND p.edition=? AND p.doc_id=? AND
-                     (SELECT group_concat(value, ' > ') FROM json_each(s.path)) LIKE ? ORDER BY s.ord, p.ord LIMIT 1""",
-            (game, edition, a["doc_id"], a["source_section"] + "%"),
-        ).fetchone()
         entry = {"summary": a["summary"], "printed_rule": a["printed_rule"], "included_in": a["included_in"]}
-        if src is not None:
+        source = next((sid for sid, p in _section_paths(db, game, edition, a["doc_id"]) if _within(p, a["source_section"])), None)
+        if source is not None:
+            src = db.execute("SELECT * FROM passages WHERE section_id=? ORDER BY ord LIMIT 1", (source,)).fetchone()
             sdoc = _doc(db, game, edition, a["doc_id"])
-            spath = db.execute("SELECT path FROM sections WHERE section_id=?", (src["section_id"],)).fetchone()["path"]
+            spath = db.execute("SELECT path FROM sections WHERE section_id=?", (source,)).fetchone()["path"]
             entry["source"] = {
                 "citation_id": src["citation_id"], "document": sdoc["title"], "source_type": sdoc["source_type"],
                 "section_path": json.loads(spath), "printed_page": src["page"] + (sdoc["page_offset"] or 0), "quote": src["text"],
@@ -281,7 +303,7 @@ def search(db: sqlite3.Connection, game: str, query: str, edition: str | None = 
     t = fts_table(game, edition)
     rows = db.execute(
         f"SELECT citation_id, bm25({t}, 4.0, 1.0) AS score FROM {t} WHERE {t} MATCH ? ORDER BY score LIMIT ?",
-        (_fts_any([w for g in groups for w in g]), max_results * 3),
+        (_fts_any([w for g in groups for w in g]), CANDIDATES),
     ).fetchall()
 
     scored = []
@@ -370,34 +392,49 @@ def _normalize(text: str) -> str:
     return " ".join(text.split()).lower()
 
 
+def quote_key(text: str) -> str:
+    """Text reduced for quote matching. Ignores case, whitespace (PDF text has stray
+    spaces: "and/ or", "card )"), quotation marks (answers write 7 for the rulebook's
+    “7”), markdown emphasis and list bullets."""
+    return re.sub(r"[\s\"'*•]", "", _normalize(text))
+
+
+def quote_fragments(quote: str) -> list[str]:
+    """Split a quote into the pieces that must each appear in the source: "..." or "…"
+    mark omissions, [brackets] mark editorial insertions (an icon the PDF text lacks:
+    "1 additional [Blight]"), and a spaced dash joins quoted pieces ("Green Heron — Trade ...")."""
+    text = _normalize(quote).replace("*", "").replace("•", " ").replace("…", "...")
+    pieces = re.split(r"\.\.\.|\[[^\]]*\]|\s-\s", text)
+    return [p.strip(" .,;:") for p in pieces if p.strip(" .,;:")]
+
+
 def verify_quote(db: sqlite3.Connection, citation_id: str, text: str) -> dict:
-    """Check that `text` appears in the cited section. Ellipses ("..." or "…")
-    may join fragments, which must then appear in order."""
+    """Check that `text` appears in the cited section, its fragments in order
+    (see quote_fragments and quote_key for what is ignored)."""
     row = db.execute("SELECT section_id FROM passages WHERE citation_id=?", (citation_id,)).fetchone()
     if row is None:
         raise LookupError_(f"No passage {citation_id!r}. Use citation_id values returned by search_rules.")
-    source = _normalize(db.execute("SELECT text FROM sections WHERE section_id=?", (row["section_id"],)).fetchone()["text"])
-    fragments = [f.strip(" .,;:") for f in _normalize(text).replace("…", "...").split("...")]
-    fragments = [f for f in fragments if f]
+    section_text = db.execute("SELECT text FROM sections WHERE section_id=?", (row["section_id"],)).fetchone()["text"]
+    fragments = quote_fragments(text)
     if not fragments:
         return {"verified": False, "citation_id": citation_id, "reason": "Empty quote."}
 
-    pos = 0
+    source, pos = quote_key(section_text), 0
     for frag in fragments:
-        found_at = source.find(frag, pos)
+        found_at = source.find(quote_key(frag), pos)
         if found_at < 0:
             import difflib
 
-            m = difflib.SequenceMatcher(None, source, frag, autojunk=False).find_longest_match(0, len(source), 0, len(frag))
-            closest = source[max(0, m.a - 40): m.a + m.size + 40]
+            normalized = _normalize(section_text)
+            m = difflib.SequenceMatcher(None, normalized, frag, autojunk=False).find_longest_match(0, len(normalized), 0, len(frag))
             return {
                 "verified": False,
                 "citation_id": citation_id,
                 "failed_fragment": frag,
-                "closest_source_text": closest,
+                "closest_source_text": normalized[max(0, m.a - 40): m.a + m.size + 40],
                 "reason": "This text is not in the cited section. Quote the rulebook exactly, or do not present it as a quote.",
             }
-        pos = found_at + len(frag)
+        pos = found_at + len(quote_key(frag))
     return {"verified": True, "citation_id": citation_id}
 
 

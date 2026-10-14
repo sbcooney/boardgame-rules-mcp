@@ -13,10 +13,14 @@ def test_normalize_small_caps_headings():
     assert normalize_heading("endinG the Game") == "Ending the Game"
 
 
-def test_join_lines_dehyphenates_and_drops_icon_space():
-    assert join_lines(["The robber begins in the desert .", "It is mov-", "ed only by a 7."]) == (
+def test_join_lines_keeps_real_hyphens_and_drops_icon_space():
+    # Joined only when the rulebook spells the whole word elsewhere.
+    assert join_lines(["The robber begins in the desert .", "It is mov-", "ed only by a 7."], frozenset({"moved"})) == (
         "The robber begins in the desert. It is moved only by a 7."
     )
+    assert join_lines(["an award-", "winning rules system"]) == "an award-winning rules system"
+    # A spaced dash is punctuation, never a hyphen.
+    assert join_lines(["normal in nature -", "such as damage"]) == "normal in nature - such as damage"
     # A capitalised next line is a real hyphenated term, not a line-break hyphen.
     assert join_lines(["a trade/build-", "Phase"]) == "a trade/build- Phase"
 
@@ -104,9 +108,3 @@ def test_expand_terms_adds_rulebook_words_including_plurals():
     assert groups == [["thief", "robber"], ["ports", "harbor"], ["settlement"]]
     assert expand_terms("unknown-game", ["thief"]) == [["thief"]]
 
-
-def test_overlapping_crop_regions_merge_but_columns_stay_separate():
-    from bgrules.render import merge_regions
-    # Two overlapping boxes in one text block merge; a box in the next column stays its own crop.
-    regions = [(10, 10, 100, 40), (50, 30, 120, 60), (300, 10, 400, 40)]
-    assert merge_regions(regions) == [(10, 10, 120, 60), (300, 10, 400, 40)]

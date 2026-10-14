@@ -76,6 +76,7 @@ catan:
             - {name: Game Rules}
             - {name: Almanac, first_heading: Build (Building)}
     "2025":
+      status: untested  # indexes, but extraction and search haven't been checked against an eval set
       docs:
         - id: rulebook
           title: CATAN – The Game Rulebook (3-4 players)

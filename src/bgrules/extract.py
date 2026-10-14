@@ -29,6 +29,7 @@ class Line:
 class Passage:
     lines: list[Line]
     heading_lines: list[Line] = field(default_factory=list)  # highlighted, not part of the text
+    join_words: frozenset[str] = frozenset()  # see join_lines
 
     @property
     def page(self) -> int:
@@ -36,7 +37,7 @@ class Passage:
 
     @property
     def text(self) -> str:
-        return join_lines([ln.text for ln in self.lines])
+        return join_lines([ln.text for ln in self.lines], self.join_words)
 
     @property
     def spans(self) -> list[dict]:
@@ -51,6 +52,7 @@ class Section:
     lines: list[Line] = field(default_factory=list)
     heading_lines: list[Line] = field(default_factory=list)
     subheading: str | None = None  # set for a subsection: its label line, e.g. "b) Settlement Requires: ..."
+    join_words: frozenset[str] = frozenset()  # see join_lines
 
     @property
     def path(self) -> list[str]:
@@ -63,7 +65,7 @@ class Section:
 
     @property
     def text(self) -> str:
-        return join_lines([ln.text for ln in self.lines])
+        return join_lines([ln.text for ln in self.lines], self.join_words)
 
     @property
     def spans(self) -> list[dict]:
@@ -78,14 +80,14 @@ class Section:
             current.append(ln)
             size += len(ln.text) + 1
             if size >= target_chars and ln.text.rstrip().endswith((".", "!", "?", ".”", ":")):
-                out.append(Passage(current))
+                out.append(Passage(current, join_words=self.join_words))
                 current, size = [], 0
         if current:
             # Fold a short tail into the previous passage rather than leave a fragment.
             if out and size < target_chars / 3:
                 out[-1].lines.extend(current)
             else:
-                out.append(Passage(current))
+                out.append(Passage(current, join_words=self.join_words))
         if out:
             out[0].heading_lines = list(self.heading_lines)
         return out
@@ -102,16 +104,25 @@ def spans(lines: list[Line]) -> list[dict]:
     return [{"page": page, "bbox": [round(v, 1) for v in b]} for (page, _), b in boxes.items()]
 
 
-def join_lines(lines: list[str]) -> str:
-    """Join wrapped lines into running text, undoing end-of-line hyphenation and
-    the stray space a dropped icon leaves before punctuation."""
+def join_lines(lines: list[str], join_words: frozenset[str] = frozenset()) -> str:
+    """Join wrapped lines into running text, dropping the stray space a dropped
+    icon leaves before punctuation.
+
+    A line ending in a hyphen keeps it ("award-" + "winning" -> "award-winning"):
+    rulebooks rarely hyphenate at line breaks, and most such hyphens are real
+    compounds. The word is joined without the hyphen only when the rulebook
+    spells the joined form elsewhere (`join_words`, e.g. "counterclockwise").
+    A spaced dash ("in nature -") is punctuation and always stays."""
     out = ""
     for text in lines:
         text = text.strip()
         if not text:
             continue
-        if out.endswith("-") and text[:1].islower():
-            out = out[:-1] + text
+        if out.endswith("-") and not out.endswith(" -") and text[:1].islower():
+            head = re.search(r"[A-Za-z]+-$", out)
+            tail = re.match(r"[a-z]+", text)
+            joined = head and tail and (head.group(0)[:-1] + tail.group(0)).lower() in join_words
+            out = out[:-1] + text if joined else out + text
         elif out:
             out += " " + text
         else:
@@ -388,6 +399,8 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
     `first_heading` (the first part needs none)."""
     parts = parts or []
     part = parts[0]["name"] if parts else None
+    # Words the rulebook spells whole: a line-break hyphen inside one of them is dropped.
+    join_words = frozenset(w.lower() for ln in lines for w in re.findall(r"[A-Za-z]+", ln.text))
     sections: list[Section] = []
     current: Section | None = None
     for ln in lines:
@@ -432,4 +445,6 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
         for p in parts[1:]:
             if current is not None and current.heading.lower() == p.get("first_heading", "").lower():
                 part = current.part = p["name"]
+    for s in sections:
+        s.join_words = join_words
     return [s for s in sections if s.lines]
