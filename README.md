@@ -122,7 +122,7 @@ Keyword overlap can't reliably tell that a rulebook *doesn't* cover something, s
 
 ### End-to-end (with vs. without the server)
 
-_Results coming soon._ The harness asks each question twice through Claude Code's headless mode: once with no tools (answering from memory), and once with only this server. A grader call scores each answer, and every quote is checked against the rulebook locally. Metrics: ruling accuracy, correct "not covered" answers, cited sections, and quotes that aren't in the rulebook.
+The harness asks each question twice through Claude Code's headless mode: once with no tools (answering from memory), and once with only this server. A grader call scores each answer, and every quote is checked against the rulebook locally. Metrics: ruling accuracy, correct "not covered" answers, cited sections, and quotes that aren't in the rulebook.
 
 It runs on your Claude subscription (no API key or billing), uses a 15-question core subset by default, and caches answers so reruns only redo what changed:
 
@@ -131,6 +131,18 @@ uv run python evals/e2e.py --dry-run   # show the commands, call nothing
 uv run python evals/e2e.py --limit 1   # smoke test
 uv run python evals/e2e.py             # core subset; --all for every question
 ```
+
+#### Spirit Island (core rulebook + official errata), 16-question core subset
+
+| Metric | memory | server |
+| --- | --- | --- |
+| Ruling accuracy (answerable) | 82% | 100% |
+| Said "not covered" when the rulebook doesn't cover it | 0% | 100% |
+| Wrongly said "not covered" | 0% | 0% |
+| Cited a correct section | 21% | 93% |
+| Quotes not in the rulebook | 1 of 3 | 0 of 72 |
+
+On both errata questions, the server answers give the printed rule (4 Blight for 2 players), the official change (5), and which printings carry it. Answers from memory give only the current number. One answer from memory presented a paraphrase as a direct quote; every quote the server answers used was verbatim. Catan and Wingspan results are still to come.
 
 ## License
 

@@ -140,22 +140,30 @@ def check_isolation(condition: str, tools: list[str] | None) -> None:
 
 
 def quotes_in(answer: str, min_words: int = 6) -> list[str]:
+    # A "> " blockquote is one quote, even when it contains quotation marks of its own.
+    blocks = re.findall(r"(?:^>[^\n]*(?:\n|$))+", answer, re.M)
+    for b in blocks:
+        answer = answer.replace(b, "\n")
+    blocks = [re.sub(r"^>\s?", "", b, flags=re.M).strip().strip("“”\"") for b in blocks]
     found = re.findall(r"“([^”]+)”|\"([^\"]+)\"", answer)
-    return [q for pair in found for q in pair if q and len(q.split()) >= min_words]
+    return [q for q in blocks + [q for pair in found for q in pair] if q and len(q.split()) >= min_words]
 
 
 def _comparable(text: str) -> str:
-    """Normalise, then drop quotation marks: answers often write 7 for the rulebook's “7”."""
-    return " ".join(store._normalize(text).replace('"', "").replace("'", "").split())
+    """Normalise, then drop quotation marks (answers often write 7 for the rulebook's “7”),
+    markdown emphasis and list bullets."""
+    text = store._normalize(text).replace('"', "").replace("'", "").replace("*", "").replace("•", " ")
+    return " ".join(text.split())
 
 
 def fabricated_quotes(answer: str, rulebook_text: str) -> tuple[int, list[str]]:
-    """(number of quotes checked, quotes not found verbatim in the rulebook)."""
+    """(number of quotes checked, quotes not found verbatim in the rulebook).
+    '...' and [editorial insertions], such as an icon the PDF text lacks, split a quote into fragments."""
     quotes = quotes_in(answer)
     source = _comparable(rulebook_text)
     bad = []
     for q in quotes:
-        fragments = [f.strip(" .,;:") for f in _comparable(q).replace("…", "...").split("...")]
+        fragments = [f.strip(" .,;:") for f in re.split(r"\.\.\.|\[[^\]]*\]", _comparable(q).replace("…", "..."))]
         if any(f and len(f.split()) >= 3 and f not in source for f in fragments):
             bad.append(q)
     return len(quotes), bad

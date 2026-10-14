@@ -24,6 +24,18 @@ def test_fabricated_quotes_flags_only_invented_text():
     assert bad == ["The robber may never be moved back to the desert hex"]
 
 
+def test_markdown_brackets_and_blockquotes_are_not_fabrications():
+    rulebook = 'you can lose three ways: • too much blight: the card often says "you lose". start with exactly 1 additional on the card.'
+    answer = (
+        '> "You can lose three ways:\n> • **Too Much Blight:** the card often says "you lose"."\n\n'
+        'The change: "Start with exactly 1 additional [Blight] on the card." '
+        'But not "Start with exactly 2 additional [Blight] on the card."'
+    )
+    checked, bad = e2e.fabricated_quotes(answer, rulebook)
+    assert checked == 3
+    assert bad == ["Start with exactly 2 additional [Blight] on the card."]
+
+
 def test_short_quotes_are_ignored():
     checked, bad = e2e.fabricated_quotes("It says “move the robber” here.", RULEBOOK)
     assert (checked, bad) == (0, [])
