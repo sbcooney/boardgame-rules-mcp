@@ -144,9 +144,13 @@ def quotes_in(answer: str, min_words: int = 6) -> list[str]:
     blocks = re.findall(r"(?:^>[^\n]*(?:\n|$))+", answer, re.M)
     for b in blocks:
         answer = answer.replace(b, "\n")
-    blocks = [re.sub(r"^>\s?", "", b, flags=re.M).strip().strip("“”\"") for b in blocks]
+    blocks = [re.sub(r"^>\s?", "", b, flags=re.M) for b in blocks]
+    # Drop attribution lines ("— Almanac > Robber, p. 11") from blockquotes.
+    blocks = [re.sub(r"^\s*[—–]\s.*$", "", b, flags=re.M).strip().strip("“”\"") for b in blocks]
     found = re.findall(r"“([^”]+)”|\"([^\"]+)\"", answer)
-    return [q for q in blocks + [q for pair in found for q in pair] if q and len(q.split()) >= min_words]
+    quotes = blocks + [q for pair in found for q in pair]
+    # A quoted section path ("The Four Actions > Option 1") is a citation, not a quote.
+    return [q for q in quotes if q and len(q.split()) >= min_words and " > " not in q]
 
 
 def _comparable(text: str) -> str:
@@ -158,13 +162,14 @@ def _comparable(text: str) -> str:
 
 def fabricated_quotes(answer: str, rulebook_text: str) -> tuple[int, list[str]]:
     """(number of quotes checked, quotes not found verbatim in the rulebook).
-    '...' and [editorial insertions], such as an icon the PDF text lacks, split a quote into fragments."""
+    '...', ' — ' (a card name joined to its text) and [editorial insertions], such as an icon the
+    PDF text lacks, split a quote into fragments. Spacing is ignored: PDF text has stray spaces ("and/ or")."""
     quotes = quotes_in(answer)
-    source = _comparable(rulebook_text)
+    source = re.sub(r"\s", "", _comparable(rulebook_text))
     bad = []
     for q in quotes:
-        fragments = [f.strip(" .,;:") for f in re.split(r"\.\.\.|\[[^\]]*\]", _comparable(q).replace("…", "..."))]
-        if any(f and len(f.split()) >= 3 and f not in source for f in fragments):
+        fragments = [f.strip(" .,;:") for f in re.split(r"\.\.\.|\s[—–-]\s|\[[^\]]*\]", _comparable(q).replace("…", "..."))]
+        if any(f and len(f.split()) >= 3 and re.sub(r"\s", "", f) not in source for f in fragments):
             bad.append(q)
     return len(quotes), bad
 

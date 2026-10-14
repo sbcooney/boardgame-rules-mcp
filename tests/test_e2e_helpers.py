@@ -36,6 +36,16 @@ def test_markdown_brackets_and_blockquotes_are_not_fabrications():
     assert bad == ["Start with exactly 2 additional [Blight] on the card."]
 
 
+def test_attributions_paths_and_pdf_spacing_are_not_fabrications():
+    rulebook = "you may build roads and/ or cities (see the costs card ). green heron trade 1 food for any other type."
+    answer = (
+        '> "You may build roads and/or cities (see the costs card)."\n> — Almanac > Build, p. 3\n\n'
+        'See "The Four Actions > Option 1. Play a Bird From Your Hand". '
+        '"Green Heron — Trade 1 food for any other type."'
+    )
+    assert e2e.fabricated_quotes(answer, rulebook) == (2, [])
+
+
 def test_short_quotes_are_ignored():
     checked, bad = e2e.fabricated_quotes("It says “move the robber” here.", RULEBOOK)
     assert (checked, bad) == (0, [])

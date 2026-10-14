@@ -132,17 +132,20 @@ uv run python evals/e2e.py --limit 1   # smoke test
 uv run python evals/e2e.py             # core subset; --all for every question
 ```
 
-#### Spirit Island (core rulebook + official errata), 16-question core subset
+Core subsets (Catan 15 questions, Wingspan 13, Spirit Island 16), each answered from memory and with the server:
 
-| Metric | memory | server |
-| --- | --- | --- |
-| Ruling accuracy (answerable) | 82% | 100% |
-| Said "not covered" when the rulebook doesn't cover it | 0% | 100% |
-| Wrongly said "not covered" | 0% | 0% |
-| Cited a correct section | 21% | 93% |
-| Quotes not in the rulebook | 1 of 3 | 0 of 72 |
+| Metric | Catan memory | Catan server | Wingspan memory | Wingspan server | Spirit Island memory | Spirit Island server |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ruling accuracy (answerable) | 96% | 92% | 91% | 100% | 82% | 100% |
+| Said "not covered" when the rulebook doesn't cover it | 100% | 100% | 50% | 100% | 0% | 100% |
+| Wrongly said "not covered" | 0% | 8% | 0% | 0% | 0% | 0% |
+| Cited a correct section | 77% | 92% | 18% | 100% | 21% | 93% |
+| Quotes not in the rulebook | 2 of 9 | 0 of 48 | 8 of 8 | 0 of 42 | 1 of 3 | 0 of 72 |
 
-On both errata questions, the server answers give the printed rule (4 Blight for 2 players), the official change (5), and which printings carry it. Answers from memory give only the current number. One answer from memory presented a paraphrase as a direct quote; every quote the server answers used was verbatim. Catan and Wingspan results are still to come.
+- **No invented quotes with the server:** all 162 quotes in its answers appear verbatim in the rulebooks. From memory, Claude quoted rarely, and most of those quotes were paraphrases presented as exact text.
+- **Errata:** on both Spirit Island errata questions, the server answers give the printed rule (4 Blight for 2 players), the official change (5), and which printings carry it. Answers from memory give only the current number.
+- **Catan's one miss with the server:** asked how many cards a "church" collects, the answer said the rulebook has no church. It didn't connect the player's word to the city piece. Catan is also well known enough that memory alone does well; the server's gain there is citations and verifiable quotes.
+- **Remaining overreach:** for unanswered questions like trading cards, the server answers correctly found no rule, then sometimes added "so you can't", which is a ruling the rulebook doesn't make.
 
 ## License
 
