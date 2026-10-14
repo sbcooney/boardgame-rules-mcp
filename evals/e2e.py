@@ -198,6 +198,7 @@ def main() -> int:
     ap.add_argument("spec", nargs="?", default=str(ROOT / "catan_2020.yaml"))
     ap.add_argument("--all", action="store_true", help="every question, not just the core subset")
     ap.add_argument("--limit", type=int, help="only the first N questions (after subsetting)")
+    ap.add_argument("--ids", help="only these comma-separated question ids (from any subset)")
     ap.add_argument("--conditions", default="memory,server")
     ap.add_argument("--model", help="answering model (default: your Claude Code default)")
     ap.add_argument("--grader-model", default="haiku")
@@ -211,7 +212,10 @@ def main() -> int:
 
     spec = yaml.safe_load(Path(args.spec).read_text())
     questions = spec["questions"]
-    if not args.all:
+    if args.ids:
+        ids = set(args.ids.split(","))
+        questions = [q for q in questions if q["id"] in ids]
+    elif not args.all:
         core = set(spec.get("core", []))
         questions = [q for q in questions if q["id"] in core]
     if args.limit:

@@ -28,7 +28,7 @@ catan:
     house: [settlement]
     town: [settlement]
     village: [settlement]
-    church: [city]
+    church: [city]  # the components list: cities are "shaped like churches"
     port: [harbor]
     soldier: [knight]
     biggest: [largest]

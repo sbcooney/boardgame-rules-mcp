@@ -227,8 +227,9 @@ questions:
   - id: vocab-church
     category: vocab
     question: How many cards does a church collect when its number comes up?
-    answer: The church-shaped piece is a city; it produces 2 resource cards.
-    sections: ["Almanac > Cities", "Game Rules > 3. Build", "Almanac > Resource Production"]
+    # The rulebook's own words: "16 cities (4 of each color, shaped like churches)" (Game Components).
+    answer: The church-shaped piece is a city (the components list says cities are "shaped like churches"); it produces 2 resource cards.
+    sections: ["Game Rules > Game Components", "Almanac > Cities", "Game Rules > 3. Build", "Almanac > Resource Production"]
   - id: vocab-robbed-empty
     category: vocab
     question: What do I get if I rob someone whose hand is empty?
