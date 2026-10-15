@@ -89,7 +89,16 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
 
         log(f"Extracting {doc['title']}…")
         lines = extract_lines(str(dest), doc.get("extraction", {}))
-        sections = build_sections(lines, doc.get("parts"), preamble_heading=doc.get("extraction", {}).get("preamble_heading", "Introduction"))
+        ex = doc.get("extraction", {})
+        sections = build_sections(lines, doc.get("parts"), preamble_heading=ex.get("preamble_heading", "Introduction"),
+                                  column_continuations=ex.get("column_continuations", False))
+        spreads = doc.get("extraction", {}).get("spreads")
+        if spreads:
+            # Two-page spreads split down the middle of the PDF page.
+            import pdfplumber
+
+            with pdfplumber.open(dest) as pdf:
+                doc = {**doc, "spreads": {"first": spreads[0], "last": spreads[1], "split": pdf.pages[spreads[0] - 1].width / 2}}
         n = store.replace_doc(db, game, edition, doc, dest, digest, sections)
         content = doc.get("extraction", {}).get("content_pages")
         pages_with_text = {ln.page for ln in lines}

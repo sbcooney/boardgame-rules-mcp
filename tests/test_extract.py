@@ -11,6 +11,7 @@ def test_normalize_small_caps_headings():
     assert normalize_heading("Build (BuildinG)") == "Build (Building)"
     assert normalize_heading("set-up, variable") == "Set-Up, Variable"
     assert normalize_heading("endinG the Game") == "Ending the Game"
+    assert normalize_heading("Now it’s the next player’s turn.") == "Now It’s the Next Player’s Turn."
 
 
 def test_join_lines_keeps_real_hyphens_and_drops_icon_space():

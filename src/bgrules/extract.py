@@ -140,11 +140,25 @@ def normalize_heading(text: str) -> str:
             return word.lower()
         return word.capitalize()
 
-    return re.sub(r"[A-Za-z]+", fix, " ".join(text.split()))
+    return re.sub(r"[A-Za-z]+(?:['’][A-Za-z]+)*", fix, " ".join(text.split()))  # "it’s" is one word
 
 
 FULL_WIDTH = -1  # Line.column for text that spans the page's columns
 GUTTER_MIN_GAP = 12.0  # points: a column gutter is wider than any word space
+
+
+def _spaced_by_gaps(chars: list[dict]) -> str:
+    """Text of a line rebuilt from its characters, with a space only where there
+    is a visible gap. Small-caps titles print each word's first letter larger,
+    and layout analysis puts a space at every size change ("Bef ore Your
+    First Gam e")."""
+    glyphs = sorted((c for c in chars if c["text"].strip()), key=lambda c: c["x0"])
+    out = ""
+    for a, b in zip([None, *glyphs], glyphs):
+        if a is not None and b["x0"] - a["x1"] > 0.2 * min(a["size"], b["size"]):
+            out += " "
+        out += b["text"]
+    return out
 
 
 def _matches(fontname: str, names: list[str]) -> bool:
@@ -175,6 +189,7 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
         sub_rules = [sub_rules]
     first, last = hints.get("content_pages", [1, 10_000])
     skip = set(hints.get("skip_pages", []))  # non-rules pages inside the range (lore, contents)
+    run_in = hints.get("run_in_headings", False)  # headings that begin a line of body text
     pages = [p for p in range(first, last + 1) if p not in skip]
 
     def in_size(c, rule) -> bool:
@@ -222,12 +237,34 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 # An `uppercase: true` heading font in normal case is flavor
                 # text, not a heading: keep it as ordinary text.
                 heading = False
+            if heading and len({round(c["size"]) for c in chars if c["text"].strip()}) > 1:
+                ln = {**ln, "text": _spaced_by_gaps(chars)}  # small caps: see _spaced_by_gaps
             if heading and not re.search(r"[A-Za-z]", ln["text"]):
                 continue  # heading-font symbols in diagrams ("=", "+")
             if re.fullmatch(r"[A-Z]|\d{1,3}", ln["text"].strip()):
                 continue  # almanac divider letters; page numbers
             subheading = not heading and is_subheading(ln)
             part = heading and sum(any(h.get("part") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts) for c in chars) > len(chars) / 2
+            if run_in and not heading and not subheading:
+                # A run-in heading starts the line in a heading font and the text
+                # continues on the same line ("Ally cards appear only in ..."):
+                # the heading's words become the section title, and the whole
+                # line stays in the body so the text remains verbatim.
+                lead = next((i for i, c in enumerate(chars) if not is_heading_char(c)), len(chars))
+                visible = sum(bool(c["text"].strip()) for c in chars[:lead])  # space glyphs aside
+                if lead >= 2 and lead < len(chars) and visible:
+                    seen, cut = 0, 0
+                    for cut, ch in enumerate(ln["text"]):
+                        seen += ch != " "
+                        if seen == visible:
+                            break
+                    title = ln["text"][: cut + 1].strip()
+                    if re.search(r"[A-Za-z]{2}", title):
+                        head = chars[:lead]
+                        is_part = sum(any(h.get("part") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts) for c in head) > lead / 2
+                        out.append(Line(text=title, page=page_no, column=column,
+                                        bbox=(min(c["x0"] for c in head), min(c["top"] for c in head), max(c["x1"] for c in head), max(c["bottom"] for c in head)),
+                                        is_heading=True, is_part=is_part))
             out.append(
                 Line(
                     text=ln["text"], page=page_no, column=column, bbox=(ln["x0"], ln["top"], ln["x1"], ln["bottom"]),
@@ -272,16 +309,33 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
         # mid-sentence ("Discard 1 [egg] from ...") nudges words a fraction of
         # a point up or down, so exact heights would scramble the sentence.
         bands: dict[int, list[tuple[int, tuple, Line]]] = {}
+        title_cols = set(hints["table"].get("title_columns", []))
+        titles: dict[int, list[tuple[int, int, dict]]] = {}
         for r, ws in cells:
             raw = {"text": " ".join(w["text"] for w in ws), "chars": ws,
                    "x0": min(w["x0"] for w in ws), "x1": max(w["x1"] for w in ws),
                    "top": min(w["top"] for w in ws), "bottom": max(w["bottom"] for w in ws)}
             col = sum(raw["x0"] >= b - 4 for b in bounds)
             wide = col == 0 and raw["x1"] > bounds[0] + 20
+            band = sum(s <= raw["top"] for s in seps)
+            if col in title_cols and not wide:
+                # `title_columns`: these cells (a card's number, name, points)
+                # become the record's subsection title, e.g. "3 A Furrier 1".
+                titles.setdefault(band, []).append((col, r, raw))
+                continue
             for ln in to_lines([raw], page_no, col):
                 lead = wide or ln.is_heading or ln.is_subheading
                 key = (r, raw["x0"]) if lead else (col, r, raw["x0"])
-                bands.setdefault(sum(s <= raw["top"] for s in seps), []).append((0 if lead else 1, key, ln))
+                bands.setdefault(band, []).append((0 if lead else 1, key, ln))
+        for band, parts in titles.items():
+            parts.sort(key=lambda p: (p[0], p[1], p[2]["x0"]))
+            raws = [p[2] for p in parts]
+            title = Line(text=join_lines([p["text"] for p in raws]), page=page_no, column=0,
+                         bbox=(min(p["x0"] for p in raws), min(p["top"] for p in raws), max(p["x1"] for p in raws), max(p["bottom"] for p in raws)),
+                         is_heading=False, is_subheading=True)
+            # Kind -1: the title heads its whole record, even though it sits
+            # mid-height beside a description that starts above it.
+            bands.setdefault(band, []).append((-1, (-1, 0.0), title))
         out: list[Line] = []
         for band in sorted(bands):
             items = bands[band]
@@ -289,7 +343,7 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             # it (the end of the previous record) stay before it.
             lead_rows = sorted(key[0] for kind, key, _ in items if kind == 0)
             def piece(kind, key):
-                row = key[0] if kind == 0 else key[1]
+                row = key[0] if kind <= 0 else key[1]
                 return sum(lr <= row for lr in lead_rows)
             out += [ln for _, _, ln in sorted(items, key=lambda i: (piece(i[0], i[1]), i[0], i[1]))]
         return out
@@ -343,29 +397,54 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 by_page[page_no] = table_lines(page, page_no)
             else:
                 by_page[page_no] = page_lines(page, page_no, 1 if layout_for(page_no) == "rows" else columns)
-    for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char):
+    for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char, figure_text=hints.get("figure_text", False),
+                                           boxes_flow=hints.get("boxes_flow", 0.5)):
         by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
     return [ln for p in sorted(by_page) for ln in by_page[p]]
 
 
-def _box_lines(pdf_path: str, pages: list[int], keep_char):
+def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, boxes_flow: float | None = 0.5):
     """Free-form layouts (`layout: boxes`): let pdfminer group characters into
     text boxes, so side-by-side boxes (main text, sidebars, card text) stay
     apart, then yield each box's lines in reading order, as
     (page_no, box_no, line) with `line` shaped like a pdfplumber text line
     and holding only the characters `keep_char` accepts. `pages` must exist
-    in the document."""
+    in the document. `figure_text` also reads text drawn inside embedded
+    graphics (some rulebooks set their page titles that way). `boxes_flow` is
+    pdfminer's reading-order weighting, from -1 (columns: left to right, then
+    down) to 1 (rows: top to bottom); 0.5 is pdfminer's default."""
     from pdfminer.high_level import extract_pages
-    from pdfminer.layout import LAParams, LTAnno, LTChar, LTTextBox
+    from pdfminer.layout import LAParams, LTAnno, LTChar, LTFigure, LTTextBox
+
+    def figure_boxes(container):
+        for el in container:
+            if isinstance(el, LTTextBox):
+                yield el
+            elif isinstance(el, LTFigure):
+                yield from figure_boxes(el)
+
+    def reading_order(layout) -> list:
+        """The page's text boxes in pdfminer's reading order. Boxes from inside
+        graphics come last in that order, so each is moved to just before the
+        first box below it that it overlaps horizontally: a title drawn as a
+        graphic then heads the text under it."""
+        boxes = [b for b in layout if isinstance(b, LTTextBox)]
+        if not figure_text:
+            return boxes
+        for fig in (b for el in layout if isinstance(el, LTFigure) for b in figure_boxes(el)):
+            below = [i for i, b in enumerate(boxes) if b.y1 <= fig.y1 + 2 and b.x0 < fig.x1 and fig.x0 < b.x1]
+            boxes.insert(below[0] if below else len(boxes), fig)
+        return boxes
 
     if not pages:
         return
     pages = sorted(pages)
-    for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=LAParams())):
+    laparams = LAParams(all_texts=figure_text, boxes_flow=boxes_flow)
+    for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=laparams)):
         h = layout.height
-        for box_no, box in enumerate(b for b in layout if isinstance(b, LTTextBox)):
+        for box_no, box in enumerate(reading_order(layout)):
             for tl in box:
-                chars, text, last = [], "", None
+                chars, text, seen = [], "", set()
                 for obj in tl:
                     if isinstance(obj, LTAnno):
                         if text and not text.endswith(" "):
@@ -380,9 +459,9 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char):
                     if not keep_char(c):
                         continue
                     key = (c["text"], round(c["x0"]), round(c["top"]))
-                    if key == last:
-                        continue  # overprinted duplicate glyph
-                    last = key
+                    if key in seen:
+                        continue  # overprinted duplicate glyph (bold or outlined text drawn twice)
+                    seen.add(key)
                     chars.append(c)
                     text += c["text"]
                 if chars:
@@ -393,16 +472,58 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char):
                     }
 
 
-def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_heading: str = "Introduction") -> list[Section]:
+def _continues(heading_lines: list[Line], ln: Line) -> bool:
+    """True if `ln` can be the next line of a wrapped heading: directly below
+    its last line, not a separate heading beside it in another column."""
+    if not heading_lines:
+        return True
+    prev = heading_lines[-1]
+    height = prev.bbox[3] - prev.bbox[1]
+    below = 0 <= ln.bbox[1] - prev.bbox[1] <= 2.5 * height
+    return ln.page == prev.page and below and ln.bbox[0] < prev.bbox[2] and prev.bbox[0] < ln.bbox[2]
+
+
+def _beside(heading_lines: list[Line], ln: Line) -> bool:
+    """True if heading line `ln` sits to the right of a heading at the same height."""
+    prev = heading_lines[0]
+    return ln.page == prev.page and abs(ln.bbox[1] - prev.bbox[1]) < (prev.bbox[3] - prev.bbox[1]) / 2 and ln.bbox[0] >= heading_lines[-1].bbox[2]
+
+
+def _column_home(sections: list[Section], current: Section | None, ln: Line) -> Section | None:
+    """The section a body line continues when it sits wholly left of the current
+    heading's column: the nearest earlier section on the page headed above it
+    in its own column. None when the line belongs to the current section."""
+    if current is None or not current.heading_lines or ln.is_subheading:
+        return None
+    head = current.heading_lines[0]
+    if head.page != ln.page or ln.bbox[2] >= head.bbox[0] - 5:
+        return None
+    above = [s for s in sections if s is not current
+             and not any(h.is_part for h in s.heading_lines)  # page titles head no text of their own
+             and (s.heading_lines or s.lines) and (s.heading_lines or s.lines)[0].page == ln.page
+             and (s.heading_lines or s.lines)[0].bbox[0] <= ln.bbox[0] + 10
+             and (s.heading_lines or s.lines)[0].bbox[1] < ln.bbox[1]]
+    return max(above, key=lambda s: (s.heading_lines or s.lines)[0].bbox[1], default=None)
+
+
+def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_heading: str = "Introduction",
+                   column_continuations: bool = False) -> list[Section]:
     """Group lines into sections. `parts` (from the manifest) label each section's
     top-level division; a part begins at the section whose heading is its
-    `first_heading` (the first part needs none)."""
+    `first_heading` (the first part needs none). `column_continuations` (hint)
+    sends a line left of the current heading's column back to the section
+    headed above it there (see _column_home)."""
     parts = parts or []
     part = parts[0]["name"] if parts else None
     # Words the rulebook spells whole: a line-break hyphen inside one of them is dropped.
     join_words = frozenset(w.lower() for ln in lines for w in re.findall(r"[A-Za-z]+", ln.text))
     sections: list[Section] = []
     current: Section | None = None
+    # Headings side by side at the same height (one per column) can be read
+    # before any of their text. `row` holds each column's left edge and its
+    # latest section (the heading, or a subsection under it), so each following
+    # line goes to the column it sits in.
+    row: list[tuple[float, Section]] = []
     for ln in lines:
         if ln.is_part:
             # A page title ("BIRD POWERS"): the sections after it sit under it.
@@ -412,6 +533,7 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
                 part = name
                 current = Section(heading=name, page_start=ln.page, heading_lines=[ln])
                 sections.append(current)
+                row = []
             continue
         if ln.is_heading:
             title_only = current is not None and current.part is None and current.heading == part
@@ -419,14 +541,26 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
                 # Running header: the same title printed atop a later page
                 # ("BIRD POWERS"). The current section continues.
                 continue
-            if current is not None and not current.lines and not title_only:
+            if current is not None and not current.lines and not title_only and _continues(current.heading_lines, ln):
                 # Heading wrapped onto a second line: merge into the same heading.
                 current.heading = f"{current.heading} {normalize_heading(ln.text)}"
                 current.heading_lines.append(ln)
             else:
+                beside = current is not None and not current.lines and any(sec is current for _, sec in row) and _beside(current.heading_lines, ln)
                 current = Section(heading=normalize_heading(ln.text), page_start=ln.page, part=part, heading_lines=[ln])
                 sections.append(current)
+                row = [*row, (ln.bbox[0], current)] if beside else [(ln.bbox[0], current)]
         else:
+            home = _column_home(sections, current, ln) if column_continuations else None
+            if home is not None:
+                # The rest of an earlier section, read after a heading in another
+                # column ("Ending the Game" continued beside "A Word From ...").
+                home.lines.append(ln)
+                continue
+            col = None
+            if len(row) > 1 and any(sec is current for _, sec in row):
+                col = max((i for i, (x, _) in enumerate(row) if x <= ln.bbox[0] + 10), key=lambda i: row[i][0], default=0)
+                current = row[col][1]
             if current is None:
                 current = Section(heading=preamble_heading, page_start=ln.page, part=part)
                 sections.append(current)
@@ -440,6 +574,10 @@ def build_sections(lines: list[Line], parts: list[dict] | None = None, preamble_
                 # is itself the rule.
                 current = Section(heading=current.heading, page_start=ln.page, part=current.part, subheading=" ".join(ln.text.split()))
                 sections.append(current)
+                if col is not None:
+                    row[col] = (row[col][0], current)
+                else:
+                    row = []
             current.lines.append(ln)
         # A part may start at a heading that wraps, so check after merging.
         for p in parts[1:]:

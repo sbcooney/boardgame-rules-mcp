@@ -12,6 +12,15 @@
 #   heading_fonts: font name substrings (with min size) that mark section headings
 #   body_fonts:    font name substrings kept as rules text; everything else
 #                  (card art, decorative borders, watermarks) is dropped
+#   figure_text:   also read text drawn inside embedded graphics (page titles
+#                  set that way); each lands before the text below it
+#   run_in_headings: a heading that starts a line of body text ("Ally cards
+#                  appear ...") also titles a section
+#   spreads:       [first, last] PDF pages holding two printed pages side by side
+#   column_continuations: a line left of the current heading's column goes back
+#                  to the section headed above it in its own column
+#   table.title_columns: table columns joined into each record's subsection
+#                  title (a card's number, name and points)
 #
 # synonyms: words players use -> the rulebook's own terms. Search also looks
 # for the rulebook terms, so "thief" finds robber rules. Built from general
@@ -233,3 +242,127 @@ spirit-island:
               included_in: >-
                 Published in the Nature Incarnate rulebook, which says it applies whether or not you use any
                 Nature Incarnate content; printed in the core rulebook from the 14th printing onward.
+
+brass-birmingham:
+  name: "Brass: Birmingham"
+  editions:
+    "2018":
+      docs:
+        - id: rulebook
+          title: Rulebook (v2018.11)
+          # Linked from Roxley's product page (https://roxley.com/products/brass-birmingham);
+          # the file is on Roxley's own shop storage.
+          url: https://cdn.shopify.com/s/files/1/0246/2190/8043/files/Brass-Birmingham-Rulebook.pdf?v=1758826281
+          sha256: bb627a11c769957fbb5f26a210e3957ae27a2bad054ba9cb3b4fadc6c2ba73e5
+          extraction:
+            layout: boxes
+            figure_text: true
+            content_pages: [1, 7]
+            skip_pages: [2]  # printed pages 2-3: history and historical figures
+            spreads: [2, 6]  # PDF pages 2-6 are spreads: printed 2|3 ... 10|11
+            heading_fonts:
+              - {name: BirchStd, min_size: 21, max_size: 23}  # "BUILD ACTION"
+            subheadings:
+              - {fonts: [Garamond-Bold], min_size: 12.5, max_size: 13.5}  # "To perform the Build action:"
+            body_fonts: [Garamond]
+            body_size: [8.5, 10.5]
+
+villainous:
+  name: Disney Villainous
+  editions:
+    "2018":
+      docs:
+        - id: instructions
+          title: Instructions (base game, six Villains)
+          # Ravensburger's own instructions server. Covers the shared rules; each
+          # Villain's abilities are on its cards and Villain Guide, not indexed.
+          url: https://www.ravensburger.org/spielanleitungen/ecm/Spielanleitungen/26295%20anl%202050897.pdf?ossl=pds_text_Spielanleitung
+          sha256: 0ce22425648624b4663635400f2eb01cb33c4c9fa70ea0bf57cdd595134fa7de
+          extraction:
+            layout: boxes
+            run_in_headings: true  # "Ally cards appear only in the Villain deck ..."
+            content_pages: [2, 11]
+            heading_fonts:
+              - {name: PirataCustom, min_size: 25, max_size: 26, part: true}  # "Types of Cards"
+              - {name: PirataCustom, min_size: 18.2, max_size: 19.2}  # "Vanquish"
+            body_fonts: [Cabin, PirataCustom]  # Pirata 15pt: "Note:" labels
+            body_size: [8, 16]  # board labels are under 4pt
+
+tzolkin:
+  name: "Tzolk'in: The Mayan Calendar"
+  editions:
+    "1st":
+      docs:
+        - id: rulebook
+          title: Rulebook
+          # Listed on Czech Games Edition's game page (https://www.czechgames.com/games/tzolkin-the-mayan-calendar).
+          url: https://filemanager.czechgames.com/storage/files/tzolkin-the-mayan-calendar/rules/TZ_rules_EN_13.pdf
+          sha256: df209c48ccb626e330a24d4a36da0af9d8de48b4ebbef244a564e5855fa5874a
+          extraction:
+            layout: boxes
+            figure_text: true  # page titles are drawn as graphics
+            content_pages: [2, 16]
+            heading_fonts:
+              - {name: LithosPro-Black, min_size: 29, part: true}  # "ACTIONS"
+              - {name: LithosPro-Black, min_size: 17.5, max_size: 18.5}  # "Chichen Itza"
+            subheadings:
+              - {fonts: [LithosPro-Black], min_size: 13.5, max_size: 14.5}  # "Begging for Corn"
+            body_fonts: [TempusSansITCCZ, LithosPro-Black]
+            body_size: [8, 9]
+
+a-feast-for-odin:
+  name: A Feast for Odin
+  editions:
+    "2nd":
+      docs:
+        - id: rulebook
+          title: Rulebook (2nd edition)
+          # Feuerland, the original publisher (https://www.feuerland-spiele.de/en).
+          # Its "Almanac" is Viking history, not rules, so it isn't indexed.
+          url: https://www.feuerland-spiele.de/fileadmin/game/Ein_Fest_fuer_Odin/ODIN_EN_rules_2nd_Web.pdf
+          sha256: e1280d095d2df7da6cb1cfd9cd7c0b7befcce2d8c495e3a541bc9ef64c2d9e36
+          extraction:
+            layout: boxes
+            content_pages: [4, 24]
+            heading_fonts:
+              - {name: Dolmen-SC700, min_size: 14, max_size: 22, part: true}  # "Course of Play" (small caps)
+              - {name: Times-Bold, min_size: 11.5, max_size: 12.5}  # "Phase 9: Feast"
+            body_fonts: [Times-Roman, Times-Italic, Times-Bold, Times-BoldItalic]
+            body_size: [7.5, 10.5]
+        - id: appendix
+          title: Appendix
+          url: https://www.feuerland-spiele.de/fileadmin/game/Ein_Fest_fuer_Odin/ODIN_EN_Appendix_Web.pdf
+          sha256: ae4e6ea6330ff85d9719d6b34ff9a65c91a7d64c0a25b2b2c39d2c2e6e2c2bc3
+          extraction:
+            # Pages 2-11: the occupation card index, one table row per card.
+            layout:
+              - {pages: [2, 11], layout: table}
+              - {pages: [12, 16], layout: boxes}
+            table: {column_bounds: [82, 115, 169, 202, 520], title_columns: [0, 1, 2, 3]}  # Nb | Deck | Name | Points | Description | Type
+            content_pages: [2, 16]
+            heading_fonts:
+              - {name: Times-Bold, min_size: 11.5, max_size: 12.5}  # "2. The Placement Rules"
+            body_fonts: [Times-Roman, Times-Italic, Times-Bold, Times-BoldItalic]
+            body_size: [8.5, 10.5]
+
+sushi-roll:
+  name: Sushi Roll
+  editions:
+    "1st":
+      docs:
+        - id: rules
+          title: Rules of Play
+          # Linked from Gamewright's product page (https://gamewright.com/product/Sushi-Roll).
+          # A fold-out sheet with no page numbers: pages are the PDF's panels.
+          url: https://gamewright.com/pdfs/Rules/Sushi-Roll-Rules.pdf
+          sha256: 4c7e76adf118cc4478b0416a61d61367b7def4480fb8776187fb1d5c9927af0f
+          extraction:
+            layout: boxes
+            content_pages: [2, 4]
+            heading_fonts:
+              - {name: BadgerExtraBold, min_size: 13.5, max_size: 14.5}  # "SCORING A ROUND"
+            column_continuations: true  # "Ending the Game" continues beside "A Word From Gamewright"
+            subheadings:
+              - {pattern: '^SET UP$', fonts: [Nobel-Bold], min_size: 10.8, max_size: 11.2}  # same font labels the component pictures
+            body_fonts: [Nobel-Regular, Nobel-Bold, Nobel-RegularItalic, Nobel-Book]
+            body_size: [8.5, 10.5]

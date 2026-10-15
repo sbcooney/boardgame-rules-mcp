@@ -73,6 +73,9 @@ def _migrate_doc_columns(db: sqlite3.Connection) -> None:
         if "page_offset" not in cols:
             # printed page = PDF page + page_offset (a cover or insert shifts them)
             db.execute("ALTER TABLE docs ADD COLUMN page_offset INTEGER DEFAULT 0")
+        if "spreads" not in cols:
+            # JSON {"first", "last", "split"}: PDF pages that hold two printed pages side by side
+            db.execute("ALTER TABLE docs ADD COLUMN spreads TEXT")
 
 
 def slug(text: str) -> str:
@@ -120,9 +123,10 @@ def replace_doc(db: sqlite3.Connection, game: str, edition: str, doc: dict, pdf_
             db.execute(f"DELETE FROM {table} WHERE game=? AND edition=? AND doc_id=?", (game, edition, doc_id))
 
         db.execute(
-            "INSERT INTO docs (game, edition, doc_id, title, pdf_path, sha256, source_type, page_offset) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO docs (game, edition, doc_id, title, pdf_path, sha256, source_type, page_offset, spreads) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (game, edition, doc_id, doc.get("title", doc_id), str(pdf_path), sha256,
-             doc.get("source_type", "rulebook"), doc.get("extraction", {}).get("printed_page_offset", 0)),
+             doc.get("source_type", "rulebook"), doc.get("extraction", {}).get("printed_page_offset", 0),
+             json.dumps(doc["spreads"]) if doc.get("spreads") else None),
         )
         for a in doc.get("amends", []):
             db.execute(
@@ -187,9 +191,48 @@ def resolve_edition(db: sqlite3.Connection, game: str, edition: str | None) -> s
 
 def _doc(db: sqlite3.Connection, game: str, edition: str, doc_id: str) -> sqlite3.Row:
     return db.execute(
-        "SELECT title, pdf_path, source_type, page_offset FROM docs WHERE game=? AND edition=? AND doc_id=?",
+        "SELECT title, pdf_path, source_type, page_offset, spreads FROM docs WHERE game=? AND edition=? AND doc_id=?",
         (game, edition, doc_id),
     ).fetchone()
+
+
+# Printed page numbers. Most PDFs hold one printed page per PDF page, shifted by
+# `page_offset` (an unnumbered cover). Some hold two-page spreads: PDF pages
+# first..last each carry two printed pages, left and right of `split`.
+
+
+def printed_page(doc: sqlite3.Row, pdf_page: int, x: float = 0.0) -> int:
+    """The printed page at horizontal position `x` (points) of a PDF page."""
+    page = pdf_page + (doc["page_offset"] or 0)
+    if doc["spreads"]:
+        sp = json.loads(doc["spreads"])
+        page += max(0, min(pdf_page, sp["last"] + 1) - sp["first"])  # earlier spreads' extra pages
+        if sp["first"] <= pdf_page <= sp["last"] and x >= sp["split"]:
+            page += 1
+    return page
+
+
+def pdf_location(doc: sqlite3.Row, page: int) -> tuple[int, tuple[float, float] | None]:
+    """The PDF page holding printed page `page`, and the x range of that half
+    when it is one side of a spread (None for a whole page)."""
+    if not doc["spreads"]:
+        return page - (doc["page_offset"] or 0), None
+    sp = json.loads(doc["spreads"])
+    for pdf_page in range(1, page + 1):
+        if printed_page(doc, pdf_page) == page:
+            return pdf_page, ((0.0, sp["split"]) if sp["first"] <= pdf_page <= sp["last"] else None)
+        if sp["first"] <= pdf_page <= sp["last"] and printed_page(doc, pdf_page, sp["split"]) == page:
+            return pdf_page, (sp["split"], float("inf"))
+    return page, None
+
+
+def _span_x(spans: list[dict], pdf_page: int, last: bool = False) -> float:
+    """Horizontal centre of the first (or last) highlighted box on a PDF page."""
+    boxes = [s["bbox"] for s in spans if s["page"] == pdf_page]
+    if not boxes:
+        return 0.0
+    b = boxes[-1] if last else boxes[0]
+    return (b[0] + b[2]) / 2
 
 
 def _within(path: str, section: str) -> bool:
@@ -233,7 +276,8 @@ def amendments_for(db: sqlite3.Connection, game: str, edition: str, doc_id: str,
             spath = db.execute("SELECT path FROM sections WHERE section_id=?", (source,)).fetchone()["path"]
             entry["source"] = {
                 "citation_id": src["citation_id"], "document": sdoc["title"], "source_type": sdoc["source_type"],
-                "section_path": json.loads(spath), "printed_page": src["page"] + (sdoc["page_offset"] or 0), "quote": src["text"],
+                "section_path": json.loads(spath), "quote": src["text"],
+                "printed_page": printed_page(sdoc, src["page"], _span_x(json.loads(src["spans"]), src["page"])),
             }
         out.append(entry)
     return out
@@ -251,7 +295,7 @@ def citation(db: sqlite3.Connection, row: sqlite3.Row) -> dict:
         "document": doc["title"],
         "source_type": doc["source_type"] or "rulebook",
         "section_path": path,
-        "printed_page": row["page"] + (doc["page_offset"] or 0),
+        "printed_page": printed_page(doc, row["page"], _span_x(json.loads(row["spans"]), row["page"])),
         "pdf_page": row["page"],
         "quote": row["text"],
         "spans": json.loads(row["spans"]),
@@ -361,20 +405,24 @@ def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | N
     if len(docs) > 1:
         raise LookupError_(f"{game} {edition} has several documents {[d['doc_id'] for d in docs]}; pass document=.")
     doc = docs[0]
-    pdf_page = page - (_doc(db, game, edition, doc["doc_id"])["page_offset"] or 0)
+    pdf_page, half = pdf_location(_doc(db, game, edition, doc["doc_id"]), page)
+
+    def here(span: dict) -> bool:
+        x = (span["bbox"][0] + span["bbox"][2]) / 2
+        return span["page"] == pdf_page and (half is None or half[0] <= x < half[1])
     rows = db.execute(
         """SELECT p.* FROM passages p JOIN sections s USING (section_id)
            WHERE p.game=? AND p.edition=? AND p.doc_id=? ORDER BY s.ord, p.ord""",
         (game, edition, doc["doc_id"]),
     ).fetchall()
-    on_page = [r for r in rows if any(s["page"] == pdf_page for s in json.loads(r["spans"]))]
+    on_page = [r for r in rows if any(here(s) for s in json.loads(r["spans"]))]
     if not on_page:
         raise LookupError_(f"No indexed rules text on page {page} of {doc['title']}.")
     passages = [
         {"citation_id": r["citation_id"], "section_path": json.loads(db.execute("SELECT path FROM sections WHERE section_id=?", (r["section_id"],)).fetchone()["path"])}
         for r in on_page
     ]
-    boxes = [s["bbox"] for r in on_page for s in json.loads(r["spans"]) if s["page"] == pdf_page]
+    boxes = [s["bbox"] for r in on_page for s in json.loads(r["spans"]) if here(s)]
     return {
         "game": game,
         "edition": edition,
@@ -443,7 +491,7 @@ def get_section(db: sqlite3.Connection, section_id: str) -> dict:
     if sec is None:
         raise LookupError_(f"No section {section_id!r}. Use search_rules or lookup_term to find section ids.")
     doc = _doc(db, sec["game"], sec["edition"], sec["doc_id"])
-    offset = doc["page_offset"] or 0
+    spans = json.loads(sec["spans"])
     neighbours = db.execute(
         "SELECT section_id, path, ord FROM sections WHERE game=? AND edition=? AND doc_id=? AND ord IN (?, ?) ORDER BY ord",
         (sec["game"], sec["edition"], sec["doc_id"], sec["ord"] - 1, sec["ord"] + 1),
@@ -455,10 +503,10 @@ def get_section(db: sqlite3.Connection, section_id: str) -> dict:
         "document": doc["title"],
         "source_type": doc["source_type"] or "rulebook",
         "section_path": json.loads(sec["path"]),
-        "printed_page_start": sec["page_start"] + offset,
-        "printed_page_end": sec["page_end"] + offset,
+        "printed_page_start": printed_page(doc, sec["page_start"], _span_x(spans, sec["page_start"])),
+        "printed_page_end": printed_page(doc, sec["page_end"], _span_x(spans, sec["page_end"], last=True)),
         "text": sec["text"],
-        "spans": json.loads(sec["spans"]),
+        "spans": spans,
         "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={sec['page_start']}",
         "previous_section": next(({"section_id": n["section_id"], "section_path": json.loads(n["path"])} for n in neighbours if n["ord"] < sec["ord"]), None),
         "next_section": next(({"section_id": n["section_id"], "section_path": json.loads(n["path"])} for n in neighbours if n["ord"] > sec["ord"]), None),

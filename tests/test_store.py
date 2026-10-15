@@ -126,3 +126,15 @@ def test_check_amendments_reports_sections_that_no_longer_match(db, tmp_path):
         "rules: no section 'Almanac > Robbers' (changed by changes)",
         "changes: no section 'Significant Changes > FEAR ERRATA'",
     ]
+
+
+def test_printed_pages_on_two_page_spreads():
+    # Brass: PDF page 1 is the cover (printed 1), PDF pages 2-6 are spreads (2|3 ... 10|11), PDF page 7 is printed 12.
+    doc = {"page_offset": 0, "spreads": '{"first": 2, "last": 6, "split": 816.5}'}
+    assert [store.printed_page(doc, p) for p in (1, 2, 3, 6, 7)] == [1, 2, 4, 10, 12]
+    assert store.printed_page(doc, 2, 900) == 3 and store.printed_page(doc, 6, 1200) == 11
+    assert store.pdf_location(doc, 1) == (1, None)
+    assert store.pdf_location(doc, 5) == (3, (816.5, float("inf")))
+    assert store.pdf_location(doc, 12) == (7, None)
+    plain = {"page_offset": -1, "spreads": None}
+    assert store.printed_page(plain, 6) == 5 and store.pdf_location(plain, 5) == (6, None)
