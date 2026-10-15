@@ -11,7 +11,7 @@ Read it with the docs tools before starting work. Its milestone checklist (M0–
 
 - **The server never writes answers.** Tools return verbatim rulebook text plus locations (game, edition, section path, printed page, PDF page, bbox). The client model writes the answer.
 - **No hallucination.** Low-confidence search returns an explicit `found: false`, never padded weak matches. Searches are always scoped to one edition.
-- **Only publisher-issued sources.** Rulebooks and errata published by the publisher (e.g. in a later rulebook) only. Community FAQs, wikis and forum posts are leads, never sources, even when a rulebook links to them. An erratum is linked to the rulebook section it changes (`amends` in the manifest), and answers must give both the printed rule and the official change, with which printings include it.
+- **Only publisher-issued sources.** Rulebooks and errata published by the publisher (e.g. in a later rulebook) only. Community FAQs, wikis and forum posts are leads, never sources, even when a rulebook links to them. A publisher's own document that is only available on a community site (e.g. a Ravensburger Villain Guide PDF on BoardGameGeek) may be added as `user_supplied` with a `download_page`, never auto-downloaded, its title saying where it came from. An erratum is linked to the rulebook section it changes (`amends` in the manifest), and answers must give both the printed rule and the official change, with which printings include it.
 - **Never commit rulebook content.** PDFs, extracted text and indexes live under `data/` (gitignored). The repo holds only `src/bgrules/manifest.yaml` with official links and checksums.
 
 ## Stack

@@ -3,7 +3,11 @@
 # SOURCE RULE: only publisher-issued documents (rulebooks, official errata in a
 # publisher's rulebook or document). Never community FAQs, wikis or forum posts,
 # however reliable: they may point to an official change, but the change goes in
-# only once a publisher document states it. `source_type: errata` documents can
+# only once a publisher document states it.
+# Publisher documents found only on a community site (e.g. Ravensburger's own
+# Villain Guide PDFs uploaded to BoardGameGeek) are allowed as user_supplied:
+# never auto-downloaded, `download_page` tells users where to get them, and the
+# title says where they came from so citations show it. `source_type: errata` documents can
 # `amend` a rulebook section; answers then give both the printed and the changed rule.
 #
 # extraction hints (from the M0 spike):
@@ -145,6 +149,7 @@ wingspan:
         - id: rulebook
           title: Rulebook (r24)
           source: user_supplied  # WS_Rulebook_r24.pdf in the official folder
+          download_page: https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0
           expected_sha256: a008c1ad227723ff644bf57ebcd4b55b6a7e586a973904aec046c2f0cb3ee07a
           extraction:
             layout: boxes  # free-form magazine layout: pdfminer text boxes, not fixed columns
@@ -163,6 +168,7 @@ wingspan:
         - id: appendix
           title: Appendix (r17)
           source: user_supplied  # WS_Appendix_r17.pdf in the official folder
+          download_page: https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0
           expected_sha256: ec17130c81b0be52785741cead7131f3f1ddc9f0c4bae7b8d6a56cb197ef5a5c
           extraction:
             # Goal tiles sit side by side (text boxes); bonus cards and bird

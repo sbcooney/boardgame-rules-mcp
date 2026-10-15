@@ -67,9 +67,9 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
                 log(f"Downloading {doc['title']} from {doc['url']}")
                 download(doc["url"], incoming)
         else:
+            where = f" Download it from {doc['download_page']}," if doc.get("download_page") else " Get the PDF yourself,"
             raise IngestError(
-                f"{game} {edition} '{doc['title']}' has no official download link "
-                f"({doc.get('source', 'no source')}). Get the PDF yourself, then run:\n"
+                f"{game} {edition} '{doc['title']}' can't be downloaded automatically.{where} then run:\n"
                 f"  bgrules add {game} --edition {edition} --doc {doc['id']} --file /path/to/{doc['id']}.pdf"
             )
 

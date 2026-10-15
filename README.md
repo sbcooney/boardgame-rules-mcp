@@ -105,7 +105,7 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 
 Each game is an entry in [`src/bgrules/manifest.yaml`](src/bgrules/manifest.yaml).
 
-1. **Find the official PDF** on the publisher's site. Only publisher-issued rulebooks and errata qualify. For a direct download link, add `url` and `sha256`. Otherwise, set `source: user_supplied` and `expected_sha256`, and install the PDF with `--file`.
+1. **Find the official PDF** on the publisher's site. Only publisher-issued rulebooks and errata qualify. For a direct download link, add `url` and `sha256`. Otherwise, set `source: user_supplied`, `expected_sha256` and a `download_page` saying where users get the file, and install the PDF with `--file`. A publisher's own document that is only available on a community site (such as a Villain Guide on BoardGameGeek) can be added this way, labelled in its title; fan-written FAQs and wikis can't.
 2. **Add extraction hints.** `uv run python spikes/m0_extract.py <pdf>` lists the fonts and sizes on each page. Use them to set `layout` (`columns`, `rows`, `boxes` or `table`), `heading_fonts`, `body_fonts`, `body_size` and `content_pages`. The three existing games cover the common layouts.
 3. **Index and check.** Run `uv run bgrules add <game>`, then `uv run bgrules search <game> "..."`. Check the section paths and quotes; garbled or interleaved text means a hint needs adjusting.
 4. **Write eval questions** in `evals/<game>_<edition>.yaml` and run `uv run python evals/retrieval.py evals/<game>_<edition>.yaml`. This is free: it makes no model calls.
