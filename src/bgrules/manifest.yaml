@@ -255,6 +255,15 @@ spirit-island:
 
 brass-birmingham:
   name: "Brass: Birmingham"
+  # Built from a development batch of BoardGameGeek Rules-forum threads (separate
+  # from the eval's forum questions): words players used there that the rulebook doesn't.
+  synonyms:
+    city: [location]
+    town: [location]
+    train: [rail]
+    railroad: [rail]
+    boat: [canal]
+    map: [board]
   editions:
     "2018":
       docs:
@@ -417,6 +426,11 @@ villainous:
 
 tzolkin:
   name: "Tzolk'in: The Mayan Calendar"
+  # From a development batch of BoardGameGeek Rules-forum threads (see brass-birmingham).
+  synonyms:
+    wheel: [gear]
+    spin: [advance, rotate]
+    upgrade: [advance]
   editions:
     "1st":
       docs:
@@ -440,6 +454,11 @@ tzolkin:
 
 a-feast-for-odin:
   name: A Feast for Odin
+  # From a development batch of BoardGameGeek Rules-forum threads (see brass-birmingham).
+  synonyms:
+    cow: [cattle]
+    flip: [turn]
+    upgrade: [exchange]
   editions:
     "2nd":
       docs:
