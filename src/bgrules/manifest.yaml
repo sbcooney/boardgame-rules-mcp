@@ -286,7 +286,7 @@ villainous:
           # Villain's abilities are on its cards and Villain Guide, not indexed.
           url: https://www.ravensburger.org/spielanleitungen/ecm/Spielanleitungen/26295%20anl%202050897.pdf?ossl=pds_text_Spielanleitung
           sha256: 0ce22425648624b4663635400f2eb01cb33c4c9fa70ea0bf57cdd595134fa7de
-          extraction:
+          extraction: &villainous_instructions
             layout: boxes
             run_in_headings: true  # "Ally cards appear only in the Villain deck ..."
             content_pages: [2, 11]
@@ -326,6 +326,28 @@ villainous:
           source: user_supplied  # DVE_DrFaciler_VillainGuide_60001796_Pages_NoBleed_USe01.pdf
           download_page: https://boardgamegeek.com/boardgame/271518/disney-villainous-wicked-to-the-core/files
           expected_sha256: 5a24ba8568d817ed344128be4fe19ea7b21f03db2717866eec1d38e53a9f6ae5
+          extraction: *villain_guide
+        # Evil Comes Prepared (Ratigan, Scar, Yzma). Its Instructions repeat the
+        # base rules and add "Mixing Games" (4+ players, combining boxes).
+        - id: evil-comes-prepared-instructions
+          title: "Evil Comes Prepared Instructions (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE2_Instructions_60001837_Pages_Nobleed_USe01.pdf
+          download_page: https://boardgamegeek.com/filepage/184304/disney-villainous-evil-comes-prepared-villains-gui
+          expected_sha256: 559cdf39442bebff80588e32432ba825c9d24f03c57a8c995cbb6c9a32cf8371
+          extraction:
+            <<: *villainous_instructions
+            content_pages: [2, 19]
+        - id: guide-ratigan
+          title: "Ratigan Villain Guide, Evil Comes Prepared (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE2_Ratigan_VillainGuide_60001837_Pages_NoBleed_USe01.pdf
+          download_page: https://boardgamegeek.com/filepage/184304/disney-villainous-evil-comes-prepared-villains-gui
+          expected_sha256: e030e26b80c2a6fb10281861893a01f2e3ad1cd319ccb5206693f7655ef9dba8
+          extraction: *villain_guide
+        - id: guide-scar
+          title: "Scar Villain Guide, Evil Comes Prepared (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE2_Scar_VillainGuide_60001837_Pages_NoBleed_USe01.pdf
+          download_page: https://boardgamegeek.com/filepage/184304/disney-villainous-evil-comes-prepared-villains-gui
+          expected_sha256: 6118cc9cda5af398e078f70933db3ae6b550b1b1c18691262a803a2c6ff3e95d
           extraction: *villain_guide
         # Perfectly Wretched's guides exist only as image-only "print to PDF"
         # copies (no text layer) of Ravensburger's DV_VILPerfectlyWretched_60001866_

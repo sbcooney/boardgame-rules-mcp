@@ -5,7 +5,8 @@
 # The Instructions give the shared rules; the Villain Guides (Ravensburger PDFs
 # from BoardGameGeek, user-supplied) cover each Villain's objective and cards:
 # the six base Villains, Wicked to the Core's three and Perfectly Wretched's
-# three (image-only copies, read by OCR). `guide` questions need
+# three (image-only copies, read by OCR), and Evil Comes Prepared's Instructions
+# plus Ratigan's and Scar's guides (Yzma's isn't installed yet). `guide` questions need
 # those installed. Villains from sets not installed stay not_addressed.
 game: villainous
 edition: "2018"
@@ -15,7 +16,7 @@ edition_desc: base game Instructions
 core: [
   vl-turn-steps, vl-starting-power, vl-hand-size, vl-win,
   vl-stay-location, vl-vanquish-combine, vl-condition-timing, vl-card-beats-rules, vl-strength-zero,
-  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-na-scar,
+  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-guide-scar-win, vl-mixing, vl-na-yzma,
 ]
 
 questions:
@@ -136,6 +137,16 @@ questions:
     question: How many puppies does Cruella need to win?
     answer: At least 99 captured puppies at the start of her turn (each Puppy Token is 11 or 22 puppies). From an OCR'd guide.
     sections: ["Cruella De Vil > Cruella De Vil's Objective"]
+  - id: vl-guide-scar-win
+    category: guide
+    question: What does Scar need to do to win?
+    answer: Start his turn with Heroes totalling at least 15 Strength in his Succession pile.
+    sections: ["Scar > Scar’s Objective"]
+  - id: vl-mixing
+    category: lookup
+    question: Can I combine Villains from different boxes to play with more people?
+    answer: Yes, mixing boxes allows up to 6 players, with additional rules (Evil Comes Prepared Instructions, Mixing Games).
+    sections: ["Mixing Games"]
   - id: vl-guide-magic-mirror
     category: guide
     question: What does the Evil Queen's Magic Mirror do?
@@ -143,9 +154,9 @@ questions:
     sections: ["Evil Queen > Magic Mirror"]
 
   # ---- not addressed by what's installed --------------------------------
-  - id: vl-na-scar
+  - id: vl-na-yzma
     category: not_addressed
-    question: What is Scar's objective?
+    question: What is Yzma's objective?
     answer: null
     sections: []
   - id: vl-na-teams
