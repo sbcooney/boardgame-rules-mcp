@@ -327,6 +327,33 @@ villainous:
           download_page: https://boardgamegeek.com/boardgame/271518/disney-villainous-wicked-to-the-core/files
           expected_sha256: 5a24ba8568d817ed344128be4fe19ea7b21f03db2717866eec1d38e53a9f6ae5
           extraction: *villain_guide
+        # Perfectly Wretched's guides exist only as image-only "print to PDF"
+        # copies (no text layer) of Ravensburger's DV_VILPerfectlyWretched_60001866_
+        # VillainGuidesLR_o.pdf, so they are read by OCR and labelled as such.
+        - id: guide-cruella
+          title: "Cruella De Vil Villain Guide, Perfectly Wretched (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # Cruella.pdf
+          download_page: https://boardgamegeek.com/boardgame/299047/disney-villainous-perfectly-wretched/files
+          expected_sha256: 084a6e578a9b6479c8a95c4b30e70161093498947ec826d32f8b9bc031d85257
+          parts: [{name: Cruella De Vil}]
+          extraction: &ocr_guide
+            layout: ocr
+            ocr: {columns: 3, heading_min_height: 13.5, min_height: 6, not_headings: ['(Note|Important):']}  # 3 panels per page; headings 14-21pt tall, text 8-12
+            skip_text: ['CRUELLA DE VIL', 'PETE', 'MOTHER GOTHEL', 'VILLAIN GUIDE', '©Disney.*']  # cover titles, print slug
+        - id: guide-pete
+          title: "Pete Villain Guide, Perfectly Wretched (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # Pete.pdf
+          download_page: https://boardgamegeek.com/boardgame/299047/disney-villainous-perfectly-wretched/files
+          expected_sha256: 95b20e886f60f90c3c6c12e804f7d1e8d6a21bf7cf504112ba643ae459aa178a
+          parts: [{name: Pete}]
+          extraction: *ocr_guide
+        - id: guide-mother-gothel
+          title: "Mother Gothel Villain Guide, Perfectly Wretched (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # Mother_Gothel.pdf
+          download_page: https://boardgamegeek.com/boardgame/299047/disney-villainous-perfectly-wretched/files
+          expected_sha256: d3975e7767b317b686dde24493751b45ff9956e9755c642c8dac6da2d2d3d4fc
+          parts: [{name: Mother Gothel}]
+          extraction: *ocr_guide
 
 tzolkin:
   name: "Tzolk'in: The Mayan Calendar"

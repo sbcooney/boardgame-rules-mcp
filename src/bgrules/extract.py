@@ -23,6 +23,7 @@ class Line:
     is_heading: bool
     is_subheading: bool = False  # a labelled step ("b) Settlement ...") that starts a subsection
     is_part: bool = False  # a page title ("BIRD POWERS") that heads the sections after it
+    ocr: bool = False  # read from a page image by OCR, not from the PDF's text
 
 
 @dataclass
@@ -385,9 +386,12 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     by_page: dict[int, list[Line]] = {}
     with pdfplumber.open(pdf_path) as pdf:
         wanted = [p for p in pages if p <= len(pdf.pages)]
-        box_pages = [p for p in wanted if layout_for(p) == "boxes"]
+        # Pages with no text layer (scans, photos, "print to PDF" copies) are
+        # read by OCR; so is every page of `layout: ocr`.
+        ocr_pages = [p for p in wanted if layout_for(p) == "ocr" or not pdf.pages[p - 1].chars]
+        box_pages = [p for p in wanted if layout_for(p) == "boxes" and p not in ocr_pages]
         for page_no in wanted:
-            if page_no in box_pages:
+            if page_no in box_pages or page_no in ocr_pages:
                 continue
             page = pdf.pages[page_no - 1]
             # Text positioned outside the page (layout spill-over from a facing
@@ -400,7 +404,116 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char, figure_text=hints.get("figure_text", False),
                                            line_margin=hints.get("line_margin", 0.5)):
         by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
-    return [ln for p in sorted(by_page) for ln in by_page[p]]
+    for page_no, lines in _ocr_lines(pdf_path, ocr_pages, hints.get("ocr", {})):
+        by_page[page_no] = lines
+    skip = [re.compile(p) for p in hints.get("skip_text", [])]  # lines to drop: "VILLAIN GUIDE"
+    return [ln for p in sorted(by_page) for ln in by_page[p] if not any(rx.fullmatch(ln.text.strip()) for rx in skip)]
+
+
+OCR_SCALES = (3, 4)  # render scales (216 and 288 dpi): each region is read at both and merged
+
+
+def _overlap(a: tuple, b: tuple) -> float:
+    """Intersection over the smaller box's area."""
+    w = min(a[2], b[2]) - max(a[0], b[0])
+    h = min(a[3], b[3]) - max(a[1], b[1])
+    if w <= 0 or h <= 0:
+        return 0.0
+    return w * h / min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1]))
+
+
+def _ocr_lines(pdf_path: str, pages: list[int], rules: dict):
+    """Read image-only pages with OCR, yielding (page_no, lines) in reading order.
+
+    Uses the macOS Vision framework. Text detection can skip a line beside a
+    picture at one resolution and find it at another, so each region is read
+    at every scale in OCR_SCALES and the results are merged. `columns` splits
+    the page into that many vertical strips read separately (panelled layouts
+    read most reliably one panel at a time); each strip is a column for
+    highlighting. OCR gives no fonts, so headings are told apart by line
+    height (PDF points): `heading_min_height` (default 1.4x the median line
+    height); `min_height` drops smaller lines, such as card text in pictures;
+    lines below `min_confidence` (default 0.6: decorative borders read as
+    "=---") are dropped too. `not_headings` lists patterns for tall lines that
+    aren't headings, such as callouts set in a bigger font ("Note: ...").
+    Lines whose characters average under `min_char_width` (default 0.3) of
+    the median line height wide are dropped: real text is about 0.4, while
+    small print inside pictures (card text) comes back squeezed into narrow
+    boxes. (Box heights vary too much line to line to measure against.)"""
+    if not pages:
+        return
+    try:
+        import io
+
+        import pypdfium2 as pdfium
+        import Vision
+        from Foundation import NSData
+    except ImportError as e:
+        raise RuntimeError(
+            f"Pages {pages} have no text, only images, so they need OCR, which uses macOS's Vision framework ({e})."
+        ) from e
+
+    def recognise(image) -> list:
+        buf = io.BytesIO()
+        image.save(buf, format="PNG")
+        request = Vision.VNRecognizeTextRequest.alloc().init()
+        request.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate)
+        request.setUsesLanguageCorrection_(True)
+        Vision.VNImageRequestHandler.alloc().initWithData_options_(
+            NSData.dataWithBytes_length_(buf.getvalue(), len(buf.getvalue())), None).performRequests_error_([request], None)
+        return list(request.results() or [])
+
+    n_cols = rules.get("columns", 1)
+    pdf = pdfium.PdfDocument(pdf_path)
+    try:
+        read: list[tuple[int, list[tuple[str, tuple[float, float, float, float], int]]]] = []
+        for page_no in pages:
+            page = pdf[page_no - 1]
+            width, height = page.get_size()
+            found: list[tuple[str, tuple[float, float, float, float], int, float]] = []
+            for scale in OCR_SCALES:
+                image = page.render(scale=scale).to_pil()
+                for col in range(n_cols):
+                    left, right = width * col / n_cols, width * (col + 1) / n_cols
+                    strip = image.crop((round(left * scale), 0, round(right * scale), image.height))
+                    for obs in recognise(strip):
+                        best = obs.topCandidates_(1)[0]
+                        if best.confidence() < rules.get("min_confidence", 0.6) or not re.search(r"[A-Za-z]", best.string()):
+                            continue
+                        b = obs.boundingBox()  # normalised to the strip, origin bottom-left
+                        sw = right - left
+                        bbox = (left + b.origin.x * sw, (1 - b.origin.y - b.size.height) * height,
+                                left + (b.origin.x + b.size.width) * sw, (1 - b.origin.y) * height)
+                        same = next((i for i, f in enumerate(found) if _overlap(f[1], bbox) > 0.5), None)
+                        if same is None:
+                            found.append((best.string(), bbox, col, best.confidence()))
+                        elif best.confidence() > found[same][3]:
+                            found[same] = (best.string(), bbox, col, best.confidence())
+            found.sort(key=lambda f: (f[2], f[1][1]))  # by strip, then top to bottom
+            read.append((page_no, [(t, bb, c) for t, bb, c, _ in found]))
+    finally:
+        pdf.close()
+
+    heights = sorted(bb[3] - bb[1] for _, found in read for _, bb, _ in found)
+    median = heights[len(heights) // 2] if heights else 0.0
+    heading_min = rules.get("heading_min_height", 1.4 * median)
+    not_headings = [re.compile(p) for p in rules.get("not_headings", [])]
+    for page_no, found in read:
+        lines, column, last = [], 0, None
+        for text, bbox, strip in found:
+            h = bbox[3] - bbox[1]
+            if h < rules.get("min_height", 0):
+                continue
+            if (bbox[2] - bbox[0]) / max(len(text), 1) < rules.get("min_char_width", 0.3) * median:
+                continue  # squeezed into a tiny box: small print in a picture (a card), read at a stretch
+            if last is not None and (strip != last[0] or bbox[1] < last[1] - 2):
+                column += 1  # a new strip, or back up the page: a new column
+            last = (strip, bbox[1])
+            heading = h >= heading_min and not any(rx.match(text) for rx in not_headings)
+            if heading:
+                text = re.sub(r"^[^\w(“\"]+", "", text)  # an icon read as a symbol: "® Goal: Win Big"
+            lines.append(Line(text=text, page=page_no, column=column, bbox=bbox, is_heading=heading, ocr=True))
+        yield page_no, lines
 
 
 def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, line_margin: float = 0.5):

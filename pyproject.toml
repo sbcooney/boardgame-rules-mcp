@@ -9,6 +9,7 @@ dependencies = [
     "mcp>=2.3,<3",
     "pdfplumber>=0.11",
     "pillow>=10.0",
+    "pyobjc-framework-vision>=10 ; sys_platform == 'darwin'",
     "pypdfium2>=4.30",
     "pyyaml>=6.0",
 ]

@@ -4,7 +4,8 @@
 # against the indexed Instructions text, and the sections that settle each one.
 # The Instructions give the shared rules; the Villain Guides (Ravensburger PDFs
 # from BoardGameGeek, user-supplied) cover each Villain's objective and cards:
-# the six base Villains and Wicked to the Core's three. `guide` questions need
+# the six base Villains, Wicked to the Core's three and Perfectly Wretched's
+# three (image-only copies, read by OCR). `guide` questions need
 # those installed. Villains from sets not installed stay not_addressed.
 game: villainous
 edition: "2018"
@@ -130,6 +131,11 @@ questions:
     question: How does the Evil Queen win?
     answer: Defeat Snow White, by unlocking the Dwarfs' Cottage with four different Ingredients, brewing Poison, and playing Take a Bite at Snow White's location.
     sections: ["Evil Queen > Evil Queen’s Objective"]
+  - id: vl-guide-cruella-win
+    category: guide
+    question: How many puppies does Cruella need to win?
+    answer: At least 99 captured puppies at the start of her turn (each Puppy Token is 11 or 22 puppies). From an OCR'd guide.
+    sections: ["Cruella De Vil > Cruella De Vil's Objective"]
   - id: vl-guide-magic-mirror
     category: guide
     question: What does the Evil Queen's Magic Mirror do?

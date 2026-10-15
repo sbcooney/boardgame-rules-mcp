@@ -91,6 +91,12 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
 
         log(f"Extracting {doc['title']}…")
         lines = extract_lines(str(dest), doc.get("extraction", {}))
+        ocr_pages = sorted({ln.page for ln in lines if ln.ocr})
+        if ocr_pages:
+            # Say so wherever this document is cited: OCR can misread a character.
+            log(f"Pages {ocr_pages} have no text layer; read them by OCR. Check quotes against the page images.")
+            if "OCR" not in doc.get("title", ""):
+                doc = {**doc, "title": f"{doc.get('title', doc['id'])} (text read by OCR)"}
         ex = doc.get("extraction", {})
         sections = build_sections(lines, doc.get("parts"), preamble_heading=ex.get("preamble_heading", "Introduction"),
                                   column_continuations=ex.get("column_continuations", False))
