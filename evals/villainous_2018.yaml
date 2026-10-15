@@ -6,7 +6,7 @@
 # from BoardGameGeek, user-supplied) cover each Villain's objective and cards:
 # the six base Villains, Wicked to the Core's three and Perfectly Wretched's
 # three (image-only copies, read by OCR), and Evil Comes Prepared's Instructions
-# plus Ratigan's and Scar's guides (Yzma's isn't installed yet). `guide` questions need
+# plus Ratigan's, Scar's and Yzma's guides. `guide` questions need
 # those installed. Villains from sets not installed stay not_addressed.
 game: villainous
 edition: "2018"
@@ -16,7 +16,7 @@ edition_desc: base game Instructions
 core: [
   vl-turn-steps, vl-starting-power, vl-hand-size, vl-win,
   vl-stay-location, vl-vanquish-combine, vl-condition-timing, vl-card-beats-rules, vl-strength-zero,
-  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-guide-scar-win, vl-mixing, vl-na-yzma,
+  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-guide-scar-win, vl-mixing, vl-guide-yzma-win, vl-na-gaston,
 ]
 
 questions:
@@ -154,9 +154,14 @@ questions:
     sections: ["Evil Queen > Magic Mirror"]
 
   # ---- not addressed by what's installed --------------------------------
-  - id: vl-na-yzma
-    category: not_addressed
+  - id: vl-guide-yzma-win
+    category: guide
     question: What is Yzma's objective?
+    answer: Defeat Kuzco with Kronk.
+    sections: ["Yzma > Yzma’s Objective"]
+  - id: vl-na-gaston
+    category: not_addressed
+    question: What is Gaston's objective?
     answer: null
     sections: []
   - id: vl-na-teams

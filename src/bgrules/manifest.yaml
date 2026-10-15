@@ -349,6 +349,12 @@ villainous:
           download_page: https://boardgamegeek.com/filepage/184304/disney-villainous-evil-comes-prepared-villains-gui
           expected_sha256: 6118cc9cda5af398e078f70933db3ae6b550b1b1c18691262a803a2c6ff3e95d
           extraction: *villain_guide
+        - id: guide-yzma
+          title: "Yzma Villain Guide, Evil Comes Prepared (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE2_Yzma_VillainGuide_60001837_Pages_NoBleed_USe01.pdf
+          download_page: https://boardgamegeek.com/filepage/184304/disney-villainous-evil-comes-prepared-villains-gui
+          expected_sha256: 89644d2733dcf2a02678d37097ac66e5edc9d2eb2a5d16b6cc392f5454dc45e1
+          extraction: *villain_guide
         # Perfectly Wretched's guides exist only as image-only "print to PDF"
         # copies (no text layer) of Ravensburger's DV_VILPerfectlyWretched_60001866_
         # VillainGuidesLR_o.pdf, so they are read by OCR and labelled as such.
