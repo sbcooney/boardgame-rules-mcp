@@ -407,7 +407,11 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     for page_no, lines in _ocr_lines(pdf_path, ocr_pages, hints.get("ocr", {})):
         by_page[page_no] = lines
     skip = [re.compile(p) for p in hints.get("skip_text", [])]  # lines to drop: "VILLAIN GUIDE"
-    return [ln for p in sorted(by_page) for ln in by_page[p] if not any(rx.fullmatch(ln.text.strip()) for rx in skip)]
+    # `page_order`: reading order for PDFs stored in print-imposition order
+    # (a folded booklet whose cover is PDF page 3); unlisted pages follow.
+    order = hints.get("page_order", [])
+    ranked = sorted(by_page, key=lambda p: (order.index(p) if p in order else len(order), p))
+    return [ln for p in ranked for ln in by_page[p] if not any(rx.fullmatch(ln.text.strip()) for rx in skip)]
 
 
 OCR_SCALES = (3, 4)  # render scales (216 and 288 dpi): each region is read at both and merged

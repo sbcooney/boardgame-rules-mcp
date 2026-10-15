@@ -21,6 +21,8 @@
 #   run_in_headings: a heading that starts a line of body text ("Ally cards
 #                  appear ...") also titles a section
 #   spreads:       [first, last] PDF pages holding two printed pages side by side
+#   page_order:    reading order of PDF pages, for files stored in print
+#                  order (a booklet whose cover is PDF page 3)
 #   line_margin:   how far apart lines may be and still form one text box
 #                  (boxes layout; pdfminer default 0.5)
 #   column_continuations: a line left of the current heading's column goes back
@@ -355,6 +357,23 @@ villainous:
           download_page: https://boardgamegeek.com/filepage/184304/disney-villainous-evil-comes-prepared-villains-gui
           expected_sha256: 89644d2733dcf2a02678d37097ac66e5edc9d2eb2a5d16b6cc392f5454dc45e1
           extraction: *villain_guide
+        # Despicable Plots (Lady Tremaine, Gaston, Horned King): later "EN02" files.
+        - id: despicable-plots-instructions
+          title: "Despicable Plots Instructions (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE4_Instructions_EN02.pdf
+          download_page: https://boardgamegeek.com/boardgame/331050/disney-villainous-despicable-plots/files
+          expected_sha256: 4536db069d1b6353cedd063f27e4afe5bce21c42d893c8ab7d286afa45ef8675
+          extraction:
+            <<: *villainous_instructions
+            content_pages: [2, 10]
+        - id: guide-gaston
+          title: "Gaston Villain Guide, Despicable Plots (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE4_Gaston_VillainGuide_60001913_EN02.pdf
+          download_page: https://boardgamegeek.com/boardgame/331050/disney-villainous-despicable-plots/files
+          expected_sha256: 43362108d197ab83a3cdfcf721a36d6e71d883a59f5106848615c7b07fd1b661
+          extraction:
+            <<: *villain_guide
+            page_order: [3, 4, 5, 6, 1, 2]  # stored in print order: the cover is PDF page 3
         # Perfectly Wretched's guides exist only as image-only "print to PDF"
         # copies (no text layer) of Ravensburger's DV_VILPerfectlyWretched_60001866_
         # VillainGuidesLR_o.pdf, so they are read by OCR and labelled as such.
