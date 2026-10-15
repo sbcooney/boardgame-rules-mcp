@@ -49,6 +49,7 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
 
     db = store.connect()
     report = []
+    missing = []  # documents users must download themselves, not supplied this time
     for doc in docs:
         dest = store.home() / "pdfs" / game / edition / f"{doc['id']}.pdf"
         expected = doc.get("sha256") or doc.get("expected_sha256")
@@ -68,10 +69,11 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
                 download(doc["url"], incoming)
         else:
             where = f" Download it from {doc['download_page']}," if doc.get("download_page") else " Get the PDF yourself,"
-            raise IngestError(
-                f"{game} {edition} '{doc['title']}' can't be downloaded automatically.{where} then run:\n"
+            missing.append(
+                f"'{doc['title']}' can't be downloaded automatically.{where} then run:\n"
                 f"  bgrules add {game} --edition {edition} --doc {doc['id']} --file /path/to/{doc['id']}.pdf"
             )
+            continue
 
         if incoming is not None:
             digest = sha256_of(incoming)
@@ -106,6 +108,12 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
         empty = [p for p in range(content[0], content[1] + 1) if p not in pages_with_text and p not in skipped] if content else []
         report.append({"doc": doc["title"], "sections": len(sections), "passages": n, "pages_without_text": empty})
         log(f"Indexed {len(sections)} sections, {n} passages" + (f"; WARNING no text on pages {empty}" if empty else ""))
+
+    if missing and not report:
+        # Nothing could be installed: every requested document needs a file.
+        raise IngestError(f"{game} {edition}: " + "\n".join(missing))
+    for note in missing:
+        log(f"Skipped {note}")
 
     problems = store.check_amendments(db, game, edition)
     if problems:

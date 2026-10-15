@@ -2,8 +2,10 @@
 #
 # Same format as catan_2020.yaml: short rulings in our own words, checked
 # against the indexed Instructions text, and the sections that settle each one.
-# Only the shared rules are indexed: each Villain's abilities are on its cards
-# and Villain Guide, so questions about a specific card are not_addressed here.
+# The Instructions give the shared rules; the Villain Guides (Ravensburger PDFs
+# from BoardGameGeek, user-supplied) cover each Villain's objective and cards:
+# the six base Villains and Wicked to the Core's three. `guide` questions need
+# those installed. Villains from sets not installed stay not_addressed.
 game: villainous
 edition: "2018"
 game_name: Disney Villainous
@@ -12,7 +14,7 @@ edition_desc: base game Instructions
 core: [
   vl-turn-steps, vl-starting-power, vl-hand-size, vl-win,
   vl-stay-location, vl-vanquish-combine, vl-condition-timing, vl-card-beats-rules, vl-strength-zero,
-  vl-vocab-money, vl-na-ursula-card,
+  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-na-scar,
 ]
 
 questions:
@@ -112,10 +114,32 @@ questions:
     answer: Vanquish the Hero with Allies at its location whose combined Strength is at least the Hero's.
     sections: ["Types of Actions > Vanquish", "Types of Cards > Hero"]
 
-  # ---- not addressed by the Instructions -------------------------------
-  - id: vl-na-ursula-card
+  # ---- Villain Guides ---------------------------------------------------
+  - id: vl-guide-binding-contract
+    category: guide
+    question: What does Ursula's Binding Contract do?
+    answer: Ursula has no Vanquish action; a Binding Contract attaches to a Hero, who is defeated when moved to the location named on the card.
+    sections: ["Ursula > Binding Contracts"]
+  - id: vl-guide-hades-win
+    category: guide
+    question: What does Hades need to do to win?
+    answer: Start his turn with at least three Titans at Mount Olympus (trapped Titans don't count).
+    sections: ["Hades > Hades’ Objective"]
+  - id: vl-guide-evil-queen-win
+    category: guide
+    question: How does the Evil Queen win?
+    answer: Defeat Snow White, by unlocking the Dwarfs' Cottage with four different Ingredients, brewing Poison, and playing Take a Bite at Snow White's location.
+    sections: ["Evil Queen > Evil Queen’s Objective"]
+  - id: vl-guide-magic-mirror
+    category: guide
+    question: What does the Evil Queen's Magic Mirror do?
+    answer: Activate for 3 Power to find Snow White and play her to the Dwarfs' Cottage, even if locked; while in your Realm, draw a card each time you're targeted by a Fate action.
+    sections: ["Evil Queen > Magic Mirror"]
+
+  # ---- not addressed by what's installed --------------------------------
+  - id: vl-na-scar
     category: not_addressed
-    question: What does Ursula's Binding Contract card do?
+    question: What is Scar's objective?
     answer: null
     sections: []
   - id: vl-na-teams

@@ -47,3 +47,18 @@ def test_missing_file_is_a_clear_error(game, capsys):
 def test_unknown_game_message(game, capsys):
     assert cli.main(["add", "chess"]) == 1
     assert capsys.readouterr().err.strip() == "error: Unknown game 'chess'. Known games: demo"
+
+
+def test_add_installs_what_it_can_and_lists_files_to_supply(game, monkeypatch):
+    source, installed = game
+    source.write_bytes(b"good")
+    rules = manifest.load()["demo"]["editions"]["1"]["docs"][0]
+    guide = {"id": "guide", "title": "Guide", "source": "user_supplied", "download_page": "https://example.com/files"}
+    monkeypatch.setattr(manifest, "load", lambda: {"demo": {"editions": {"1": {"docs": [rules, guide]}}}})
+    monkeypatch.setattr(ingest, "extract_lines", lambda path, hints: [])
+    logged = []
+    ingest.add("demo", log=logged.append)
+    assert installed.read_bytes() == b"good"
+    assert any("Download it from https://example.com/files" in m for m in logged)
+    with pytest.raises(ingest.IngestError, match="Download it from"):
+        ingest.add("demo", doc_id="guide", log=lambda m: None)

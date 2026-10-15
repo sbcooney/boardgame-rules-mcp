@@ -95,7 +95,7 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 | Wingspan (base game) | Rulebook r24 and appendix r17 from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0). The folder has no direct per-file links, so you download the two PDFs yourself. | `uv run bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` |
 | Spirit Island (core game) | Core rulebook plus the official errata pages of the Nature Incarnate rulebook, downloaded automatically from Greater Than Games' links | `uv run bgrules add spirit-island` |
 | Brass: Birmingham | Rulebook v2018.11 from [Roxley's product page](https://roxley.com/products/brass-birmingham), downloaded automatically | `uv run bgrules add brass-birmingham` |
-| Disney Villainous (2018 base game) | Instructions from Ravensburger's site, downloaded automatically. Shared rules only: each Villain's abilities are on its cards and Villain Guide. | `uv run bgrules add villainous` |
+| Disney Villainous (2018 base game, plus Villain Guides) | Instructions from Ravensburger's site, downloaded automatically. Each Villain's objective and cards are in its Villain Guide: Ravensburger's own PDFs, available only as [BoardGameGeek uploads](https://boardgamegeek.com/boardgame/256382/disney-villainous-the-worst-takes-it-all/files), so you download those yourself. Guides set up so far: the six base Villains and *Wicked to the Core*'s three. | `uv run bgrules add villainous` installs the Instructions and lists each guide with its download page |
 | Star Wars Villainous: Power of the Dark Side | Instructions from Ravensburger's site, downloaded automatically. Shared rules only, as with Disney Villainous. | `uv run bgrules add star-wars-villainous` |
 | Tzolk'in: The Mayan Calendar | Rulebook from [Czech Games Edition](https://www.czechgames.com/games/tzolkin-the-mayan-calendar), downloaded automatically | `uv run bgrules add tzolkin` |
 | A Feast for Odin | 2nd edition rulebook and appendix (every occupation card) from [Feuerland](https://www.feuerland-spiele.de/en), downloaded automatically. The almanac is Viking history, not rules, so it isn't indexed. | `uv run bgrules add a-feast-for-odin` |
@@ -197,7 +197,7 @@ Smaller question sets, written from each rulebook's text. None of these games ha
 | Game | Answerable questions | Hit@1 | Hit@3 | Hit@5 | Hit@5 without vocab |
 | --- | --- | --- | --- | --- | --- |
 | Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](evals/brass_birmingham_2018.yaml)) | 15 | 60% | 80% | 87% | 100% |
-| Disney Villainous ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 18 | 61% | 83% | 83% | 94% |
+| Disney Villainous, with Villain Guides ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 22 | 64% | 77% | 82% | 90% |
 | Star Wars Villainous ([`evals/star_wars_villainous_2022.yaml`](evals/star_wars_villainous_2022.yaml)) | 15 | 67% | 80% | 80% | 92% |
 | Tzolk'in ([`evals/tzolkin_1st.yaml`](evals/tzolkin_1st.yaml)) | 16 | 50% | 75% | 81% | 93% |
 | A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](evals/a_feast_for_odin_2nd.yaml)) | 19 | 63% | 79% | 84% | 88% |

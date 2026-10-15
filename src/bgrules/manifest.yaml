@@ -295,6 +295,38 @@ villainous:
               - {name: PirataCustom, min_size: 18.2, max_size: 19.2}  # "Vanquish"
             body_fonts: [Cabin, PirataCustom]  # Pirata 15pt: "Note:" labels
             body_size: [8, 16]  # board labels are under 4pt
+        # Villain Guides: each Villain's objective, special setup and cards.
+        # Ravensburger's own PDFs, but only available as BoardGameGeek uploads.
+        - id: villain-guides
+          title: "Villain Guides: Captain Hook, Maleficent, Prince John, Jafar, Queen of Hearts, Ursula (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DV_Villainous_60001739_Guides.pdf
+          download_page: https://boardgamegeek.com/boardgame/256382/disney-villainous-the-worst-takes-it-all/files
+          expected_sha256: 193f3aa9b7e8fa7eab27cfbb7ed13ca0074d12756c222443df8d70e08835bd88
+          extraction: &villain_guide
+            layout: boxes
+            heading_fonts:
+              - {name: Esteban, min_size: 13.5, max_size: 14.5, part: true}  # cover: "MALEFICENT"
+              - {name: PirataCustom, min_size: 17.5, max_size: 18.5}  # "Curses"
+            body_fonts: [Cabin]
+            body_size: [8.5, 10.5]  # card and board labels are 7.5pt and under
+        - id: guide-evil-queen
+          title: "Evil Queen Villain Guide, Wicked to the Core (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE_EvilQueen_VillainGuide_60001796_Pages_NoBleed_USe01.pdf
+          download_page: https://boardgamegeek.com/boardgame/271518/disney-villainous-wicked-to-the-core/files
+          expected_sha256: 2e50161e34e43ef906c92961ee7368de92434077cbb13c3970226b1ba540be78
+          extraction: *villain_guide
+        - id: guide-hades
+          title: "Hades Villain Guide, Wicked to the Core (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE_Hades_VillainGuide_60001796_Pages_NoBleed_USe01.pdf
+          download_page: https://boardgamegeek.com/boardgame/271518/disney-villainous-wicked-to-the-core/files
+          expected_sha256: 4a8a597d4e89e7aa587d0e97e9a1bf359ac587f42843f8bfa0cf90375609ce08
+          extraction: *villain_guide
+        - id: guide-dr-facilier
+          title: "Dr. Facilier Villain Guide, Wicked to the Core (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE_DrFaciler_VillainGuide_60001796_Pages_NoBleed_USe01.pdf
+          download_page: https://boardgamegeek.com/boardgame/271518/disney-villainous-wicked-to-the-core/files
+          expected_sha256: 5a24ba8568d817ed344128be4fe19ea7b21f03db2717866eec1d38e53a9f6ae5
+          extraction: *villain_guide
 
 tzolkin:
   name: "Tzolk'in: The Mayan Calendar"
