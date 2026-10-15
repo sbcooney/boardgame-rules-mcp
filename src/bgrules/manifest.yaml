@@ -17,6 +17,8 @@
 #   run_in_headings: a heading that starts a line of body text ("Ally cards
 #                  appear ...") also titles a section
 #   spreads:       [first, last] PDF pages holding two printed pages side by side
+#   line_margin:   how far apart lines may be and still form one text box
+#                  (boxes layout; pdfminer default 0.5)
 #   column_continuations: a line left of the current heading's column goes back
 #                  to the section headed above it in its own column
 #   table.title_columns: table columns joined into each record's subsection
@@ -301,6 +303,7 @@ tzolkin:
           extraction:
             layout: boxes
             figure_text: true  # page titles are drawn as graphics
+            line_margin: 1.0  # widely spaced lines; at pdfminer's 0.5 each line is its own box and columns interleave
             content_pages: [2, 16]
             heading_fonts:
               - {name: LithosPro-Black, min_size: 29, part: true}  # "ACTIONS"

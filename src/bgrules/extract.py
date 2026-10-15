@@ -155,7 +155,7 @@ def _spaced_by_gaps(chars: list[dict]) -> str:
     glyphs = sorted((c for c in chars if c["text"].strip()), key=lambda c: c["x0"])
     out = ""
     for a, b in zip([None, *glyphs], glyphs):
-        if a is not None and b["x0"] - a["x1"] > 0.2 * min(a["size"], b["size"]):
+        if a is not None and b["x0"] - a["x1"] > 0.12 * min(a["size"], b["size"]):
             out += " "
         out += b["text"]
     return out
@@ -398,21 +398,22 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             else:
                 by_page[page_no] = page_lines(page, page_no, 1 if layout_for(page_no) == "rows" else columns)
     for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char, figure_text=hints.get("figure_text", False),
-                                           boxes_flow=hints.get("boxes_flow", 0.5)):
+                                           line_margin=hints.get("line_margin", 0.5)):
         by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
     return [ln for p in sorted(by_page) for ln in by_page[p]]
 
 
-def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, boxes_flow: float | None = 0.5):
+def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, line_margin: float = 0.5):
     """Free-form layouts (`layout: boxes`): let pdfminer group characters into
     text boxes, so side-by-side boxes (main text, sidebars, card text) stay
     apart, then yield each box's lines in reading order, as
     (page_no, box_no, line) with `line` shaped like a pdfplumber text line
     and holding only the characters `keep_char` accepts. `pages` must exist
     in the document. `figure_text` also reads text drawn inside embedded
-    graphics (some rulebooks set their page titles that way). `boxes_flow` is
-    pdfminer's reading-order weighting, from -1 (columns: left to right, then
-    down) to 1 (rows: top to bottom); 0.5 is pdfminer's default."""
+    graphics (some rulebooks set their page titles that way). `line_margin`
+    is how far apart (in line heights) lines may be and still form one text
+    box: raise it when widely spaced lines each become their own box, which
+    then get read row by row across the columns."""
     from pdfminer.high_level import extract_pages
     from pdfminer.layout import LAParams, LTAnno, LTChar, LTFigure, LTTextBox
 
@@ -439,7 +440,7 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
     if not pages:
         return
     pages = sorted(pages)
-    laparams = LAParams(all_texts=figure_text, boxes_flow=boxes_flow)
+    laparams = LAParams(all_texts=figure_text, line_margin=line_margin)
     for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=laparams)):
         h = layout.height
         for box_no, box in enumerate(reading_order(layout)):

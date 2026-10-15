@@ -94,6 +94,11 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 | Catan (2020 edition) | Official PDF, downloaded automatically | `uv run bgrules add catan --edition 2020` |
 | Wingspan (base game) | Rulebook r24 and appendix r17 from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0). The folder has no direct per-file links, so you download the two PDFs yourself. | `uv run bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` |
 | Spirit Island (core game) | Core rulebook plus the official errata pages of the Nature Incarnate rulebook, downloaded automatically from Greater Than Games' links | `uv run bgrules add spirit-island` |
+| Brass: Birmingham | Rulebook v2018.11 from [Roxley's product page](https://roxley.com/products/brass-birmingham), downloaded automatically | `uv run bgrules add brass-birmingham` |
+| Disney Villainous (2018 base game) | Instructions from Ravensburger's site, downloaded automatically. Shared rules only: each Villain's abilities are on its cards and Villain Guide. | `uv run bgrules add villainous` |
+| Tzolk'in: The Mayan Calendar | Rulebook from [Czech Games Edition](https://www.czechgames.com/games/tzolkin-the-mayan-calendar), downloaded automatically | `uv run bgrules add tzolkin` |
+| A Feast for Odin | 2nd edition rulebook and appendix (every occupation card) from [Feuerland](https://www.feuerland-spiele.de/en), downloaded automatically. The almanac is Viking history, not rules, so it isn't indexed. | `uv run bgrules add a-feast-for-odin` |
+| Sushi Roll | Rules of Play from [Gamewright](https://gamewright.com/product/Sushi-Roll), downloaded automatically. It's a fold-out sheet with no page numbers, so citations use the PDF's panels. | `uv run bgrules add sushi-roll` |
 
 ## Adding a game
 
@@ -184,6 +189,20 @@ This is the densest rulebook, with about twice Catan's text, and it has no synon
 
 **Official changes.** Spirit Island's setup was officially changed after older printings: the Nature Incarnate rulebook (p. 5) adds 1 Blight at setup and says this applies whether or not you use the expansion. Only those publisher pages are indexed. They're linked to the core rulebook's setup section, so search results from that section carry the change (`amended_by`). The server instructions tell the model to give both the printed rule and the change, with which printings include it.
 
+#### Five more games
+
+Smaller question sets, written from each rulebook's text. None of these games has a synonym list yet, which is why most of their misses are the `vocab` questions ("borrow money" for the Loan action, "kill a good guy" for Vanquish).
+
+| Game | Answerable questions | Hit@1 | Hit@3 | Hit@5 | Hit@5 without vocab |
+| --- | --- | --- | --- | --- | --- |
+| Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](evals/brass_birmingham_2018.yaml)) | 15 | 60% | 80% | 87% | 100% |
+| Disney Villainous ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 18 | 61% | 83% | 83% | 94% |
+| Tzolk'in ([`evals/tzolkin_1st.yaml`](evals/tzolkin_1st.yaml)) | 16 | 50% | 75% | 81% | 93% |
+| A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](evals/a_feast_for_odin_2nd.yaml)) | 19 | 63% | 79% | 84% | 88% |
+| Sushi Roll ([`evals/sushi_roll_1st.yaml`](evals/sushi_roll_1st.yaml)) | 18 | 72% | 89% | 94% | 100% |
+
+Each needed a little layout work, all as opt-in extraction hints so the earlier games extract exactly as before. Brass prints two pages per PDF page, so citations give the printed page of the half the text is on. Tzolk'in and Brass draw their page titles as graphics. Villainous starts sentences with headings ("**Ally** cards appear only in the Villain deck"). Feast for Odin's card index becomes one citable entry per card.
+
 Keyword search can't reliably tell that a rulebook *doesn't* cover something, which is why "not found" scores are low here. That judgment is left to the model, and the end-to-end eval measures it.
 
 ```sh
@@ -195,7 +214,8 @@ uv run python evals/retrieval.py evals/wingspan_1st.yaml --misses   # Catan by d
 - **Keyword search, not semantic search.** Questions worded very differently from the rulebook can miss; per-game synonym lists cover common table talk.
 - **Icons aren't text.** Rules printed as icons (food types, dice faces, nest symbols) are only partly captured.
 - **A few jumbled pages.** Some dense table pages in the Wingspan appendix (for example p. 12) extract partly interleaved. Answers can still quote them correctly, but the local quote check can fail on them.
-- **Only what's indexed.** Expansions, scenarios and card text outside the rulebooks aren't covered.
+- **Sidebars can land mid-section.** On busy layouts (Feast for Odin, Brass), an example box or caption is sometimes placed between two paragraphs of the section beside it. Sentences stay intact, so quotes are still verbatim.
+- **Only what's indexed.** Expansions, scenarios and card text outside the rulebooks aren't covered; for Villainous that means each Villain's own cards.
 - **Answers depend on the model following the server's instructions.** The server supplies text and citations; it can't stop a client from ignoring them.
 
 ## License

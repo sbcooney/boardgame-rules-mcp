@@ -1,0 +1,114 @@
+# Tzolk'in: The Mayan Calendar eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed rulebook text, and the sections that settle each one.
+# Tzolk'in has no synonym list, so `vocab` is untouched by one.
+game: tzolkin
+edition: "1st"
+game_name: "Tzolk'in: The Mayan Calendar"
+edition_desc: Rulebook
+
+core: [
+  tz-start-workers, tz-first-player, tz-feed, tz-final-scoring,
+  tz-skip-turn, tz-mix-place-pick, tz-pick-lower, tz-beg, tz-tie, tz-accumulated-corn,
+  tz-vocab-food, tz-na-trade,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: tz-start-workers
+    category: lookup
+    question: How many workers do I start with?
+    answer: Three.
+    sections: ["Course of the Game > Player Turns > Placing Workers", "Setting Up the Game > Player Setup"]
+  - id: tz-first-player
+    category: lookup
+    question: Who is the starting player?
+    answer: The player who most recently sacrificed something (ties go to whoever volunteers for the next sacrifice).
+    sections: ["Setting Up the Game > Starting Player"]
+  - id: tz-feed
+    category: lookup
+    question: How much corn does it cost to feed a worker?
+    answer: 2 corn per worker in play; each worker you can't feed costs 3 victory points.
+    sections: ["Food Days > Feed the Workers"]
+  - id: tz-final-scoring
+    category: lookup
+    question: How does final scoring work?
+    answer: Convert resources to corn at the market rate, score 1/4 point per corn, 3 per crystal skull, then score monuments.
+    sections: ["End of the Game > Final Scoring", "End of the Game"]
+  - id: tz-game-end
+    category: lookup
+    question: When does the game end?
+    answer: After the fourth Food Day, when the Tzolk'in gear has made one full revolution.
+    sections: ["End of the Game"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: tz-skip-turn
+    category: edge
+    question: Can I pass on my turn?
+    answer: No, you must either place workers or pick some up.
+    sections: ["Course of the Game > Player Turns"]
+  - id: tz-mix-place-pick
+    category: edge
+    question: Can I place some workers and pick up others on the same turn?
+    answer: No.
+    sections: ["Course of the Game > Player Turns"]
+  - id: tz-pick-lower
+    category: edge
+    question: When I pick up a worker, can I use a lower-numbered action than the one it's on?
+    answer: Yes, by paying 1 corn per step back, even if another worker occupies that space.
+    sections: ["Course of the Game > Player Turns > Picking up workers"]
+  - id: tz-beg
+    category: edge
+    question: What happens if I beg for corn?
+    answer: With 2 or fewer corn at the start of your turn, discard your corn and take 3; you must move down 1 step on one temple.
+    sections: ["Course of the Game > Player Turns > Begging for Corn", "Temples > Angering The Gods > Beg for Corn"]
+  - id: tz-beg-bottom
+    category: edge
+    question: Can I beg for corn if I'm on the bottom step of every temple?
+    answer: No. If you also can't afford to place, you may place exactly 1 worker on the cheapest space and give all your corn to the bank.
+    sections: ["Temples > Angering The Gods > Beg for Corn"]
+  - id: tz-tie
+    category: edge
+    question: How are ties broken at the end?
+    answer: Most workers left on the gears wins; if still tied, all tied players win.
+    sections: ["End of the Game"]
+  - id: tz-accumulated-corn
+    category: edge
+    question: Can I use the accumulated corn from the starting player space to pay for workers this round?
+    answer: No, you take it when your turn is done; it can still feed workers if this round is a Food Day.
+    sections: ["Actions > Starting Player Space > Take Accumulated Corn"]
+  - id: tz-advance-two
+    category: edge
+    question: Can I advance the calendar two days to skip a Food Day?
+    answer: No; you may still advance 2 days, but the new round is the skipped Food Day. The privilege also flips your board darker side up.
+    sections: ["Actions > Starting Player Space > Advance the Calendar"]
+  - id: tz-start-marker-pass
+    category: edge
+    question: What happens if I take the starting player space when I already have the marker?
+    answer: You pass the marker to the player on your left.
+    sections: ["Actions > Starting Player Space > Move the Starting Player Marker"]
+
+  # ---- vocab: players' words, not the rulebook's -----------------------
+  - id: tz-vocab-food
+    category: vocab
+    question: How much food do my people eat?
+    answer: On Food Days you pay 2 corn for each worker in play.
+    sections: ["Food Days > Feed the Workers"]
+  - id: tz-vocab-pass
+    category: vocab
+    question: Is there a free mulligan if I run out of corn?
+    answer: Begging for corn resets you to 3 corn but angers the gods (down 1 temple step).
+    sections: ["Course of the Game > Player Turns > Begging for Corn", "Temples > Angering The Gods > Beg for Corn"]
+
+  # ---- not addressed by the rulebook -----------------------------------
+  - id: tz-na-trade
+    category: not_addressed
+    question: Can players trade resources with each other?
+    answer: null
+    sections: []
+  - id: tz-na-undo
+    category: not_addressed
+    question: Can I take back a worker placement if I misclicked the gear?
+    answer: null
+    sections: []

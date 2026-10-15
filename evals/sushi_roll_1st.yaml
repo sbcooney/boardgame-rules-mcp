@@ -1,0 +1,124 @@
+# Sushi Roll eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed rulebook text, and the sections that settle each one.
+# Sushi Roll has no synonym list, so `vocab` is untouched by one.
+game: sushi-roll
+edition: "1st"
+game_name: Sushi Roll
+edition_desc: Rules of Play
+
+core: [
+  sr-rounds, sr-dice-4p, sr-first-player, sr-sashimi,
+  sr-swap-tray, sr-nigiri-wasabi, sr-pudding-2p, sr-tie-break, sr-leftover-tokens,
+  sr-vocab-steal, sr-na-timer,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: sr-rounds
+    category: lookup
+    question: How many rounds are there?
+    answer: 3.
+    sections: ["Overview", "Ending the Game"]
+  - id: sr-dice-4p
+    category: lookup
+    question: How many dice does each player get in a 4-player game?
+    answer: 6 (8 with 2 players, 7 with 3, 5 with 5).
+    sections: ["Set Up"]
+  - id: sr-start-tokens
+    category: lookup
+    question: What tokens does each player start with?
+    answer: 2 chopsticks and 3 menu tokens.
+    sections: ["Set Up"]
+  - id: sr-first-player
+    category: lookup
+    question: Who goes first?
+    answer: The player with the red-bordered conveyor belt; play then moves left.
+    sections: ["Everybody Takes a Turn"]
+  - id: sr-maki
+    category: lookup
+    question: How are maki rolls scored?
+    answer: Most maki roll icons scores 6, second most scores 3; tied players all get the full points.
+    sections: ["Scoring a Round"]
+  - id: sr-sashimi
+    category: lookup
+    question: How many points are 3 sashimi worth?
+    answer: 13 (1 sashimi scores 0, 2 score 6).
+    sections: ["Scoring a Round"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: sr-swap-tray
+    category: edge
+    question: Can I use chopsticks to take a die from another player's tray?
+    answer: No. Chopsticks swap one die on your conveyor belt with one on another player's conveyor belt; you may never swap dice in a tray.
+    sections: ["Everybody Takes a Turn"]
+  - id: sr-menu-twice
+    category: edge
+    question: Can I use more than one menu token on the same turn?
+    answer: Yes, menus and chopsticks can be used any number of times in any order, as long as you have tokens to spend.
+    sections: ["Everybody Takes a Turn"]
+  - id: sr-nigiri-wasabi
+    category: edge
+    question: What happens if I take a nigiri die when I already have a wasabi?
+    answer: The nigiri must go on top of the wasabi die (only 1 nigiri per wasabi), and it scores triple.
+    sections: ["Everybody Takes a Turn", "Scoring a Round"]
+  - id: sr-wasabi-alone
+    category: edge
+    question: Does a wasabi with no nigiri on it score anything?
+    answer: No.
+    sections: ["Scoring a Round"]
+  - id: sr-pudding-2p
+    category: edge
+    question: In a 2-player game, does the player with fewer puddings lose 6 points?
+    answer: No, that penalty doesn't apply with 2 players.
+    sections: ["Ending the Game"]
+  - id: sr-pudding-tie
+    category: edge
+    question: If two players tie for the most pudding, how many points do they get?
+    answer: Both get the full 6 points.
+    sections: ["Ending the Game"]
+  - id: sr-tie-break
+    category: edge
+    question: Who wins if players are tied on points?
+    answer: The tied player with the most pudding tokens.
+    sections: ["Ending the Game"]
+  - id: sr-leftover-tokens
+    category: edge
+    question: Are unused menu and chopsticks tokens worth anything at the end?
+    answer: 1 point for every set of 2 unused menu and/or chopsticks tokens (any combination).
+    sections: ["Ending the Game", "Scoring a Round"]
+  - id: sr-3p-belts
+    category: edge
+    question: Do the conveyor belts move between rounds?
+    answer: Only in a 3-player game, where everyone slides their belt left at the end of the round; otherwise they stay put.
+    sections: ["Starting a New Round"]
+  - id: sr-token-limit
+    category: edge
+    question: Is there a limit to how many tokens I can hold?
+    answer: No; if a type runs out, take what's available.
+    sections: ["Everybody Takes a Turn"]
+
+  # ---- vocab: players' words, not the rulebook's -----------------------
+  - id: sr-vocab-steal
+    category: vocab
+    question: Can I steal a die from someone else's belt?
+    answer: With a chopsticks token you can swap 1 die on your belt with 1 on another player's belt, without changing either face.
+    sections: ["Everybody Takes a Turn"]
+  - id: sr-vocab-reroll
+    category: vocab
+    question: Is there a way to reroll dice I don't like?
+    answer: Spend a menu token to re-roll any number of dice on your conveyor belt.
+    sections: ["Everybody Takes a Turn"]
+
+  # ---- not addressed by the rulebook -----------------------------------
+  - id: sr-na-timer
+    category: not_addressed
+    question: Is there a time limit for choosing which die to keep?
+    answer: null
+    sections: []
+  - id: sr-na-dropped-die
+    category: not_addressed
+    question: What happens if a die falls off the table when rolling?
+    answer: null
+    sections: []

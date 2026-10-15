@@ -1,0 +1,110 @@
+# Brass: Birmingham (rulebook v2018.11) eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed rulebook text, and the sections that settle each one.
+# The rulebook prints money as a £ icon, which isn't text: "Take 30 from the bank".
+# Brass has no synonym list, so `vocab` is untouched by one.
+game: brass-birmingham
+edition: "2018"
+game_name: "Brass: Birmingham"
+edition_desc: rulebook v2018.11
+
+core: [
+  bb-actions-per-turn, bb-rounds, bb-loan, bb-rail-link-cost,
+  bb-scout-wild, bb-canal-one-per-location, bb-obsolete, bb-coal-source, bb-tie,
+  bb-vocab-borrow, bb-na-trade,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: bb-actions-per-turn
+    category: lookup
+    question: How many actions do I get per turn?
+    answer: 2, except in the first round of the Canal Era, when each player gets only 1.
+    sections: ["Player Turns"]
+  - id: bb-rounds
+    category: lookup
+    question: How many rounds are in each era?
+    answer: 8 with 4 players, 9 with 3, 10 with 2.
+    sections: ["Rounds"]
+  - id: bb-loan
+    category: lookup
+    question: What does taking a loan do?
+    answer: Take 30 from the bank and move your Income Marker back 3 income levels; not allowed if it would drop your income below -10.
+    sections: ["Loan Action"]
+  - id: bb-rail-link-cost
+    category: lookup
+    question: How much does it cost to build rail links?
+    answer: 5 for one, or 2 in a single Network action for 15 plus 1 beer from a Brewery; each rail Link also consumes 1 coal.
+    sections: ["Network Action > Network During Rail Era:"]
+  - id: bb-canal-link-cost
+    category: lookup
+    question: How much is a canal link?
+    answer: 3, and only 1 per Network action.
+    sections: ["Network Action > Network During Canal Era:"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: bb-scout-wild
+    category: edge
+    question: Can I Scout if I already have a wild card in hand?
+    answer: No.
+    sections: ["Scout Action"]
+  - id: bb-canal-one-per-location
+    category: edge
+    question: In the Canal Era, can I build two of my industries in the same town?
+    answer: No, at most 1 of your Industry tiles per location (other players can be there too).
+    sections: ["Build Action (Continued) > Canal Era Building"]
+  - id: bb-obsolete
+    category: edge
+    question: What happens to level 1 industries at the end of the Canal Era?
+    answer: All level 1 Industry tiles on the board are removed to the box; level 2+ stay.
+    sections: ["End of Canal Era > Remove Obsolete Industries"]
+  - id: bb-coal-source
+    category: edge
+    question: Where does coal have to come from when I need it?
+    answer: The closest connected unflipped Coal Mine (any player's), free; otherwise buy from the Coal Market, which needs a connection to a Merchant.
+    sections: ["Consuming Coal"]
+  - id: bb-tie
+    category: edge
+    question: How are ties broken?
+    answer: Highest income, then most money; if still tied, those players draw.
+    sections: ["Winning the Game"]
+  - id: bb-develop-lowest
+    category: edge
+    question: When I Develop, can I remove any tile from my player mat?
+    answer: No, it must be the lowest level tile of the chosen industry; each tile removed costs 1 iron.
+    sections: ["Develop Action"]
+  - id: bb-rail-in-canal
+    category: edge
+    question: Can I build rail links during the Canal Era?
+    answer: No.
+    sections: ["Network Action > Network During Canal Era:"]
+  - id: bb-network-def
+    category: edge
+    question: What counts as part of my network?
+    answer: Locations with one of your Industry tiles, or adjacent to one of your Link tiles.
+    sections: ["Your Network"]
+
+  # ---- vocab: players' words, not the rulebook's -----------------------
+  - id: bb-vocab-borrow
+    category: vocab
+    question: Can I borrow money?
+    answer: The Loan action gives 30 from the bank and lowers your income by 3 levels.
+    sections: ["Loan Action"]
+  - id: bb-vocab-railroad
+    category: vocab
+    question: How much does a train track cost?
+    answer: A rail Link costs 5 (two in one action for 15 plus a beer), plus 1 coal each.
+    sections: ["Network Action > Network During Rail Era:"]
+
+  # ---- not addressed by the rulebook -----------------------------------
+  - id: bb-na-trade
+    category: not_addressed
+    question: Can players trade money or cards with each other?
+    answer: null
+    sections: []
+  - id: bb-na-timer
+    category: not_addressed
+    question: Is there a time limit on each turn?
+    answer: null
+    sections: []

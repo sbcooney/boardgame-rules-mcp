@@ -1,0 +1,125 @@
+# Disney Villainous (2018 base game) eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed Instructions text, and the sections that settle each one.
+# Only the shared rules are indexed: each Villain's abilities are on its cards
+# and Villain Guide, so questions about a specific card are not_addressed here.
+game: villainous
+edition: "2018"
+game_name: Disney Villainous
+edition_desc: base game Instructions
+
+core: [
+  vl-turn-steps, vl-starting-power, vl-hand-size, vl-win,
+  vl-stay-location, vl-vanquish-combine, vl-condition-timing, vl-card-beats-rules, vl-strength-zero,
+  vl-vocab-money, vl-na-ursula-card,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: vl-turn-steps
+    category: lookup
+    question: What do I do on my turn?
+    answer: Move your Villain to a different location, perform the actions there, then draw back up to four cards.
+    sections: ["On Your Turn"]
+  - id: vl-starting-power
+    category: lookup
+    question: How much Power does each player start with?
+    answer: First player 0, second 1, third and fourth 2, fifth and sixth 3.
+    sections: ["Setup > Player Setup"]
+  - id: vl-hand-size
+    category: lookup
+    question: How many cards are in a hand?
+    answer: Four; you draw back up to four at the end of your turn.
+    sections: ["Setup > Player Setup", "On Your Turn > Draw Cards"]
+  - id: vl-win
+    category: lookup
+    question: How do you win?
+    answer: Fulfil your Villain's Objective; the game ends immediately and you win.
+    sections: ["Ending the Game", "Game Overview"]
+  - id: vl-fate-action
+    category: lookup
+    question: What does the Fate action do?
+    answer: Reveal the top two cards of an opponent's Fate deck, play one against them and discard the other.
+    sections: ["Types of Actions > Fate"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: vl-stay-location
+    category: edge
+    question: Can I stay at the same location two turns in a row?
+    answer: No, you must move to a different location.
+    sections: ["On Your Turn > Move Your Villain"]
+  - id: vl-vanquish-combine
+    category: edge
+    question: Can several Allies team up to defeat one Hero?
+    answer: Yes, add their Strengths; the total must equal or exceed the Hero's Strength, and the Allies used are discarded.
+    sections: ["Types of Actions > Vanquish"]
+  - id: vl-discard-draw
+    category: edge
+    question: If I discard cards with the Discard action, do I draw new ones right away?
+    answer: No, you draw back to four only at the end of your turn.
+    sections: ["Types of Actions > Discard Cards", "On Your Turn > Draw Cards"]
+  - id: vl-condition-timing
+    category: edge
+    question: When can I play a Condition card?
+    answer: During an opponent's turn, when its requirement is met; it isn't played with a Play a Card action.
+    sections: ["Types of Cards > Condition"]
+  - id: vl-locked-activate
+    category: edge
+    question: Can I activate an Item that is at a locked location?
+    answer: No.
+    sections: ["Types of Actions > Activate", "Reference > Locked Locations", "Activated Abilities"]
+  - id: vl-card-beats-rules
+    category: edge
+    question: What if a card contradicts the rules?
+    answer: The card takes precedence.
+    sections: ["Frequently Asked Questions"]
+  - id: vl-fate-unplayable
+    category: edge
+    question: If I reveal a Fate card that can't be played, can I reveal another?
+    answer: No; it is discarded, and if neither revealed card can be played both are discarded without effect.
+    sections: ["Frequently Asked Questions"]
+  - id: vl-other-realm
+    category: edge
+    question: Can a card in my Realm affect another player's Realm?
+    answer: No; cards only affect cards in the same Realm.
+    sections: ["Your Realm", "Reference > Realm"]
+  - id: vl-uncovered-action
+    category: edge
+    question: If I defeat a Hero and it uncovers an action where my Villain is, can I use it this turn?
+    answer: Yes, an action uncovered during your turn can be performed immediately.
+    sections: ["Frequently Asked Questions", "On Your Turn > 2 Perform Actions"]
+  - id: vl-item-no-ally
+    category: edge
+    question: Can I play an Item that attaches to an Ally if I have no Allies?
+    answer: No.
+    sections: ["Types of Cards > Item"]
+  - id: vl-strength-zero
+    category: edge
+    question: If a Hero's Strength drops to 0, is it removed automatically?
+    answer: No; you still need a Vanquish action or a card Ability, but a Vanquish then needs no Allies.
+    sections: ["Frequently Asked Questions"]
+
+  # ---- vocab: players' words, not the rulebook's -----------------------
+  - id: vl-vocab-money
+    category: vocab
+    question: How do I get more money?
+    answer: The Gain Power action takes Power from the Cauldron; Power is the game's currency.
+    sections: ["Types of Actions > Gain Power"]
+  - id: vl-vocab-kill
+    category: vocab
+    question: How do I kill a good guy that's blocking my board?
+    answer: Vanquish the Hero with Allies at its location whose combined Strength is at least the Hero's.
+    sections: ["Types of Actions > Vanquish", "Types of Cards > Hero"]
+
+  # ---- not addressed by the Instructions -------------------------------
+  - id: vl-na-ursula-card
+    category: not_addressed
+    question: What does Ursula's Binding Contract card do?
+    answer: null
+    sections: []
+  - id: vl-na-teams
+    category: not_addressed
+    question: Can we play in teams?
+    answer: null
+    sections: []

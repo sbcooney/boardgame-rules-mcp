@@ -1,0 +1,133 @@
+# A Feast for Odin (2nd edition rulebook + appendix) eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed text, and the sections that settle each one. The
+# appendix's occupation card index gives each card its own subsection
+# ("1. Occupation Card Index > 4 c Hunter 0"), like Wingspan's bird powers.
+game: a-feast-for-odin
+edition: "2nd"
+game_name: A Feast for Odin
+edition_desc: 2nd edition rulebook and appendix
+
+core: [
+  fo-rounds, fo-new-viking, fo-start-player, fo-ship-cost,
+  fo-pass-early, fo-raid-longship, fo-raid-fail, fo-give-away, fo-final-bonus,
+  fo-card-hunter, fo-card-chief,
+  fo-vocab-boat, fo-na-trade,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: fo-rounds
+    category: lookup
+    question: How many rounds are there?
+    answer: 7 in the long game, 6 in the short game.
+    sections: ["Course of Play"]
+  - id: fo-new-viking
+    category: lookup
+    question: Do I get a new Viking every round?
+    answer: Yes, in phase 1 of every round, including the first, you take the leftmost Viking from your Banquet Table.
+    sections: ["Course of Play > Phase 1: a New Viking"]
+  - id: fo-start-player
+    category: lookup
+    question: Who becomes start player for the next round?
+    answer: The player who placed Vikings last in the action phase.
+    sections: ["Course of Play > Phase 6: Determine Start Player"]
+  - id: fo-ship-cost
+    category: lookup
+    question: How much does it cost to buy a ship?
+    answer: Whaling boat 3 silver, knarr 5, longship 8 (its value); you can buy at any time.
+    sections: ["Course of Play > Buying Ships", "Course of Play > Arming"]
+  - id: fo-ship-points
+    category: lookup
+    question: How many points are ships worth at the end?
+    answer: Whaling boat 3, knarr 5, longship 8.
+    sections: ["End of the Game and Scoring"]
+  - id: fo-silver-denoms
+    category: lookup
+    question: What denominations do silver coins come in?
+    answer: 1, 2, 4 and 10 silver; you can make change at any time.
+    sections: ["Course of Play > Changing Silver"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: fo-pass-early
+    category: edge
+    question: Can I pass while I still have Vikings left?
+    answer: Yes, but once you pass you can't place more Vikings that round.
+    sections: ["Course of Play > Phase 5: Actions"]
+  - id: fo-raid-longship
+    category: edge
+    question: Do I need a longship to go raiding?
+    answer: Yes, at least one; ore on it doesn't matter for raiding.
+    sections: ["Course of Play > Raiding"]
+  - id: fo-raid-fail
+    category: edge
+    question: What do I get if my raid fails?
+    answer: 1 stone and 1 long sword; a battle result of 5 or less always fails, and you may declare failure anyway.
+    sections: ["Course of Play > Raiding"]
+  - id: fo-give-away
+    category: edge
+    question: Can I just discard goods I don't want?
+    answer: No, not outside of an action.
+    sections: ["Course of Play > Giving Away"]
+  - id: fo-final-bonus
+    category: edge
+    question: Do I get the bonus phase in the final round?
+    answer: No; the game ends right after the Feast phase of the final round, with no bonus.
+    sections: ["End of the Game and Scoring"]
+  - id: fo-tie
+    category: edge
+    question: What happens if players tie?
+    answer: There are multiple winners.
+    sections: ["End of the Game and Scoring"]
+  - id: fo-feast-adjacent
+    category: edge
+    question: Can I put two orange food tiles next to each other on the Banquet Table?
+    answer: No; orange tiles can't be adjacent, nor can red tiles.
+    sections: ["Course of Play > Phase 9: Feast"]
+  - id: fo-ore-back
+    category: edge
+    question: Can I take ore back off my ships once I've armed them?
+    answer: No.
+    sections: ["Course of Play > Arming"]
+
+  # ---- appendix: specific cards ----------------------------------------
+  - id: fo-card-hunter
+    category: appendix
+    question: What does the Hunter occupation do?
+    answer: A permanent -1 on each of your dice rolls, including raiding and pillaging.
+    sections: ["1. Occupation Card Index > 4 c Hunter 0"]
+  - id: fo-card-chief
+    category: appendix
+    question: How many points is the Chief worth?
+    answer: 7 points.
+    sections: ["1. Occupation Card Index > 5 A Chief 7"]
+  - id: fo-card-furrier
+    category: appendix
+    question: What does the Furrier card do?
+    answer: Each time you use an action space providing exactly 1 silver, you also receive 1 snare.
+    sections: ["1. Occupation Card Index > 3 A Furrier 1"]
+
+  # ---- vocab: players' words, not the rulebook's -----------------------
+  - id: fo-vocab-boat
+    category: vocab
+    question: How much is a big boat?
+    answer: Large ships are knarrs (5 silver) and longships (8 silver).
+    sections: ["Course of Play > Buying Ships"]
+  - id: fo-vocab-meeple
+    category: vocab
+    question: Do I get an extra meeple each round?
+    answer: Yes, a new Viking in phase 1 of every round.
+    sections: ["Course of Play > Phase 1: a New Viking"]
+
+  # ---- not addressed by the rulebook -----------------------------------
+  - id: fo-na-trade
+    category: not_addressed
+    question: Can players trade goods with each other?
+    answer: null
+    sections: []
+  - id: fo-na-expansion
+    category: not_addressed
+    question: How do the Norwegians expansion boards change setup?
+    answer: null
+    sections: []
