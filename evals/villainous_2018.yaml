@@ -7,7 +7,8 @@
 # the six base Villains, Wicked to the Core's three and Perfectly Wretched's
 # three (image-only copies, read by OCR), and Evil Comes Prepared's Instructions
 # plus Ratigan's, Scar's and Yzma's guides, and Despicable Plots' Instructions
-# and Gaston's guide (Lady Tremaine's and the Horned King's aren't installed). `guide` questions need
+# and Gaston's, Lady Tremaine's and the Horned King's guides: every Villain in
+# the five Disney boxes owned. Villains from other boxes stay not_addressed. `guide` questions need
 # those installed. Villains from sets not installed stay not_addressed.
 game: villainous
 edition: "2018"
@@ -17,7 +18,7 @@ edition_desc: base game Instructions
 core: [
   vl-turn-steps, vl-starting-power, vl-hand-size, vl-win,
   vl-stay-location, vl-vanquish-combine, vl-condition-timing, vl-card-beats-rules, vl-strength-zero,
-  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-guide-scar-win, vl-mixing, vl-guide-yzma-win, vl-guide-gaston-win, vl-na-tremaine,
+  vl-vocab-money, vl-guide-binding-contract, vl-guide-hades-win, vl-guide-scar-win, vl-mixing, vl-guide-yzma-win, vl-guide-gaston-win, vl-guide-tremaine-win, vl-na-hook-other-box,
 ]
 
 questions:
@@ -165,9 +166,14 @@ questions:
     question: What is Gaston's objective?
     answer: Remove all 8 Obstacles.
     sections: ["Gaston > Gaston’s Objective"]
-  - id: vl-na-tremaine
-    category: not_addressed
+  - id: vl-guide-tremaine-win
+    category: guide
     question: What is Lady Tremaine's objective?
+    answer: Marry Drizella or Anastasia to the Prince (see her guide for the exact conditions).
+    sections: ["Lady Tremaine > Lady Tremaine’s Objective"]
+  - id: vl-na-hook-other-box
+    category: not_addressed
+    question: What is Syndrome's objective?
     answer: null
     sections: []
   - id: vl-na-teams

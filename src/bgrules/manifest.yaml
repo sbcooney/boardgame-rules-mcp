@@ -371,9 +371,22 @@ villainous:
           source: user_supplied  # DVE4_Gaston_VillainGuide_60001913_EN02.pdf
           download_page: https://boardgamegeek.com/boardgame/331050/disney-villainous-despicable-plots/files
           expected_sha256: 43362108d197ab83a3cdfcf721a36d6e71d883a59f5106848615c7b07fd1b661
-          extraction:
+          extraction: &despicable_plots_guide
             <<: *villain_guide
             page_order: [3, 4, 5, 6, 1, 2]  # stored in print order: the cover is PDF page 3
+            figure_text: true  # Lady Tremaine's cover and objective pages are drawn as graphics
+        - id: guide-lady-tremaine
+          title: "Lady Tremaine Villain Guide, Despicable Plots (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE4_LadyTremaine_VillainGuide_60001913_EN02.pdf
+          download_page: https://boardgamegeek.com/boardgame/331050/disney-villainous-despicable-plots/files
+          expected_sha256: b65896492dc67c22f26db3b25278a554fdb376088fe6df04dc56cc7c795e9306
+          extraction: *despicable_plots_guide
+        - id: guide-horned-king
+          title: "Horned King Villain Guide, Despicable Plots (Ravensburger PDF via BoardGameGeek)"
+          source: user_supplied  # DVE4_HornedKing_VillainGuide_60001913_EN02.pdf
+          download_page: https://boardgamegeek.com/boardgame/331050/disney-villainous-despicable-plots/files
+          expected_sha256: 17e08f98d1de759dca60edc024f1b2c11b9c6bcb34293bc4e6c0446f48019806
+          extraction: *despicable_plots_guide
         # Perfectly Wretched's guides exist only as image-only "print to PDF"
         # copies (no text layer) of Ravensburger's DV_VILPerfectlyWretched_60001866_
         # VillainGuidesLR_o.pdf, so they are read by OCR and labelled as such.
