@@ -2,7 +2,8 @@
 #
 # Same format as catan_2020.yaml: short rulings in our own words, checked
 # against the indexed rulebook text, and the sections that settle each one.
-# Sushi Roll has no synonym list, so `vocab` is untouched by one.
+# Sushi Roll has no synonym list, so `vocab` is untouched by one. `bgg`
+# questions are real players' questions from BoardGameGeek's Rules forum.
 game: sushi-roll
 edition: "1st"
 game_name: Sushi Roll
@@ -109,6 +110,60 @@ questions:
     category: vocab
     question: Is there a way to reroll dice I don't like?
     answer: Spend a menu token to re-roll any number of dice on your conveyor belt.
+    sections: ["Everybody Takes a Turn"]
+
+  # ---- bgg: real players' questions from BoardGameGeek's Rules forum ----
+  # Wording kept close to the thread title or opening post (thread id in the
+  # question id). Expected answers come from the rulebook text, not the replies.
+  - id: sr-bgg-2202569
+    category: bgg
+    question: Is there a limit to the pudding tokens, or can we use a proxy?
+    answer: There's no limit to how many tokens you may have; if a type runs out, take what's available.
+    sections: ["Everybody Takes a Turn"]
+  - id: sr-bgg-2198344
+    category: bgg
+    question: Can a player use chopsticks to swap back the same die that was just swapped away from them?
+    answer: The rules allow swapping any 1 die on another player's conveyor belt for any 1 on yours, with no exception for a die just swapped; dice in a tray can never be swapped.
+    sections: ["Everybody Takes a Turn"]
+  - id: sr-bgg-2195238
+    category: bgg
+    question: Does the wasabi have to come before the nigiri, or can you get them in any order?
+    answer: Wasabi first; a nigiri taken when you already have a wasabi must go on it (and is tripled). A wasabi without a nigiri on it scores nothing.
+    sections: ["Everybody Takes a Turn", "Scoring a Round"]
+  - id: sr-bgg-2433438
+    category: bgg
+    question: Can players take more of one kind of sushi than the spaces shown on the tray?
+    answer: Yes; the tray shows a guide to the dice sides and scoring, not a limit.
+    sections: ["Set Up", "Scoring a Round"]
+  - id: sr-bgg-2208569
+    category: bgg
+    question: Do you keep your unused menu and chopsticks tokens between rounds?
+    answer: Yes; they only score at the end of the game, 1 point per set of 2 unused tokens.
+    sections: ["Ending the Game", "Scoring a Round"]
+  - id: sr-bgg-2549519
+    category: bgg
+    question: Why do conveyor belts slide left at the end of the round only in a 3 player game?
+    answer: In a 3-player game only, sliding the belts at the end of the round makes sure the start player changes for the next round.
+    sections: ["Starting a New Round"]
+  - id: sr-bgg-2496925
+    category: bgg
+    question: If one player has 6 maki rolls and the other has none, does the player with none get the 3 points for second?
+    answer: No; only players with maki rolls compare.
+    sections: ["Scoring a Round"]
+  - id: sr-bgg-2315460
+    category: bgg
+    question: If one player has 6 puddings and two others both have 3, do the two players with 3 each lose 6 points?
+    answer: Yes; players tied for fewest each lose the full 6 (except in a 2-player game).
+    sections: ["Ending the Game"]
+  - id: sr-bgg-2401291
+    category: bgg
+    question: When I receive the dice from the player on my right, do we re-roll them?
+    answer: Yes, all players re-roll all the dice just passed to them.
+    sections: ["Slide and Roll!"]
+  - id: sr-bgg-2216856
+    category: bgg
+    question: Can other players swap dice that are on my tray?
+    answer: No, dice in another player's tray can never be swapped.
     sections: ["Everybody Takes a Turn"]
 
   # ---- not addressed by the rulebook -----------------------------------

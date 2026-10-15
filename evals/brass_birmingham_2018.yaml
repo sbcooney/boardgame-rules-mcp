@@ -3,7 +3,8 @@
 # Same format as catan_2020.yaml: short rulings in our own words, checked
 # against the indexed rulebook text, and the sections that settle each one.
 # The rulebook prints money as a £ icon, which isn't text: "Take 30 from the bank".
-# Brass has no synonym list, so `vocab` is untouched by one.
+# Brass has no synonym list, so `vocab` is untouched by one. `bgg` questions
+# are real players' questions from BoardGameGeek's Rules forum.
 game: brass-birmingham
 edition: "2018"
 game_name: "Brass: Birmingham"
@@ -96,6 +97,60 @@ questions:
     question: How much does a train track cost?
     answer: A rail Link costs 5 (two in one action for 15 plus a beer), plus 1 coal each.
     sections: ["Network Action > Network During Rail Era:"]
+
+  # ---- bgg: real players' questions from BoardGameGeek's Rules forum ----
+  # Wording kept close to the thread title or opening post (thread id in the
+  # question id). Expected answers come from the rulebook text, not the replies.
+  - id: bb-bgg-3724051
+    category: bgg
+    question: Do you reshuffle the merchant tiles after the Canal Era?
+    answer: No; the end-of-Canal-Era steps reset Merchant beer but don't reshuffle or move Merchant tiles.
+    sections: ["End of Canal Era", "End of Canal & Rail Era"]
+  - id: bb-bgg-3694569
+    category: bgg
+    question: Can you connect to another player's brewery through a merchant location that both your links reach?
+    answer: Yes; locations are connected if a route of Link tiles (any player's) runs between them, and nothing excludes Merchant locations from that route.
+    sections: ["Connected Locations"]
+  - id: bb-bgg-3627718
+    category: bgg
+    question: Do I have to use my own beer first, or can I use opponents' or merchant beer first?
+    answer: Any order; beer may come from your Breweries (no connection needed), a connected opponent's Brewery, or the Merchant you're selling to, each barrel from any of these.
+    sections: ["Consuming Beer"]
+  - id: bb-bgg-3604279
+    category: bgg
+    question: Can I build a level 1 building in the Rail Era?
+    answer: Not if its slot on your Player Mat has the Canal-Era-only icon; those tiles must be removed with the Develop action.
+    sections: ["Build Action (Continued) > Rail Era Building"]
+  - id: bb-bgg-3611961
+    category: bgg
+    question: Can I consume both merchant beer barrels at a location when selling one industry tile that needs 2 beer?
+    answer: No; you may only consume the barrel beside the Merchant tile you're selling to.
+    sections: ["Sell Action"]
+  - id: bb-bgg-3620699
+    category: bgg
+    question: How do wild cards work?
+    answer: Scout discards 2 extra cards for 1 Wild Location and 1 Wild Industry card. Wild Location is any Location card (not the Farm Breweries); Wild Industry is any Industry card. Used wild cards go back to their draw area.
+    sections: ["Build Action > • Wild Location card", "Build Action > • Wild Industry card", "Scout Action"]
+  - id: bb-bgg-3623407
+    category: bgg
+    question: When building two rail links with one card, do the links have to connect to each other?
+    answer: The rules don't require it; each rail Link is placed separately, must be adjacent to your network and connected to a source of coal, and the beer must come from a Brewery.
+    sections: ["Network Action"]
+  - id: bb-bgg-3690356
+    category: bgg
+    question: When building my second rail link, do I have to use coal from an opponent's mine my first link just connected to, or can I buy from the market again?
+    answer: Coal must come from the closest connected unflipped Coal Mine (any player's); the Coal Market is only used when you aren't connected to one.
+    sections: ["Consuming Coal", "Network Action > Network During Rail Era:"]
+  - id: bb-bgg-3696375
+    category: bgg
+    question: At the start of the Rail Era, do my new links have to start from my existing buildings?
+    answer: A new Link must be adjacent to a location in your network (your Industry tiles or Links); only with no tiles on the board can you place one anywhere.
+    sections: ["Network Action", "Your Network"]
+  - id: bb-bgg-3655807
+    category: bgg
+    question: At the end of the canal era one player still had a card left while everyone else had used theirs. Is that possible?
+    answer: No; each era has exactly 8/9/10 rounds for 4/3/2 players and every player takes the same turns, so a leftover card means a mistake (in a turn, players discard a card per action).
+    sections: ["Rounds", "Player Turns"]
 
   # ---- not addressed by the rulebook -----------------------------------
   - id: bb-na-trade

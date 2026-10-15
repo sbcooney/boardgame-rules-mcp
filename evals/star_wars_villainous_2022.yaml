@@ -96,7 +96,51 @@ questions:
     answer: Vehicle cards go in Deep Space, the right-most area of your Sector.
     sections: ["Overview > DEEP SPACE", "Vehicles"]
 
+  # ---- bgg: real players' questions from BoardGameGeek's Rules forum ----
+  # Wording kept close to the thread title or opening post (thread id in the
+  # question id). Expected answers come from the Instructions, not the replies.
+  - id: sw-bgg-3003116
+    category: bgg
+    question: What is the maximum hand size? Do you only draw if you have less than 4 cards?
+    answer: At the end of your turn, if you have fewer than four cards, draw until you have four (or your maximum allowed hand size; unengaged Hero Vehicles lower it).
+    sections: ["On Your Turn > Draw Cards", "Vehicles > Heroes Controlling Deep Space"]
+  - id: sw-bgg-3204922
+    category: bgg
+    question: If I use a zero-strength ally to vanquish, is that ally always removed?
+    answer: Yes; a 0-Strength Ally can join a Vanquish (adding no Strength) and is always removed if used.
+    sections: ["Playing Cards > Strength > Zero-Strength Allies and Heroes"]
+  - id: sw-bgg-3057514
+    category: bgg
+    question: I vanquished the Hero covering my location's actions. Can I use the uncovered actions this turn?
+    answer: Yes; an uncovered action is available immediately if your Villain is at that location and it's still your turn.
+    sections: ["Ending the Game > Blocked Actions"]
+  - id: sw-bgg-3247606
+    category: bgg
+    question: Are abilities on allies and vehicles optional?
+    answer: No; cards in play have ongoing effects as long as they remain in play (actions at your location are optional).
+    sections: ["Playing Cards", "On Your Turn > Perform Actions"]
+  - id: sw-bgg-3335617
+    category: bgg
+    question: What happens when you vanquish a vehicle?
+    answer: Vanquishing an engaged Hero Vehicle also loses your Ally Vehicle; no Strength comparison, both are discarded. You can't Vanquish an unengaged Hero Vehicle.
+    sections: ["Vehicles > Removing, Defeating and Vanquishing Vehicle Cards"]
+  - id: sw-bgg-3039730
+    category: bgg
+    question: Are +1/-1 strength tokens permanent?
+    answer: A placed +1/-1 Strength token changes Strength permanently while it stays on the card; Strength gained or lost from other cards is temporary and changes with conditions.
+    sections: ["Playing Cards > Strength > Placing Strength Tokens", "Playing Cards > Strength > Gaining and Losing Strength"]
+
   # ---- not addressed by the Instructions -------------------------------
+  - id: sw-bgg-na-2948407
+    category: not_addressed
+    question: Are the ambition tokens limited or unlimited?
+    answer: null
+    sections: []
+  - id: sw-bgg-na-2918654
+    category: not_addressed
+    question: Can you play with 5 players?
+    answer: null
+    sections: []
   - id: sw-na-vader-card
     category: not_addressed
     question: What does Darth Vader's Lightsaber card do?

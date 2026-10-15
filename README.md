@@ -192,16 +192,18 @@ This is the densest rulebook, with about twice Catan's text, and it has no synon
 
 #### Six more games
 
-Smaller question sets, written from each rulebook's text. None of these games has a synonym list yet, which is why most of their misses are the `vocab` questions ("borrow money" for the Loan action, "kill a good guy" for Vanquish).
+Two question sets per game. The first was written from each rulebook's text. The second is **real players' questions from each game's BoardGameGeek Rules forum**, kept close to their own wording ("Can I consume both merchant beer barrels at a location when selling one industry tile that needs 2 beer?"), with expected answers checked against the rulebook, not the forum replies. Forum questions the rulebook doesn't settle (are Ambition tokens limited?) are in the "not covered" set.
 
-| Game | Answerable questions | Hit@1 | Hit@3 | Hit@5 | Hit@5 without vocab |
-| --- | --- | --- | --- | --- | --- |
-| Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](evals/brass_birmingham_2018.yaml)) | 15 | 60% | 80% | 87% | 100% |
-| Disney Villainous, with Villain Guides ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 22 | 64% | 77% | 82% | 90% |
-| Star Wars Villainous ([`evals/star_wars_villainous_2022.yaml`](evals/star_wars_villainous_2022.yaml)) | 15 | 67% | 80% | 80% | 92% |
-| Tzolk'in ([`evals/tzolkin_1st.yaml`](evals/tzolkin_1st.yaml)) | 16 | 50% | 75% | 81% | 93% |
-| A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](evals/a_feast_for_odin_2nd.yaml)) | 19 | 63% | 79% | 84% | 88% |
-| Sushi Roll ([`evals/sushi_roll_1st.yaml`](evals/sushi_roll_1st.yaml)) | 18 | 72% | 89% | 94% | 100% |
+| Game | Written from the rulebook: questions, hit@5 | Players' forum questions: questions, hit@1, hit@5 |
+| --- | --- | --- |
+| Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](evals/brass_birmingham_2018.yaml)) | 15, 87% | 10, 20%, 80% |
+| Disney Villainous, with Villain Guides ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 28, 71% | 5, 40%, 60% |
+| Star Wars Villainous ([`evals/star_wars_villainous_2022.yaml`](evals/star_wars_villainous_2022.yaml)) | 15, 80% | 6, 67%, 83% |
+| Tzolk'in ([`evals/tzolkin_1st.yaml`](evals/tzolkin_1st.yaml)) | 16, 81% | 10, 50%, 80% |
+| A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](evals/a_feast_for_odin_2nd.yaml)) | 19, 84% | 8, 62%, 75% |
+| Sushi Roll ([`evals/sushi_roll_1st.yaml`](evals/sushi_roll_1st.yaml)) | 18, 94% | 10, 70%, 90% |
+
+Across all six, 39 of 49 players' questions (80%) find the settling section in the top 5, but only 51% rank it first: real questions are wordier than ones written from the rulebook. Most misses are vocabulary (players say "feed your people" and "win"; the rulebooks say "Banquet Table" and "Objective"), and none of these games has a synonym list yet. In Villainous, three overlapping rulebooks (the base game and two expansions reword the same rules) and the Villain Guides compete for the top results. The forum questions also caught a search bug: "the 10th spot" didn't match "action space (10)"; ordinals now match their number.
 
 Each needed a little layout work, all as opt-in extraction hints so the earlier games extract exactly as before. Brass prints two pages per PDF page, so citations give the printed page of the half the text is on. Tzolk'in and Brass draw their page titles as graphics. Villainous starts sentences with headings ("**Ally** cards appear only in the Villain deck"). Feast for Odin's card index becomes one citable entry per card.
 

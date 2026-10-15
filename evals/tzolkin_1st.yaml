@@ -2,7 +2,8 @@
 #
 # Same format as catan_2020.yaml: short rulings in our own words, checked
 # against the indexed rulebook text, and the sections that settle each one.
-# Tzolk'in has no synonym list, so `vocab` is untouched by one.
+# Tzolk'in has no synonym list, so `vocab` is untouched by one. `bgg` questions
+# are real players' questions from BoardGameGeek's Rules forum.
 game: tzolkin
 edition: "1st"
 game_name: "Tzolk'in: The Mayan Calendar"
@@ -100,6 +101,60 @@ questions:
     question: Is there a free mulligan if I run out of corn?
     answer: Begging for corn resets you to 3 corn but angers the gods (down 1 temple step).
     sections: ["Course of the Game > Player Turns > Begging for Corn", "Temples > Angering The Gods > Beg for Corn"]
+
+  # ---- bgg: real players' questions from BoardGameGeek's Rules forum ----
+  # Wording kept close to the thread title or opening post (thread id in the
+  # question id). Expected answers come from the rulebook text, not the replies.
+  - id: tz-bgg-3417638
+    category: bgg
+    question: Do you pay for each worker as you place it, or pay for all your workers after placing them?
+    answer: The total is the same either way; corn equal to each action space's number, plus the cost for the number of workers placed shown on your player board (the parenthesised number is each added worker's cost).
+    sections: ["Course of the Game > Player Turns > Placing Workers"]
+  - id: tz-bgg-2584607
+    category: bgg
+    question: If you beg for corn, do you still get to take your turn?
+    answer: Yes; begging happens at the start of your turn (if you have 2 or fewer corn), then you take your turn. If you must place and can't afford to, you must beg first.
+    sections: ["Course of the Game > Player Turns > Begging for Corn", "Course of the Game > Player Turns > Placing Workers"]
+  - id: tz-bgg-2730164
+    category: bgg
+    question: If two players tie for first on a temple, does the second place reward still get awarded?
+    answer: There's no second-place reward; tied highest players each get half the bonus. The two numbers above a temple are the bonuses for the end of the first age and the end of the game.
+    sections: ["Food Days > Take Rewards > End-of-Age Rewards"]
+  - id: tz-bgg-2448224
+    category: bgg
+    question: What does the 10th spot on Chichen Itza let you do?
+    answer: Like the other gears' top spaces, it lets you perform any action on the gear without paying extra corn.
+    sections: ["Actions > Chichen Itza"]
+  - id: tz-bgg-2257742
+    category: bgg
+    question: Can you harvest wood at Palenque when there are no wood tiles left?
+    answer: No; harvesting removes a tile and you take what it shows. If all tiles in that group are gone you can't use the action (agriculture level 2 aside, for corn).
+    sections: ["Actions > Palenque"]
+  - id: tz-bgg-2218745
+    category: bgg
+    question: Is there a limited number of crystal skulls?
+    answer: Yes in effect; if the bank doesn't have enough crystal skulls to reward every player who should get one on a Food Day, no one gets one.
+    sections: ["Food Days > Take Rewards > Middle-of-Age Rewards"]
+  - id: tz-bgg-2671289
+    category: bgg
+    question: You have 0 corn, you're at the bottom of all the temples, you have no workers on the board, and all 0 spaces are full. What happens?
+    answer: You can't beg, but the gods let you place exactly 1 worker on the cheapest action space and give all your corn to the bank.
+    sections: ["Temples > Angering The Gods > Beg for Corn"]
+  - id: tz-bgg-3029639
+    category: bgg
+    question: Can you advance the calendar two days whenever you hold the starting player token?
+    answer: No; the double advance is a privilege of choosing the Starting Player Space, only while your board is lighter side up (using it flips it).
+    sections: ["Actions > Starting Player Space > Advance the Calendar"]
+  - id: tz-bgg-2701481
+    category: bgg
+    question: At the end of the game, do resources convert to corn 1 to 1 or at the market rate?
+    answer: At the market exchange rate, then 1/4 point per corn.
+    sections: ["End of the Game > Final Scoring"]
+  - id: tz-bgg-3233257
+    category: bgg
+    question: What happens if you can't feed your workers and you have no victory points to lose?
+    answer: You lose 3 points per unfed worker anyway; victory points can go negative.
+    sections: ["Food Days > Feed the Workers"]
 
   # ---- not addressed by the rulebook -----------------------------------
   - id: tz-na-trade

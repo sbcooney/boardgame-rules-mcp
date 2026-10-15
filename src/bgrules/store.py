@@ -316,7 +316,8 @@ def official_changes(db: sqlite3.Connection) -> dict:
 
 
 def query_terms(query: str) -> list[str]:
-    words = re.findall(r"[a-z0-9]+", query.lower())
+    # Ordinals become their number: "the 10th spot" matches "action space (10)".
+    words = [re.sub(r"^(\d+)(?:st|nd|rd|th)$", r"\1", w) for w in re.findall(r"[a-z0-9]+", query.lower())]
     return list(dict.fromkeys(w for w in words if w not in STOPWORDS))
 
 

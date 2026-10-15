@@ -4,6 +4,7 @@
 # against the indexed text, and the sections that settle each one. The
 # appendix's occupation card index gives each card its own subsection
 # ("1. Occupation Card Index > 4 c Hunter 0"), like Wingspan's bird powers.
+# `bgg` questions are real players' questions from BoardGameGeek's Rules forum.
 game: a-feast-for-odin
 edition: "2nd"
 game_name: A Feast for Odin
@@ -119,6 +120,50 @@ questions:
     question: Do I get an extra meeple each round?
     answer: Yes, a new Viking in phase 1 of every round.
     sections: ["Course of Play > Phase 1: a New Viking"]
+
+  # ---- bgg: real players' questions from BoardGameGeek's Rules forum ----
+  # Wording kept close to the thread title or opening post (thread id in the
+  # question id). Expected answers come from the rulebook text, not the replies.
+  - id: fo-bgg-3562310
+    category: bgg
+    question: Do you have to discard your orange and red food tiles at the end of the round?
+    answer: No; nothing says to discard them, and you can't give away or discard goods outside of an action.
+    sections: ["Course of Play > Giving Away"]
+  - id: fo-bgg-3416011
+    category: bgg
+    question: What happens if you can't feed your people during the feast?
+    answer: For each Banquet Table space you can't (or don't) fill, take a Thing Penalty tile and keep it for the rest of the game; silver coins can also fill spaces.
+    sections: ["Course of Play > Phase 9: Feast"]
+  - id: fo-bgg-3405031
+    category: bgg
+    question: If I have 2 sheep and 2 cattle and one of each is pregnant, do I get a new sheep and a new cattle?
+    answer: Yes; for each pregnant animal turned back, take one new tile of that kind, for sheep and cattle alike.
+    sections: ["Course of Play > Phase 8: Animal Breeding"]
+  - id: fo-bgg-3730371
+    category: bgg
+    question: Can orange goods be placed next to red goods in the house?
+    answer: Yes; only orange next to orange and red next to red (orthogonally) are forbidden.
+    sections: ["Course of Play > Placing Goods on the House Tiles"]
+  - id: fo-bgg-3282047
+    category: bgg
+    question: What is the difference between raiding and pillaging?
+    answer: Raiding uses the orange eight-sided die and pillaging the blue twelve-sided die (you want to roll high for both); raiding needs a longship, and ore on ships can't help a raid.
+    sections: ["Course of Play > Raiding, Pillaging, and Hunting", "Course of Play > Raiding", "Course of Play > Pillaging"]
+  - id: fo-bgg-3284001
+    category: bgg
+    question: Does the hunting action require you to spend both wood and weapons?
+    answer: No; you pay wood and/or the proper weapons, in any mix, equal to your result.
+    sections: ["Course of Play > Hunting Game, Laying a Snare and Whaling"]
+  - id: fo-bgg-3336297
+    category: bgg
+    question: I emigrated a knarr. Do I score it as emigration only, or also as a ship?
+    answer: Only as an emigration; an emigrated ship is turned over and is no longer a ship.
+    sections: ["Course of Play > Emigration", "End of the Game and Scoring"]
+  - id: fo-bgg-3322201
+    category: bgg
+    question: Which occupation deck should beginners use, A, B or C?
+    answer: Deck A; experienced players use B and C, or shuffle every deck together.
+    sections: ["Setup > Occupation and Weapon Cards"]
 
   # ---- not addressed by the rulebook -----------------------------------
   - id: fo-na-trade

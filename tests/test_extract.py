@@ -100,6 +100,10 @@ def test_full_width_line_vs_two_column_lines_at_same_height():
     assert not _is_full_width(_raw_line([(40, 120), (200, 280)]), mid)
 
 
+def test_query_terms_turn_ordinals_into_numbers():
+    assert query_terms("What does the 10th spot do in the 2nd age?") == ["10", "spot", "2", "age"]
+
+
 def test_query_terms_drop_stopwords():
     assert query_terms("Can I build a settlement next to a city?") == ["build", "settlement", "next", "city"]
 

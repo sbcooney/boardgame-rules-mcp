@@ -155,7 +155,41 @@ questions:
     answer: Activate for 3 Power to find Snow White and play her to the Dwarfs' Cottage, even if locked; while in your Realm, draw a card each time you're targeted by a Fate action.
     sections: ["Evil Queen > Magic Mirror"]
 
+  # ---- bgg: real players' questions from BoardGameGeek's Rules forum ----
+  # Wording kept close to the thread title or opening post (thread id in the
+  # question id). Expected answers come from the rulebooks and guides, not the replies.
+  - id: vl-bgg-3428295
+    category: bgg
+    question: Does Captain Hook need to be at Skull Rock to use the Cannon?
+    answer: Yes, if the Cannon was played to Skull Rock; its extra actions are performed when you're at the location it was played to.
+    sections: ["Captain Hook > Extra Actions"]
+  - id: vl-bgg-2980508
+    category: bgg
+    question: Can heroes that are defeated be brought back into play?
+    answer: Yes; defeated Heroes go to the Fate discard pile, which is shuffled into a new Fate deck when needed, and cards that find a Hero search the discard pile.
+    sections: ["Types of Actions > Fate", "Types of Actions, Continued > Fate", "Reference > “Finding” a Hero"]
+  - id: vl-bgg-3198555
+    category: bgg
+    question: Merryweather says curses cannot be played to her location. Can I move a curse to her location?
+    answer: Yes; moving a card isn't playing it, so a restriction on playing doesn't apply to moving.
+    sections: ["Reference > “Playing” Cards and “Moving” Cards"]
+  - id: vl-bgg-2850309
+    category: bgg
+    question: Can an opponent use Steal From the Rich on me when there are no heroes in my realm?
+    answer: No; a card whose Ability can't be carried out can't be played, and a revealed Fate card that can't be played is discarded.
+    sections: ["Frequently Asked Questions", "Types of Cards > Effect"]
+  - id: vl-bgg-3576727
+    category: bgg
+    question: Do Mufasa's points count toward Scar's Succession pile?
+    answer: Yes; when Scar defeats Mufasa, Mufasa goes into the Succession pile, as does every Hero defeated after him.
+    sections: ["Scar > Succession Pile", "Scar > Scar’s Objective"]
+
   # ---- not addressed by what's installed --------------------------------
+  - id: vl-bgg-na-2782268
+    category: not_addressed
+    question: Can a player keep how many Power tokens they have hidden?
+    answer: null
+    sections: []
   - id: vl-guide-yzma-win
     category: guide
     question: What is Yzma's objective?
