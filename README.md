@@ -96,6 +96,7 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 | Spirit Island (core game) | Core rulebook plus the official errata pages of the Nature Incarnate rulebook, downloaded automatically from Greater Than Games' links | `uv run bgrules add spirit-island` |
 | Brass: Birmingham | Rulebook v2018.11 from [Roxley's product page](https://roxley.com/products/brass-birmingham), downloaded automatically | `uv run bgrules add brass-birmingham` |
 | Disney Villainous (2018 base game) | Instructions from Ravensburger's site, downloaded automatically. Shared rules only: each Villain's abilities are on its cards and Villain Guide. | `uv run bgrules add villainous` |
+| Star Wars Villainous: Power of the Dark Side | Instructions from Ravensburger's site, downloaded automatically. Shared rules only, as with Disney Villainous. | `uv run bgrules add star-wars-villainous` |
 | Tzolk'in: The Mayan Calendar | Rulebook from [Czech Games Edition](https://www.czechgames.com/games/tzolkin-the-mayan-calendar), downloaded automatically | `uv run bgrules add tzolkin` |
 | A Feast for Odin | 2nd edition rulebook and appendix (every occupation card) from [Feuerland](https://www.feuerland-spiele.de/en), downloaded automatically. The almanac is Viking history, not rules, so it isn't indexed. | `uv run bgrules add a-feast-for-odin` |
 | Sushi Roll | Rules of Play from [Gamewright](https://gamewright.com/product/Sushi-Roll), downloaded automatically. It's a fold-out sheet with no page numbers, so citations use the PDF's panels. | `uv run bgrules add sushi-roll` |
@@ -189,7 +190,7 @@ This is the densest rulebook, with about twice Catan's text, and it has no synon
 
 **Official changes.** Spirit Island's setup was officially changed after older printings: the Nature Incarnate rulebook (p. 5) adds 1 Blight at setup and says this applies whether or not you use the expansion. Only those publisher pages are indexed. They're linked to the core rulebook's setup section, so search results from that section carry the change (`amended_by`). The server instructions tell the model to give both the printed rule and the change, with which printings include it.
 
-#### Five more games
+#### Six more games
 
 Smaller question sets, written from each rulebook's text. None of these games has a synonym list yet, which is why most of their misses are the `vocab` questions ("borrow money" for the Loan action, "kill a good guy" for Vanquish).
 
@@ -197,6 +198,7 @@ Smaller question sets, written from each rulebook's text. None of these games ha
 | --- | --- | --- | --- | --- | --- |
 | Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](evals/brass_birmingham_2018.yaml)) | 15 | 60% | 80% | 87% | 100% |
 | Disney Villainous ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 18 | 61% | 83% | 83% | 94% |
+| Star Wars Villainous ([`evals/star_wars_villainous_2022.yaml`](evals/star_wars_villainous_2022.yaml)) | 15 | 67% | 80% | 80% | 92% |
 | Tzolk'in ([`evals/tzolkin_1st.yaml`](evals/tzolkin_1st.yaml)) | 16 | 50% | 75% | 81% | 93% |
 | A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](evals/a_feast_for_odin_2nd.yaml)) | 19 | 63% | 79% | 84% | 88% |
 | Sushi Roll ([`evals/sushi_roll_1st.yaml`](evals/sushi_roll_1st.yaml)) | 18 | 72% | 89% | 94% | 100% |

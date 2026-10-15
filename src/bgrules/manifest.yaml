@@ -369,3 +369,26 @@ sushi-roll:
               - {pattern: '^SET UP$', fonts: [Nobel-Bold], min_size: 10.8, max_size: 11.2}  # same font labels the component pictures
             body_fonts: [Nobel-Regular, Nobel-Bold, Nobel-RegularItalic, Nobel-Book]
             body_size: [8.5, 10.5]
+
+star-wars-villainous:
+  name: "Star Wars Villainous: Power of the Dark Side"
+  editions:
+    "2022":
+      docs:
+        - id: instructions
+          title: Instructions
+          # Ravensburger's own instructions server (also linked from its product pages).
+          # Shared rules only; each Villain's abilities are on its cards and Villain Guide.
+          url: https://www.ravensburger.org/spielanleitungen/ecm/Spielanleitungen/27361_anl_2361098%5B1%5D.pdf?ossl=pds_text_Spielanleitung
+          sha256: c2d1cee36951b35e9988fa4f7fbd6033c1918475f83125c904c5884c328e369c
+          extraction:
+            layout: boxes
+            content_pages: [2, 19]
+            heading_fonts:
+              - {name: BigNoodleTitling, min_size: 23, max_size: 25, part: true}  # "TYPES OF ACTIONS"
+              - {name: BigNoodleTitling, min_size: 17, max_size: 21}  # "Maneuver"
+            subheadings:
+              - {fonts: [BigNoodleTitling], min_size: 11.5, max_size: 12.5}  # "DEEP SPACE"
+              - {pattern: '^[A-Z][a-z]', fonts: [BankGothicPro-BoldCond], min_size: 11.5, max_size: 12.5}  # "Zero-Strength Allies and Heroes"; all-caps lines are callouts
+            body_fonts: [BankGothicPro]
+            body_size: [6.5, 12.5]  # board and card labels are under 6pt
