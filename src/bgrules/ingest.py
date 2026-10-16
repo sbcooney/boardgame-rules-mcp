@@ -82,7 +82,9 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
                 raise IngestError(
                     f"Checksum mismatch for {doc['title']}: the file differs from the version this tool was built "
                     f"against (expected {expected[:12]}…, got {digest[:12]}…). Refusing to index a possibly different "
-                    "edition; any installed copy is unchanged."
+                    "edition; any installed copy is unchanged. The publisher may have updated the file: upgrade with "
+                    "`uv tool upgrade boardgame-rules-mcp` (a newer release may know it), and if that doesn't help, "
+                    "report it at https://github.com/sbcooney/boardgame-rules-mcp/issues."
                 )
             incoming.replace(dest)
         digest = sha256_of(dest)

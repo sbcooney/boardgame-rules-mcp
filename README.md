@@ -41,18 +41,19 @@ flowchart LR
 Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.11+ if needed).
 
 ```sh
-git clone https://github.com/sbcooney/boardgame-rules-mcp && cd boardgame-rules-mcp
-uv sync
-uv run bgrules add catan --edition 2020
-uv run bgrules search catan "What happens when I move the robber?"
+uv tool install boardgame-rules-mcp
+bgrules add catan --edition 2020
+bgrules search catan "What happens when I move the robber?"
 ```
+
+This puts the `bgrules` command on your PATH; `uv tool upgrade boardgame-rules-mcp` updates it. Rulebooks and the index live in `~/.bgrules` (set `BGRULES_HOME` to move them). To try it without installing, run `uvx boardgame-rules-mcp` in place of `bgrules`.
 
 The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code.
 
 ### Connect to Claude Code
 
 ```sh
-claude mcp add bgrules -- uv --directory /path/to/boardgame-rules-mcp run bgrules serve
+claude mcp add bgrules -- bgrules serve
 ```
 
 ### Connect to Claude Desktop
@@ -63,14 +64,25 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`, t
 {
   "mcpServers": {
     "bgrules": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/boardgame-rules-mcp", "run", "bgrules", "serve"]
+      "command": "/Users/you/.local/bin/bgrules",
+      "args": ["serve"]
     }
   }
 }
 ```
 
-If Claude Desktop can't find `uv`, use its full path (`which uv`).
+Use the full path that `which bgrules` prints: Claude Desktop doesn't see your shell's PATH.
+
+### Developer setup
+
+```sh
+git clone https://github.com/sbcooney/boardgame-rules-mcp && cd boardgame-rules-mcp
+uv sync
+uv run bgrules add catan --edition 2020
+uv run pytest
+```
+
+Point Claude at the clone with `claude mcp add bgrules -- uv --directory /path/to/boardgame-rules-mcp run bgrules serve`.
 
 ## Tools
 
@@ -91,19 +103,19 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 
 | Game | Rulebook | Install |
 | --- | --- | --- |
-| Catan (2020 edition) | Official PDF, downloaded automatically | `uv run bgrules add catan --edition 2020` |
-| Wingspan (base game) | Rulebook r24 and appendix r17 from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0). The folder has no direct per-file links, so you download the two PDFs yourself. | `uv run bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` |
-| Spirit Island (core game) | Core rulebook plus the official errata pages of the Nature Incarnate rulebook, downloaded automatically from Greater Than Games' links | `uv run bgrules add spirit-island` |
-| Brass: Birmingham | Rulebook v2018.11 from [Roxley's product page](https://roxley.com/products/brass-birmingham), downloaded automatically | `uv run bgrules add brass-birmingham` |
-| Disney Villainous (2018 base game, plus Villain Guides) | Instructions from Ravensburger's site, downloaded automatically. Each Villain's objective and cards are in its Villain Guide: Ravensburger's own PDFs, available only as [BoardGameGeek uploads](https://boardgamegeek.com/boardgame/256382/disney-villainous-the-worst-takes-it-all/files), so you download those yourself. Guides set up so far: the six base Villains, *Wicked to the Core*'s three, *Perfectly Wretched*'s three (those exist only as image copies, so their text is read by OCR and labelled that way), *Evil Comes Prepared*'s Ratigan, Scar and Yzma, and *Despicable Plots*' Gaston, Lady Tremaine and Horned King, plus both sets' Instructions, which add the rules for mixing boxes. | `uv run bgrules add villainous` installs the Instructions and lists each guide with its download page |
-| Star Wars Villainous: Power of the Dark Side | Instructions from Ravensburger's site, downloaded automatically. Shared rules only, as with Disney Villainous. | `uv run bgrules add star-wars-villainous` |
-| Tzolk'in: The Mayan Calendar | Rulebook from [Czech Games Edition](https://www.czechgames.com/games/tzolkin-the-mayan-calendar), downloaded automatically | `uv run bgrules add tzolkin` |
-| A Feast for Odin | 2nd edition rulebook and appendix (every occupation card) from [Feuerland](https://www.feuerland-spiele.de/en), downloaded automatically. The almanac is Viking history, not rules, so it isn't indexed. | `uv run bgrules add a-feast-for-odin` |
-| Sushi Roll | Rules of Play from [Gamewright](https://gamewright.com/product/Sushi-Roll), downloaded automatically. It's a fold-out sheet with no page numbers, so citations use the PDF's panels. | `uv run bgrules add sushi-roll` |
+| Catan (2020 edition) | Official PDF, downloaded automatically | `bgrules add catan --edition 2020` |
+| Wingspan (base game) | Rulebook r24 and appendix r17 from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0). The folder has no direct per-file links, so you download the two PDFs yourself. | `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` |
+| Spirit Island (core game) | Core rulebook plus the official errata pages of the Nature Incarnate rulebook, downloaded automatically from Greater Than Games' links | `bgrules add spirit-island` |
+| Brass: Birmingham | Rulebook v2018.11 from [Roxley's product page](https://roxley.com/products/brass-birmingham), downloaded automatically | `bgrules add brass-birmingham` |
+| Disney Villainous (2018 base game, plus Villain Guides) | Instructions from Ravensburger's site, downloaded automatically. Each Villain's objective and cards are in its Villain Guide: Ravensburger's own PDFs, available only as [BoardGameGeek uploads](https://boardgamegeek.com/boardgame/256382/disney-villainous-the-worst-takes-it-all/files), so you download those yourself. Guides set up so far: the six base Villains, *Wicked to the Core*'s three, *Perfectly Wretched*'s three (those exist only as image copies, so their text is read by OCR and labelled that way), *Evil Comes Prepared*'s Ratigan, Scar and Yzma, and *Despicable Plots*' Gaston, Lady Tremaine and Horned King, plus both sets' Instructions, which add the rules for mixing boxes. | `bgrules add villainous` installs the Instructions and lists each guide with its download page |
+| Star Wars Villainous: Power of the Dark Side | Instructions from Ravensburger's site, downloaded automatically. Shared rules only, as with Disney Villainous. | `bgrules add star-wars-villainous` |
+| Tzolk'in: The Mayan Calendar | Rulebook from [Czech Games Edition](https://www.czechgames.com/games/tzolkin-the-mayan-calendar), downloaded automatically | `bgrules add tzolkin` |
+| A Feast for Odin | 2nd edition rulebook and appendix (every occupation card) from [Feuerland](https://www.feuerland-spiele.de/en), downloaded automatically. The almanac is Viking history, not rules, so it isn't indexed. | `bgrules add a-feast-for-odin` |
+| Sushi Roll | Rules of Play from [Gamewright](https://gamewright.com/product/Sushi-Roll), downloaded automatically. It's a fold-out sheet with no page numbers, so citations use the PDF's panels. | `bgrules add sushi-roll` |
 
 ## Adding a game
 
-Each game is an entry in [`src/bgrules/manifest.yaml`](src/bgrules/manifest.yaml).
+Each game is an entry in [`src/bgrules/manifest.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/src/bgrules/manifest.yaml).
 
 1. **Find the official PDF** on the publisher's site. Only publisher-issued rulebooks and errata qualify. For a direct download link, add `url` and `sha256`. Otherwise, set `source: user_supplied`, `expected_sha256` and a `download_page` saying where users get the file, and install the PDF with `--file`. A publisher's own document that is only available on a community site (such as a Villain Guide on BoardGameGeek) can be added this way, labelled in its title; fan-written FAQs and wikis can't. Pages without a text layer are read by OCR automatically; `ocr` hints tune it for awkward layouts (see the Perfectly Wretched guides in the manifest).
 2. **Add extraction hints.** `uv run python spikes/m0_extract.py <pdf>` lists the fonts and sizes on each page. Use them to set `layout` (`columns`, `rows`, `boxes` or `table`), `heading_fonts`, `body_fonts`, `body_size` and `content_pages`. The games already in the manifest cover the common layouts; copy the closest one.
@@ -147,7 +159,7 @@ uv run python evals/e2e.py evals/catan_2020.yaml --ids vocab-church   # specific
 
 A hit means a section that settles the question, or a subsection of it, is in the top results. Categories: **lookup** asks directly, **edge** covers rules arguments, **vocab** uses players' words instead of the rulebook's ("thief" for robber), **independent** questions were written by a player who hadn't seen the synonym lists, and **not addressed** questions aren't answered by the rulebook.
 
-#### Catan (2020 edition), [`evals/catan_2020.yaml`](evals/catan_2020.yaml)
+#### Catan (2020 edition), [`evals/catan_2020.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/catan_2020.yaml)
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -161,7 +173,7 @@ A hit means a section that settles the question, or a subsection of it, is in th
 
 Synonyms map players' words to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in the manifest). The held-out questions were committed before the synonym list but by the same author, so their 100% is optimistic. The independent questions are the fairer test, at 80%. Their one miss, "How many cards do I deal out?", assumes something Catan doesn't do: no cards are dealt.
 
-#### Wingspan (rulebook r24 + appendix r17), [`evals/wingspan_1st.yaml`](evals/wingspan_1st.yaml)
+#### Wingspan (rulebook r24 + appendix r17), [`evals/wingspan_1st.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/wingspan_1st.yaml)
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Hit@5 before synonyms | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -175,7 +187,7 @@ Synonyms map players' words to rulebook terms ("thief" → robber, "port" → ha
 
 The appendix explains every bird power and bonus card, so questions about a specific card always find it. The cost is that a few rulebook questions rank lower. Wingspan's synonym list leaves out words the rulebook already uses with another meaning ("move" a cube, "score" a goal, player-mat "rows"). Of the three independent questions, two find the answer in the top 5. The miss, "How many cards do I get to start?", loses to the Swift-Start guide.
 
-#### Spirit Island (core rulebook + official errata), [`evals/spirit_island_1st.yaml`](evals/spirit_island_1st.yaml)
+#### Spirit Island (core rulebook + official errata), [`evals/spirit_island_1st.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/spirit_island_1st.yaml)
 
 | Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
 | --- | --- | --- | --- | --- | --- |
@@ -196,12 +208,12 @@ Two question sets per game. The first was written from each rulebook's text. The
 
 | Game | Written from the rulebook: questions, hit@5 | Players' forum questions: questions, hit@1, hit@5 |
 | --- | --- | --- |
-| Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](evals/brass_birmingham_2018.yaml)) | 15, 87% | 10, 20%, 80% |
-| Disney Villainous, with Villain Guides ([`evals/villainous_2018.yaml`](evals/villainous_2018.yaml)) | 28, 71% | 5, 40%, 60% |
-| Star Wars Villainous ([`evals/star_wars_villainous_2022.yaml`](evals/star_wars_villainous_2022.yaml)) | 15, 80% | 6, 67%, 83% |
-| Tzolk'in ([`evals/tzolkin_1st.yaml`](evals/tzolkin_1st.yaml)) | 16, 81% | 10, 50%, 80% |
-| A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](evals/a_feast_for_odin_2nd.yaml)) | 19, 84% | 8, 62%, 75% |
-| Sushi Roll ([`evals/sushi_roll_1st.yaml`](evals/sushi_roll_1st.yaml)) | 18, 94% | 10, 70%, 90% |
+| Brass: Birmingham ([`evals/brass_birmingham_2018.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/brass_birmingham_2018.yaml)) | 15, 87% | 10, 20%, 80% |
+| Disney Villainous, with Villain Guides ([`evals/villainous_2018.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/villainous_2018.yaml)) | 28, 71% | 5, 40%, 60% |
+| Star Wars Villainous ([`evals/star_wars_villainous_2022.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/star_wars_villainous_2022.yaml)) | 15, 80% | 6, 67%, 83% |
+| Tzolk'in ([`evals/tzolkin_1st.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/tzolkin_1st.yaml)) | 16, 81% | 10, 50%, 80% |
+| A Feast for Odin ([`evals/a_feast_for_odin_2nd.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/a_feast_for_odin_2nd.yaml)) | 19, 84% | 8, 62%, 75% |
+| Sushi Roll ([`evals/sushi_roll_1st.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/sushi_roll_1st.yaml)) | 18, 94% | 10, 70%, 90% |
 
 Across all six, 39 of 49 players' questions (80%) find the settling section in the top 5, but only 51% rank it first: real questions are wordier than ones written from the rulebook. Most misses are vocabulary (players say "feed your people" and "win"; the rulebooks say "Banquet Table" and "Objective"), and none of these games has a synonym list yet. In Villainous, three overlapping rulebooks (the base game and two expansions reword the same rules) and the Villain Guides compete for the top results. The forum questions also caught a search bug: "the 10th spot" didn't match "action space (10)"; ordinals now match their number.
 
@@ -230,7 +242,7 @@ uv run python evals/retrieval.py evals/wingspan_1st.yaml --misses   # Catan by d
 
 ## Contributing
 
-Bug reports and new games are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Bug reports and new games are welcome; see [CONTRIBUTING.md](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/CONTRIBUTING.md).
 
 ## License
 

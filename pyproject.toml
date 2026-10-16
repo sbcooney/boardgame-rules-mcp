@@ -5,6 +5,13 @@ description = "MCP server that answers board game rules questions from official 
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
+keywords = ["mcp", "board games", "rulebook", "claude", "citations"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment :: Board Games",
+]
 dependencies = [
     "mcp>=2.3,<3",
     "pdfplumber>=0.11",
@@ -14,8 +21,14 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/sbcooney/boardgame-rules-mcp"
+Issues = "https://github.com/sbcooney/boardgame-rules-mcp/issues"
+
 [project.scripts]
 bgrules = "bgrules.cli:main"
+# The package's own name, so `uvx boardgame-rules-mcp ...` works without --from.
+boardgame-rules-mcp = "bgrules.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8.0"]
