@@ -1,0 +1,43 @@
+name: release
+
+# Pushing a tag like v0.1.0 publishes that version to PyPI. Publishing uses
+# PyPI trusted publishing (no API token stored): PyPI trusts this workflow
+# file, in this repo, running in the `pypi` environment.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Tag matches the package version
+        run: |
+          version=$(uv version --short)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME doesn't match version $version in pyproject.toml" >&2
+            exit 1
+          fi
+      - run: uv sync
+      - run: uv run pytest
+      - run: uv build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # trusted publishing
+    steps:
+      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - run: uv publish

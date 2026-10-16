@@ -3,12 +3,21 @@
 import argparse
 import json
 import sys
+from importlib import metadata
 
 from . import ingest, store
 
 
+def _version() -> str:
+    try:
+        return metadata.version("boardgame-rules-mcp")
+    except metadata.PackageNotFoundError:
+        return "unknown"
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="bgrules", description="Board game rules MCP server")
+    ap.add_argument("--version", action="version", version=f"%(prog)s {_version()}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     add = sub.add_parser("add", help="download (or copy) and index a game's rulebook")
