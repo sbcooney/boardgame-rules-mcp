@@ -1,7 +1,9 @@
 name: tests
 
 on:
+  # Branches are tested by their pull request; pushes to main test the merged result.
   push:
+    branches: [main]
   pull_request:
 
 jobs:
