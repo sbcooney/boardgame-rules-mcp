@@ -47,7 +47,7 @@ def test_server_over_stdio():
     assert "Answer ONLY from passages" in init.instructions
     assert {t.name for t in tools.tools} >= {
         "list_games", "search_rules", "get_section", "lookup_term",
-        "show_passage", "get_page", "open_in_rulebook", "verify_quote",
+        "show_passage", "get_page", "open_in_rulebook", "verify_quote", "add_game",
     }
 
     found = _payload(search)

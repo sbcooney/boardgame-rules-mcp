@@ -8,12 +8,14 @@ answer from those passages.
 import platform
 import shutil
 import subprocess
+import threading
 import webbrowser
+from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
 from mcp.server.mcpserver import Image, MCPServer
 
-from . import render, store
+from . import ingest, manifest, render, store
 
 INSTRUCTIONS = """\
 This server gives you the official rulebook text for board games the user has installed.
@@ -41,7 +43,12 @@ Official changes (errata):
   either version. Do not silently give only one.
 - list_games lists each game's official changes. When a user starts playing or sets up a game, mention that
   game's official changes up front, before they matter.
-- Only official, publisher-issued documents are indexed. Don't present fan FAQs or wikis as official rules."""
+- Only official, publisher-issued documents are indexed. Don't present fan FAQs or wikis as official rules.
+
+Adding games:
+- If the user asks about a game that isn't installed, check list_games' `available` list and offer to add it
+  with add_game. Some documents can't be downloaded automatically: give the user the `download_page`, ask
+  where they saved the PDF, and pass that path as add_game's `file`."""
 
 mcp = MCPServer("bgrules", instructions=INSTRUCTIONS)
 
@@ -59,8 +66,60 @@ def _call(fn, *args, **kwargs) -> dict:
 @mcp.tool()
 def list_games() -> dict:
     """List the games, editions and rulebook documents installed on this machine,
-    and each game's official changes (errata) that older printed rulebooks lack."""
-    return _call(lambda db: {"installed": store.installed(db), "official_changes": store.official_changes(db)})
+    each game's official changes (errata) that older printed rulebooks lack, and
+    the games that can be installed with add_game (`available`)."""
+    return _call(lambda db: {
+        "installed": store.installed(db),
+        "official_changes": store.official_changes(db),
+        "available": manifest.available(),
+    })
+
+
+# Indexing a long rulebook can take a minute or two, longer than a client may
+# wait for one tool call. add_game runs it in the background and waits a while;
+# calling it again with the same arguments keeps waiting for the same job.
+_ADD_WAIT_SECONDS = 40
+_adding: dict[tuple, Future] = {}
+_adding_lock = threading.Lock()
+_add_executor = ThreadPoolExecutor(max_workers=1)
+
+
+def _add_job(game: str, edition: str | None, file: str | None, document: str | None) -> dict:
+    notes = []
+    hint = lambda g, e, d: f'then call add_game with game="{g}", edition="{e}", document="{d}" and file set to the PDF\'s path.'
+    try:
+        report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint)
+    except (ingest.IngestError, KeyError, OSError) as e:
+        return {"added": False, "error": e.args[0] if isinstance(e, KeyError) else str(e), "notes": notes}
+    return {"added": True, "documents": report, "notes": notes}
+
+
+@mcp.tool()
+def add_game(game: str, edition: str | None = None, file: str | None = None, document: str | None = None) -> dict:
+    """Install a game's official rulebook on this computer so its rules can be searched.
+
+    `game` is an id from list_games' `available` list. Downloads come only from the
+    publisher links this tool ships with, and a file that doesn't match the known
+    version is refused. For a document that can't be downloaded automatically, pass
+    `file`: the path of the PDF the user downloaded (with `document` when the edition
+    has several). Indexing can take a couple of minutes: if the result says
+    status="indexing", call add_game again with the same arguments to keep waiting.
+    """
+    if file:
+        file = str(Path(file).expanduser())
+    key = (game, edition, file, document)
+    with _adding_lock:
+        job = _adding.get(key)
+        if job is None:
+            job = _adding[key] = _add_executor.submit(_add_job, *key)
+    try:
+        result = job.result(timeout=_ADD_WAIT_SECONDS)
+    except TimeoutError:
+        return {"status": "indexing", "message": f"Still indexing {game}. Call add_game again with the same arguments to keep waiting."}
+    with _adding_lock:
+        if _adding.get(key) is job:
+            del _adding[key]
+    return result
 
 
 @mcp.tool()

@@ -30,5 +30,5 @@ Python ≥3.11, official MCP Python SDK v2 (MCPServer), pdfplumber + pypdfium2 (
 - **Releasing to PyPI** (see CONTRIBUTING.md):
   1. In a PR, bump `version` in `pyproject.toml` (semver: 0.1.1 for fixes, 0.2.0 for new features or games). Merge it.
   2. Pull `main`, then tag and push the tag: `git tag v0.1.1`, then `git push origin v0.1.1`. Confirm with the user first: a published version can't be reused.
-  3. `.github/workflows/release.yml` refuses a tag that doesn't match the version, runs the tests, builds, and publishes with trusted publishing.
+  3. `.github/workflows/release.yml` refuses a tag that doesn't match the version, runs the tests, builds, and publishes with trusted publishing, then builds the Claude Desktop extension (`mcpb/build.py`, pinned to that PyPI version) and attaches it to a GitHub release. To test the extension before a release: `uv build`, then `uv run python mcpb/build.py --wheel dist/<wheel>`.
   4. Check the release on a clean setup: `uvx boardgame-rules-mcp --version` with a fresh `BGRULES_HOME` and `UV_CACHE_DIR`.

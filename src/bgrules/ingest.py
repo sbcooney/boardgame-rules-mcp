@@ -28,11 +28,17 @@ def download(url: str, dest: Path) -> None:
         shutil.copyfileobj(resp, f)
 
 
-def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print) -> list[dict]:
+def cli_hint(game: str, edition: str, doc_id: str) -> str:
+    return f"then run:\n  bgrules add {game} --edition {edition} --doc {doc_id} --file /path/to/{doc_id}.pdf"
+
+
+def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print,
+        supply_hint=cli_hint) -> list[dict]:
+    """`supply_hint(game, edition, doc_id)` says how to add a document users must download themselves."""
     editions = manifest.editions(game)
     if edition is None:
         if len(editions) > 1:
-            raise IngestError(f"{game} has several editions {list(editions)}; choose one with --edition (rules differ between editions).")
+            raise IngestError(f"{game} has several editions {list(editions)}; choose one (rules differ between editions).")
         edition = next(iter(editions))
     if edition not in editions:
         raise IngestError(f"Unknown edition {edition!r} for {game}. Known: {list(editions)}")
@@ -45,7 +51,7 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
             raise IngestError(f"Unknown document {doc_id!r} for {game} {edition}. Known: {doc_ids}")
         docs = [d for d in docs if d["id"] == doc_id]
     if file and len(docs) > 1:
-        raise IngestError(f"{game} {edition} has several documents {doc_ids}; say which one this file is with --doc.")
+        raise IngestError(f"{game} {edition} has several documents {doc_ids}; say which one this file is (--doc, or add_game's document).")
 
     db = store.connect()
     report = []
@@ -69,10 +75,7 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
                 download(doc["url"], incoming)
         else:
             where = f" Download it from {doc['download_page']}," if doc.get("download_page") else " Get the PDF yourself,"
-            missing.append(
-                f"'{doc['title']}' can't be downloaded automatically.{where} then run:\n"
-                f"  bgrules add {game} --edition {edition} --doc {doc['id']} --file /path/to/{doc['id']}.pdf"
-            )
+            missing.append(f"'{doc['title']}' can't be downloaded automatically.{where} {supply_hint(game, edition, doc['id'])}")
             continue
 
         if incoming is not None:
@@ -82,8 +85,8 @@ def add(game: str, edition: str | None = None, file: str | None = None, doc_id: 
                 raise IngestError(
                     f"Checksum mismatch for {doc['title']}: the file differs from the version this tool was built "
                     f"against (expected {expected[:12]}…, got {digest[:12]}…). Refusing to index a possibly different "
-                    "edition; any installed copy is unchanged. The publisher may have updated the file: upgrade with "
-                    "`uv tool upgrade boardgame-rules-mcp` (a newer release may know it), and if that doesn't help, "
+                    "edition; any installed copy is unchanged. The publisher may have updated the file: a newer release may "
+                    "know it (`uv tool upgrade boardgame-rules-mcp`, or update the Claude Desktop extension). If that doesn't help, "
                     "report it at https://github.com/sbcooney/boardgame-rules-mcp/issues."
                 )
             incoming.replace(dest)

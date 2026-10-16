@@ -1,0 +1,6 @@
+# The extension installs the published package; build.py fills in the version.
+[project]
+name = "boardgame-rules-mcp-extension"
+version = "{version}"
+requires-python = ">=3.11"
+dependencies = ["{requirement}"]
