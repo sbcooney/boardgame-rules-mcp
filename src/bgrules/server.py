@@ -88,7 +88,7 @@ def _add_job(game: str, edition: str | None, file: str | None, document: str | N
     notes = []
     hint = lambda g, e, d: f'then call add_game with game="{g}", edition="{e}", document="{d}" and file set to the PDF\'s path.'
     try:
-        report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint)
+        report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint, allow_untested=False)
     except (ingest.IngestError, KeyError, OSError) as e:
         return {"added": False, "error": e.args[0] if isinstance(e, KeyError) else str(e), "notes": notes}
     return {"added": True, "documents": report, "notes": notes}

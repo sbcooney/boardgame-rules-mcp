@@ -13,7 +13,7 @@ def slow_add(monkeypatch):
     release = threading.Event()
     calls = []
 
-    def add(game, edition=None, file=None, doc_id=None, log=print, supply_hint=None):
+    def add(game, edition=None, file=None, doc_id=None, log=print, supply_hint=None, allow_untested=True):
         calls.append((game, edition, file, doc_id))
         log("Extracting Rules…")
         release.wait(5)
@@ -81,3 +81,19 @@ def test_extension_manifest_lists_every_tool():
     bundle = json.loads((Path(__file__).parents[1] / "mcpb" / "manifest.json").read_text())
     registered = {t.name for t in asyncio.run(server.mcp.list_tools())}
     assert {t["name"] for t in bundle["tools"]} == registered
+
+
+def test_untested_editions_are_hidden_and_refused(monkeypatch, tmp_path):
+    from bgrules import manifest
+
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path))
+    doc = {"id": "rules", "title": "Rules", "source": "user_supplied"}
+    monkeypatch.setattr(manifest, "load", lambda: {
+        "demo": {"editions": {"old": {"docs": [doc]}, "new": {"status": "untested", "docs": [doc]}}},
+        "draft": {"editions": {"1": {"status": "untested", "docs": [doc]}}},
+    })
+    assert [(g["game"], [e["edition"] for e in g["editions"]]) for g in manifest.available()] == [("demo", ["old"])]
+    assert "isn't supported here yet" in server._add_job("demo", "new", None, None)["error"]
+    assert "isn't supported here yet" in server._add_job("draft", None, None, None)["error"]
+    # With the untested edition hidden, the game has one edition, so none needs naming.
+    assert "can't be downloaded automatically" in server._add_job("demo", None, None, None)["error"]

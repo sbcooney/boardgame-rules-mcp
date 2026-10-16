@@ -18,17 +18,21 @@ def editions(game: str) -> dict:
     return games[game]["editions"]
 
 
-def available() -> list[dict]:
-    """Every game this release can install, and which documents users must download themselves."""
+def available(include_untested: bool = False) -> list[dict]:
+    """Every game this release can install, and which documents users must download themselves.
+    Editions whose extraction hasn't been checked (status: untested) are left out unless asked for."""
     out = []
     for game, entry in load().items():
         editions = []
         for edition, ed in entry["editions"].items():
+            if ed.get("status") == "untested" and not include_untested:
+                continue
             docs = [
                 {"document": d["id"], "title": d["title"], "downloads_automatically": bool(d.get("url")),
                  **({"download_page": d["download_page"]} if not d.get("url") and d.get("download_page") else {})}
                 for d in ed["docs"]
             ]
             editions.append({"edition": edition, **({"status": ed["status"]} if ed.get("status") else {}), "documents": docs})
-        out.append({"game": game, "name": entry.get("name", game), "editions": editions})
+        if editions:
+            out.append({"game": game, "name": entry.get("name", game), "editions": editions})
     return out

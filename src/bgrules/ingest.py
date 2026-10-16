@@ -33,9 +33,20 @@ def cli_hint(game: str, edition: str, doc_id: str) -> str:
 
 
 def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print,
-        supply_hint=cli_hint) -> list[dict]:
-    """`supply_hint(game, edition, doc_id)` says how to add a document users must download themselves."""
+        supply_hint=cli_hint, allow_untested=True) -> list[dict]:
+    """`supply_hint(game, edition, doc_id)` says how to add a document users must download themselves.
+    With allow_untested=False, editions whose extraction hasn't been checked are refused."""
     editions = manifest.editions(game)
+    if not allow_untested:
+        untested = [e for e, ed in editions.items() if ed.get("status") == "untested"]
+        if edition in untested:
+            raise IngestError(
+                f"{game} {edition} isn't supported here yet: its rulebook hasn't been checked, so citations could be "
+                f"incomplete. Supported: {[e for e in editions if e not in untested] or 'none'}."
+            )
+        editions = {e: ed for e, ed in editions.items() if e not in untested}
+        if not editions:
+            raise IngestError(f"{game} isn't supported here yet: its rulebook hasn't been checked.")
     if edition is None:
         if len(editions) > 1:
             raise IngestError(f"{game} has several editions {list(editions)}; choose one (rules differ between editions).")
