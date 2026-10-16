@@ -1,6 +1,7 @@
 name: release
 
-# Pushing a tag like v0.1.0 publishes that version to PyPI. Publishing uses
+# Pushing a tag like v0.1.0 publishes that version to PyPI, then attaches the
+# Claude Desktop extension (.mcpb, which installs that PyPI version) to a GitHub release. Publishing uses
 # PyPI trusted publishing (no API token stored): PyPI trusts this workflow
 # file, in this repo, running in the `pypi` environment.
 on:
@@ -41,3 +42,17 @@ jobs:
           name: dist
           path: dist/
       - run: uv publish
+
+  extension:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the GitHub release
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - run: uv run --no-project python mcpb/build.py
+      - name: GitHub release with the extension
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.mcpb --title "$GITHUB_REF_NAME" --generate-notes

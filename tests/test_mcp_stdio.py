@@ -27,9 +27,9 @@ async def _session_calls():
         async with ClientSession(read, write) as session:
             init = await session.initialize()
             tools = await session.list_tools()
-            search = await session.call_tool("search_rules", {"game": "catan", "query": "What happens when I move the robber?"})
-            term = await session.call_tool("lookup_term", {"game": "catan", "term": "distance rule"})
-            missing = await session.call_tool("search_rules", {"game": "catan", "query": "How do zombies spawn at night?"})
+            search = await session.call_tool("search_rules", {"game": "catan", "edition": "2020", "query": "What happens when I move the robber?"})
+            term = await session.call_tool("lookup_term", {"game": "catan", "edition": "2020", "term": "distance rule"})
+            missing = await session.call_tool("search_rules", {"game": "catan", "edition": "2020", "query": "How do zombies spawn at night?"})
             cid = _payload(search)["results"][0]["citation_id"]
             shown = await session.call_tool("show_passage", {"citation_id": cid})
             real = await session.call_tool("verify_quote", {"citation_id": cid, "text": "It is moved only by rolling a \"7\" or playing a Knight card."})
@@ -47,7 +47,7 @@ def test_server_over_stdio():
     assert "Answer ONLY from passages" in init.instructions
     assert {t.name for t in tools.tools} >= {
         "list_games", "search_rules", "get_section", "lookup_term",
-        "show_passage", "get_page", "open_in_rulebook", "verify_quote",
+        "show_passage", "get_page", "open_in_rulebook", "verify_quote", "add_game",
     }
 
     found = _payload(search)

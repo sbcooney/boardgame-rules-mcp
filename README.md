@@ -37,6 +37,18 @@ flowchart LR
 - **Layout-aware extraction.** Two-column pages, magazine-style text boxes and tables are read in reading order. Headings become section paths ("Almanac > Robber"). A few dense pages still come out partly jumbled (see [Limitations](#limitations)).
 - **Local.** PDFs and the index live in `~/.bgrules`. The repo holds links and checksums, not rulebooks.
 
+## Install in Claude Desktop
+
+No terminal needed:
+
+1. Download `boardgame-rules-mcp-<version>.mcpb` from the [latest release](https://github.com/sbcooney/boardgame-rules-mcp/releases/latest).
+2. Double-click it, and choose **Install** in Claude Desktop. On first start, Claude Desktop sets up Python and the server's dependencies, which takes a minute.
+3. Ask Claude to add a game: "Add Catan, 2020 edition." Claude downloads the rulebook from the publisher and indexes it on your computer. Long rulebooks take a minute or two.
+
+For a rulebook that can't be downloaded automatically (Wingspan, the Villainous guides), Claude gives you the publisher's download page; download the PDF and tell Claude where you saved it.
+
+The extension shares `~/.bgrules` with the command line below, so games added either way show up in both.
+
 ## Quick start
 
 Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.11+ if needed).
@@ -57,7 +69,7 @@ The server runs locally over stdio, so it works with MCP clients that launch loc
 claude mcp add bgrules -- bgrules serve
 ```
 
-### Connect to Claude Desktop
+### Connect to Claude Desktop (without the extension)
 
 Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`, then restart Claude Desktop:
 
@@ -89,7 +101,8 @@ Point Claude at the clone with `claude mcp add bgrules -- uv --directory /path/t
 
 | Tool | Returns |
 | --- | --- |
-| `list_games()` | Installed games, editions and documents, plus each game's official changes (errata) |
+| `list_games()` | Installed games, editions and documents, each game's official changes (errata), and the games that can be added |
+| `add_game(game, edition?, file?, document?)` | Downloads and indexes a game's rulebook, or indexes a PDF you downloaded (`file`). Long rulebooks keep indexing in the background; calling again waits for them |
 | `search_rules(game, query, edition?, max_results?)` | Verbatim passages with citations, or `found: false` with the nearest sections |
 | `get_section(section_id)` | A whole section, plus the ids of the sections before and after it |
 | `lookup_term(game, term, edition?)` | A section by its exact title, such as an almanac entry |

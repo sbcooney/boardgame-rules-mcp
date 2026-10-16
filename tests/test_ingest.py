@@ -23,7 +23,7 @@ def test_refused_download_leaves_installed_copy(game):
     source, installed = game
     installed.write_bytes(b"older copy")
     source.write_bytes(b"publisher changed it")
-    with pytest.raises(ingest.IngestError, match="Checksum mismatch.*uv tool upgrade boardgame-rules-mcp"):
+    with pytest.raises(ingest.IngestError, match="Checksum mismatch.*uv tool upgrade boardgame-rules-mcp.*Claude Desktop extension"):
         ingest.add("demo", log=lambda m: None)
     assert installed.read_bytes() == b"older copy"
     assert not installed.with_suffix(".part").exists()

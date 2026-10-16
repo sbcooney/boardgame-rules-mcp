@@ -28,4 +28,4 @@ Changes reach `main` only through a pull request whose tests pass.
 
 1. In a pull request, bump `version` in `pyproject.toml`, and merge it.
 2. Pull `main`, then tag it with the same version and push the tag: `git tag v0.1.1`, then `git push origin v0.1.1`.
-3. The release workflow checks that the tag matches the version (and stops if not), runs the tests, and publishes to PyPI.
+3. The release workflow checks that the tag matches the version (and stops if not), runs the tests, publishes to PyPI, and attaches the Claude Desktop extension (`.mcpb`) to a GitHub release.
