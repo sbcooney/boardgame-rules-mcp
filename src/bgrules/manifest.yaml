@@ -27,6 +27,9 @@
 #                  (boxes layout; pdfminer default 0.5)
 #   column_continuations: a line left of the current heading's column goes back
 #                  to the section headed above it in its own column
+#   inline_boxes:  words pdfminer split off a line into their own small text
+#                  box (beside inline icons) are merged back into that line
+#                  (boxes layout)
 #   table.title_columns: table columns joined into each record's subsection
 #                  title (a card's number, name and points)
 #
@@ -276,6 +279,7 @@ brass-birmingham:
           extraction:
             layout: boxes
             figure_text: true
+            inline_boxes: true  # setup steps: words between player-count and money icons
             content_pages: [1, 7]
             skip_pages: [2]  # printed pages 2-3: history and historical figures
             spreads: [2, 6]  # PDF pages 2-6 are spreads: printed 2|3 ... 10|11
@@ -284,7 +288,8 @@ brass-birmingham:
             subheadings:
               - {fonts: [Garamond-Bold], min_size: 12.5, max_size: 13.5}  # "To perform the Build action:"
             body_fonts: [Garamond]
-            body_size: [8.5, 10.5]
+            body_size: [8, 10.5]  # 8: the £ in "the £1 spaces"
+            skip_text: ['£( £)*']  # coin labels in a turn-order diagram
 
 villainous:
   name: Disney Villainous

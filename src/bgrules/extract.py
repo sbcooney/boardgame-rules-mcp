@@ -246,6 +246,20 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 continue  # almanac divider letters; page numbers
             subheading = not heading and is_subheading(ln)
             part = heading and sum(any(h.get("part") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts) for c in chars) > len(chars) / 2
+            if subheading:
+                # A subheading whose sentence starts on the same line ("Spending
+                # Money Any time you spend ..."): its own words title the
+                # subsection, and the rest of the line follows as body text.
+                in_rule = [i for i, c in enumerate(chars) if is_subheading({"text": ln["text"], "chars": [c]})]
+                tail = chars[in_rule[-1] + 1:] if in_rule else []
+                if re.search(r"[A-Za-z]", "".join(c["text"] for c in tail)):
+                    head = chars[: in_rule[-1] + 1]
+                    title = _leading_text(ln["text"], head)
+                    for part_chars, text, is_sub in ((head, title, True), (tail, ln["text"][len(title):].strip(), False)):
+                        out.append(Line(text=text, page=page_no, column=column, is_heading=False, is_subheading=is_sub,
+                                        bbox=(min(c["x0"] for c in part_chars), min(c["top"] for c in part_chars),
+                                              max(c["x1"] for c in part_chars), max(c["bottom"] for c in part_chars))))
+                    continue
             if run_in and not heading and not subheading:
                 # A run-in heading starts the line in a heading font and the text
                 # continues on the same line ("Ally cards appear only in ..."):
@@ -254,12 +268,7 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 lead = next((i for i, c in enumerate(chars) if not is_heading_char(c)), len(chars))
                 visible = sum(bool(c["text"].strip()) for c in chars[:lead])  # space glyphs aside
                 if lead >= 2 and lead < len(chars) and visible:
-                    seen, cut = 0, 0
-                    for cut, ch in enumerate(ln["text"]):
-                        seen += ch != " "
-                        if seen == visible:
-                            break
-                    title = ln["text"][: cut + 1].strip()
+                    title = _leading_text(ln["text"], chars[:lead])
                     if re.search(r"[A-Za-z]{2}", title):
                         head = chars[:lead]
                         is_part = sum(any(h.get("part") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts) for c in head) > lead / 2
@@ -402,7 +411,8 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             else:
                 by_page[page_no] = page_lines(page, page_no, 1 if layout_for(page_no) == "rows" else columns)
     for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char, figure_text=hints.get("figure_text", False),
-                                           line_margin=hints.get("line_margin", 0.5)):
+                                           line_margin=hints.get("line_margin", 0.5),
+                                           inline_boxes=hints.get("inline_boxes", False)):
         by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
     for page_no, lines in _ocr_lines(pdf_path, ocr_pages, hints.get("ocr", {})):
         by_page[page_no] = lines
@@ -520,7 +530,8 @@ def _ocr_lines(pdf_path: str, pages: list[int], rules: dict):
         yield page_no, lines
 
 
-def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, line_margin: float = 0.5):
+def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, line_margin: float = 0.5,
+               inline_boxes: bool = False):
     """Free-form layouts (`layout: boxes`): let pdfminer group characters into
     text boxes, so side-by-side boxes (main text, sidebars, card text) stay
     apart, then yield each box's lines in reading order, as
@@ -530,7 +541,8 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
     graphics (some rulebooks set their page titles that way). `line_margin`
     is how far apart (in line heights) lines may be and still form one text
     box: raise it when widely spaced lines each become their own box, which
-    then get read row by row across the columns."""
+    then get read row by row across the columns. `inline_boxes` merges words
+    that pdfminer split off a line (around inline icons) back into it."""
     from pdfminer.high_level import extract_pages
     from pdfminer.layout import LAParams, LTAnno, LTChar, LTFigure, LTTextBox
 
@@ -554,40 +566,128 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
             boxes.insert(below[0] if below else len(boxes), fig)
         return boxes
 
+    def box_lines(box, layout) -> list[dict]:
+        h, lines = layout.height, []
+        for tl in box:
+            chars, text, seen, runs = [], "", set(), []
+            for obj in tl:
+                if isinstance(obj, LTAnno):
+                    if text and not text.endswith(" "):
+                        text += " "
+                    continue
+                if not isinstance(obj, LTChar):
+                    continue
+                c = {"fontname": obj.fontname, "size": obj.size, "text": obj.get_text(),
+                     "x0": obj.x0, "x1": obj.x1, "top": h - obj.y1, "bottom": h - obj.y0}
+                if obj.x1 < 0 or obj.x0 > layout.width or obj.y1 < 0 or obj.y0 > h:
+                    continue  # outside the page: invisible in print
+                if not keep_char(c):
+                    continue
+                key = (c["text"], round(c["x0"]), round(c["top"]))
+                if key in seen:
+                    continue  # overprinted duplicate glyph (bold or outlined text drawn twice)
+                seen.add(key)
+                chars.append(c)
+                if c["text"].isspace() or text.endswith(" ") or not runs:
+                    runs.append([])
+                if not c["text"].isspace():
+                    runs[-1].append(c)
+                text += c["text"]
+            if chars:
+                line = {
+                    "text": " ".join(text.split()), "chars": chars, "runs": [r for r in runs if r],
+                    "x0": min(c["x0"] for c in chars), "x1": max(c["x1"] for c in chars),
+                    "top": min(c["top"] for c in chars), "bottom": max(c["bottom"] for c in chars),
+                }
+                # A box can split one row in two (a full stop after an inline icon).
+                row = inline_boxes and not _is_label(line) and next((a for a in lines if _same_row(a, line, (a["x1"], a["x1"]))), None)
+                if row:
+                    _merge_into(row, line)
+                else:
+                    lines.append(line)
+        return lines
+
     if not pages:
         return
     pages = sorted(pages)
     laparams = LAParams(all_texts=figure_text, line_margin=line_margin)
     for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=laparams)):
-        h = layout.height
-        for box_no, box in enumerate(reading_order(layout)):
-            for tl in box:
-                chars, text, seen = [], "", set()
-                for obj in tl:
-                    if isinstance(obj, LTAnno):
-                        if text and not text.endswith(" "):
-                            text += " "
-                        continue
-                    if not isinstance(obj, LTChar):
-                        continue
-                    c = {"fontname": obj.fontname, "size": obj.size, "text": obj.get_text(),
-                         "x0": obj.x0, "x1": obj.x1, "top": h - obj.y1, "bottom": h - obj.y0}
-                    if obj.x1 < 0 or obj.x0 > layout.width or obj.y1 < 0 or obj.y0 > h:
-                        continue  # outside the page: invisible in print
-                    if not keep_char(c):
-                        continue
-                    key = (c["text"], round(c["x0"]), round(c["top"]))
-                    if key in seen:
-                        continue  # overprinted duplicate glyph (bold or outlined text drawn twice)
-                    seen.add(key)
-                    chars.append(c)
-                    text += c["text"]
-                if chars:
-                    yield page_no, box_no, {
-                        "text": " ".join(text.split()), "chars": chars,
-                        "x0": min(c["x0"] for c in chars), "x1": max(c["x1"] for c in chars),
-                        "top": min(c["top"] for c in chars), "bottom": max(c["bottom"] for c in chars),
-                    }
+        boxes = [box_lines(box, layout) for box in reading_order(layout)]
+        if inline_boxes:
+            boxes = _merge_inline(boxes)
+        for box_no, lines in enumerate(boxes):
+            for line in lines:
+                del line["runs"]
+                yield page_no, box_no, line
+
+
+def _is_label(line: dict) -> bool:
+    """A lone capital or number: a diagram callout or page number, which
+    is dropped later and must not be merged into a sentence."""
+    return bool(re.fullmatch(r"[A-Z]|\d{1,3}", line["text"]))
+
+
+def _same_row(a: dict, b: dict, column: tuple[float, float]) -> bool:
+    """True if line `b` sits on line `a`'s row, either within the column
+    (left and right edges) of `a`'s box or a few letters from `a`."""
+    overlap = min(a["bottom"], b["bottom"]) - max(a["top"], b["top"])
+    size = max(c["size"] for c in b["chars"])
+    gap = max(b["x0"] - a["x1"], a["x0"] - b["x1"])
+    inside = column[0] - 2 <= b["x0"] and b["x1"] <= column[1] + 2
+    return overlap > (b["bottom"] - b["top"]) / 2 and (inside or gap < 1.5 * size)
+
+
+def _merge_into(a: dict, b: dict) -> None:
+    """Merge line `b`'s words into line `a`, left to right, dropping
+    overprinted duplicates of glyphs `a` already has."""
+    seen = {(c["text"], round(c["x0"]), round(c["top"])) for c in a["chars"]}
+    fresh = [[c for c in r if (c["text"], round(c["x0"]), round(c["top"])) not in seen] for r in b["runs"]]
+    b = {**b, "runs": [r for r in fresh if r], "chars": [c for r in fresh for c in r]}
+    if not b["chars"]:
+        return
+    runs = sorted(a["runs"] + b["runs"], key=lambda r: r[0]["x0"])
+    text = "".join(c["text"] for c in runs[0])
+    for prev, run in zip(runs, runs[1:]):
+        gap = run[0]["x0"] - prev[-1]["x1"]
+        text += (" " if gap > 0.1 * run[0]["size"] else "") + "".join(c["text"] for c in run)
+    a.update(text=" ".join(text.split()), chars=sorted(a["chars"] + b["chars"], key=lambda c: c["x0"]), runs=runs,
+             x0=min(a["x0"], b["x0"]), x1=max(a["x1"], b["x1"]),
+             top=min(a["top"], b["top"]), bottom=max(a["bottom"], b["bottom"]))
+
+
+def _merge_inline(boxes: list[list[dict]]) -> list[list[dict]]:
+    """Words set in another style in mid-sentence (beside an inline icon,
+    say) can come out as their own small text box over the paragraph's
+    box. Merge such a box back into the bigger box whose lines it sits on,
+    so the sentence reads in order."""
+    merged, changed = set(), True
+    while changed:  # a merge can bring the next fragment within reach
+        changed = False
+        for j in sorted(set(range(len(boxes))) - merged, key=lambda j: len(boxes[j])):
+            for i, host in enumerate(boxes):
+                if i == j or i in merged or len(host) <= len(boxes[j]) or any(map(_is_label, boxes[j])):
+                    continue
+                column = (min(a["x0"] for a in host), max(a["x1"] for a in host))
+                rows = [next((a for a in host if _same_row(a, b, column)), None) for b in boxes[j]]
+                if all(rows):
+                    for a, b in zip(rows, boxes[j]):
+                        _merge_into(a, b)
+                    merged.add(j)
+                    changed = True
+                    break
+    return [b for j, b in enumerate(boxes) if j not in merged]
+
+
+def _leading_text(text: str, head: list[dict]) -> str:
+    """The start of a line's `text` that holds the characters `head` (the
+    line's first characters), space glyphs aside."""
+    visible = sum(bool(c["text"].strip()) for c in head)
+    seen, cut = 0, 0
+    for cut, ch in enumerate(text):
+        seen += ch != " "
+        if seen == visible:
+            break
+    return text[: cut + 1].strip()
 
 
 def _continues(heading_lines: list[Line], ln: Line) -> bool:

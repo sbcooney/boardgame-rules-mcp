@@ -1,4 +1,4 @@
-from bgrules.extract import Line, Section, _is_full_width, build_sections, join_lines, normalize_heading
+from bgrules.extract import Line, Section, _is_full_width, _merge_inline, build_sections, join_lines, normalize_heading
 from bgrules.store import expand_terms, query_terms
 
 
@@ -113,3 +113,27 @@ def test_expand_terms_adds_rulebook_words_including_plurals():
     assert groups == [["thief", "robber"], ["ports", "harbor"], ["settlement"]]
     assert expand_terms("unknown-game", ["thief"]) == [["thief"]]
 
+
+
+def _box_line(words: list[tuple[str, float]], top: float, size: float = 10.0) -> dict:
+    """A box line as _box_lines builds it, from (word, x0) pairs at 5pt per letter."""
+    runs = [[{"text": ch, "x0": x + 5 * i, "x1": x + 5 * (i + 1), "top": top, "bottom": top + size, "size": size}
+             for i, ch in enumerate(w)] for w, x in words]
+    chars = [c for r in runs for c in r]
+    return {"text": " ".join(w for w, _ in words), "chars": chars, "runs": runs,
+            "x0": chars[0]["x0"], "x1": chars[-1]["x1"], "top": top, "bottom": top + size}
+
+
+def test_inline_boxes_merge_split_off_words_back_into_their_line():
+    # "Separate the Wild Location [icon] and Wild Industry [icon] cards and place":
+    # pdfminer puts "and" and "cards and place" in their own boxes over the paragraph's.
+    paragraph = [_box_line([("Separate", 0), ("Wild", 50), ("Location", 75)], top=0),
+                 _box_line([("Wild", 0), ("Industry", 25)], top=11),
+                 _box_line([("them", 0), ("face", 25), ("up.", 50)], top=22)]
+    after_icon = [_box_line([("and", 125)], top=0)]  # past an icon at the line's end
+    cards = [_box_line([("cards", 75), ("and", 105), ("place", 125)], top=11)]
+    callout = [_box_line([("C", 40)], top=22)]  # a diagram label: stays out
+    sidebar = [_box_line([("Note", 400)], top=0)]  # another column: stays out
+    boxes = _merge_inline([paragraph, after_icon, cards, callout, sidebar])
+    assert [ln["text"] for ln in boxes[0]] == ["Separate Wild Location and", "Wild Industry cards and place", "them face up."]
+    assert [b[0]["text"] for b in boxes[1:]] == ["C", "Note"]
