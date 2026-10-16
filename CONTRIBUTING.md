@@ -23,3 +23,9 @@ Don't commit rulebook PDFs, page images, or other publisher artwork. The manifes
 The end-to-end eval (`evals/e2e.py`) calls Claude and uses your subscription or API credits, so it's optional.
 
 Changes reach `main` only through a pull request whose tests pass.
+
+## Releasing (maintainer)
+
+1. In a pull request, bump `version` in `pyproject.toml`, and merge it.
+2. Pull `main`, then tag it with the same version and push the tag: `git tag v0.1.1`, then `git push origin v0.1.1`.
+3. The release workflow checks that the tag matches the version (and stops if not), runs the tests, and publishes to PyPI.
