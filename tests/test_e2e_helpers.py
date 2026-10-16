@@ -46,6 +46,12 @@ def test_attributions_paths_and_pdf_spacing_are_not_fabrications():
     assert e2e.fabricated_quotes(answer, rulebook) == (2, [])
 
 
+def test_blockquote_citation_after_the_quote_is_not_part_of_it():
+    rulebook = "each player takes a tray and places it face-up in front of them."
+    answer = '> "Each player takes a tray and places it face-up in front of them." (Set Up, p. 2)'
+    assert e2e.fabricated_quotes(answer, rulebook) == (1, [])
+
+
 def test_short_quotes_are_ignored():
     checked, bad = e2e.fabricated_quotes("It says “move the robber” here.", RULEBOOK)
     assert (checked, bad) == (0, [])

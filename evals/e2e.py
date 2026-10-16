@@ -146,7 +146,9 @@ def quotes_in(answer: str, min_words: int = 6) -> list[str]:
         answer = answer.replace(b, "\n")
     blocks = [re.sub(r"^>\s?", "", b, flags=re.M) for b in blocks]
     # Drop attribution lines ("— Almanac > Robber, p. 11") from blockquotes.
-    blocks = [re.sub(r"^\s*[—–]\s.*$", "", b, flags=re.M).strip().strip("“”\"") for b in blocks]
+    blocks = [re.sub(r"^\s*[—–]\s.*$", "", b, flags=re.M).strip() for b in blocks]
+    # ...and a citation after the closing quote mark: > "Text." (Set Up, p. 2)
+    blocks = [re.sub(r"[”\"]\s*\([^()]*\)\s*$", "", b).strip().strip("“”\"") for b in blocks]
     found = re.findall(r"“([^”]+)”|\"([^\"]+)\"", answer)
     quotes = blocks + [q for pair in found for q in pair]
     # A quoted section path ("The Four Actions > Option 1") is a citation, not a quote.
