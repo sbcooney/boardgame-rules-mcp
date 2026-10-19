@@ -123,6 +123,9 @@ catan:
             # flavor line that opens Variable Setup, which would read as a heading.
             skip_text: ['1 VPs?|2 VPs?|each|front|back|[12]x', 'Level up your game!.*']
           # no almanac in this edition; rules differ from 2020 (Production/Action phases)
+          # Known gap: page 6's side column (three examples, and the terrain labels) is read
+          # after the main column, so it lands in "Activate the Robber" rather than beside
+          # the rule each example illustrates. Page citations are still right.
 
 wingspan:
   name: Wingspan
