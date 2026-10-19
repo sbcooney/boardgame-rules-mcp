@@ -127,6 +127,8 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 | A Feast for Odin | 2nd edition rulebook and appendix (every occupation card) from [Feuerland](https://www.feuerland-spiele.de/en), downloaded automatically. The almanac is Viking history, not rules, so it isn't indexed. | `bgrules add a-feast-for-odin` |
 | Sushi Roll | Rules of Play from [Gamewright](https://gamewright.com/product/Sushi-Roll), downloaded automatically. It's a fold-out sheet with no page numbers, so citations use the PDF's panels. | `bgrules add sushi-roll` |
 
+Want another game? [Request it](https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml). Claude offers the same link when you ask about a game that isn't supported. Only games with an official, publisher-issued rulebook can be added.
+
 ## Adding a game
 
 Each game is an entry in [`src/bgrules/manifest.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/src/bgrules/manifest.yaml).

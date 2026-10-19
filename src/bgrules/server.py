@@ -48,7 +48,10 @@ Official changes (errata):
 Adding games:
 - If the user asks about a game that isn't installed, check list_games' `available` list and offer to add it
   with add_game. Some documents can't be downloaded automatically: give the user the `download_page`, ask
-  where they saved the PDF, and pass that path as add_game's `file`."""
+  where they saved the PDF, and pass that path as add_game's `file`.
+- If the game isn't in `available` either, say it isn't supported yet and give the user a link to request it:
+  add_game's `request_link` (prefilled with the game) or list_games' `request_a_game`. Don't point them to
+  unofficial rules sources instead."""
 
 mcp = MCPServer("bgrules", instructions=INSTRUCTIONS)
 
@@ -67,11 +70,13 @@ def _call(fn, *args, **kwargs) -> dict:
 def list_games() -> dict:
     """List the games, editions and rulebook documents installed on this machine,
     each game's official changes (errata) that older printed rulebooks lack, and
-    the games that can be installed with add_game (`available`)."""
+    the games that can be installed with add_game (`available`), and a link for
+    requesting a game that isn't available (`request_a_game`)."""
     return _call(lambda db: {
         "installed": store.installed(db),
         "official_changes": store.official_changes(db),
         "available": manifest.available(),
+        "request_a_game": manifest.request_link(),
     })
 
 
@@ -89,8 +94,10 @@ def _add_job(game: str, edition: str | None, file: str | None, document: str | N
     hint = lambda g, e, d: f'then call add_game with game="{g}", edition="{e}", document="{d}" and file set to the PDF\'s path.'
     try:
         report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint, allow_untested=False)
-    except (ingest.IngestError, KeyError, OSError) as e:
-        return {"added": False, "error": e.args[0] if isinstance(e, KeyError) else str(e), "notes": notes}
+    except KeyError as e:  # not a game this release knows
+        return {"added": False, "error": e.args[0], "request_link": manifest.request_link(game), "notes": notes}
+    except (ingest.IngestError, OSError) as e:
+        return {"added": False, "error": str(e), "notes": notes}
     return {"added": True, "documents": report, "notes": notes}
 
 

@@ -5,7 +5,7 @@ import json
 import sys
 from importlib import metadata
 
-from . import ingest, store
+from . import ingest, manifest, store
 
 
 def _version() -> str:
@@ -41,8 +41,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "add":
         try:
             ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, log=lambda m: print(m, file=sys.stderr))
-        except (ingest.IngestError, KeyError, OSError) as e:
-            print(f"error: {e.args[0] if isinstance(e, KeyError) else e}", file=sys.stderr)
+        except KeyError as e:  # not a game this release knows
+            print(f"error: {e.args[0]}\nRequest it: {manifest.request_link(args.game)}", file=sys.stderr)
+            return 1
+        except (ingest.IngestError, OSError) as e:
+            print(f"error: {e}", file=sys.stderr)
             return 1
     elif args.cmd == "list":
         for row in store.installed(store.connect()):

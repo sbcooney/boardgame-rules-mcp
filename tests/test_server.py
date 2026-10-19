@@ -45,6 +45,7 @@ def test_add_game_reports_errors(slow_add):
     result = server.add_game("chess")
     assert result["added"] is False
     assert result["error"] == "Unknown game 'chess'. Known games: demo"
+    assert result["request_link"].endswith("?template=game-request.yml&title=Game%20request%3A%20chess&game=chess")
 
 
 def test_add_game_expands_home_in_file_paths(slow_add, monkeypatch, tmp_path):
@@ -97,3 +98,17 @@ def test_untested_editions_are_hidden_and_refused(monkeypatch, tmp_path):
     assert "isn't supported here yet" in server._add_job("draft", None, None, None)["error"]
     # With the untested edition hidden, the game has one edition, so none needs naming.
     assert "can't be downloaded automatically" in server._add_job("demo", None, None, None)["error"]
+
+
+def test_request_links_open_the_game_request_form():
+    from pathlib import Path
+
+    from bgrules import manifest
+
+    form = Path(__file__).parents[1] / ".github" / "ISSUE_TEMPLATE" / "game-request.yml"
+    assert "id: game\n" in form.read_text()  # the field the link prefills
+    assert manifest.request_link() == "https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml"
+    assert manifest.request_link("Ticket to Ride: Europe").endswith(
+        "&title=Game%20request%3A%20Ticket%20to%20Ride%3A%20Europe&game=Ticket%20to%20Ride%3A%20Europe"
+    )
+    assert server.list_games()["request_a_game"] == manifest.request_link()
