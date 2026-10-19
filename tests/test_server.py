@@ -4,7 +4,7 @@ import threading
 
 import pytest
 
-from bgrules import ingest, server
+from bgrules import ingest, manifest, server
 
 
 @pytest.fixture
@@ -18,7 +18,9 @@ def slow_add(monkeypatch):
         log("Extracting Rules…")
         release.wait(5)
         if game == "chess":
-            raise KeyError("Unknown game 'chess'. Known games: demo")
+            raise manifest.UnknownGame("Unknown game 'chess'. Known games: demo")
+        if game == "broken":
+            raise KeyError("title")  # a bug, not an unknown game
         return [{"doc": "Rules", "sections": 3, "passages": 4, "pages_without_text": []}]
 
     monkeypatch.setattr(ingest, "add", add)
@@ -112,3 +114,13 @@ def test_request_links_open_the_game_request_form():
         "&title=Game%20request%3A%20Ticket%20to%20Ride%3A%20Europe&game=Ticket%20to%20Ride%3A%20Europe"
     )
     assert server.list_games()["request_a_game"] == manifest.request_link()
+
+
+def test_unexpected_errors_surface_and_are_not_cached(slow_add):
+    release, calls = slow_add
+    release.set()
+    for _ in range(2):
+        with pytest.raises(KeyError, match="title"):
+            server.add_game("broken")
+    assert len(calls) == 2  # the retry ran again instead of replaying the failed job
+    assert server._adding == {}

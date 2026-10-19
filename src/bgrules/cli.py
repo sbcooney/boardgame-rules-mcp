@@ -41,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "add":
         try:
             ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, log=lambda m: print(m, file=sys.stderr))
-        except KeyError as e:  # not a game this release knows
+        except manifest.UnknownGame as e:
             print(f"error: {e.args[0]}\nRequest it: {manifest.request_link(args.game)}", file=sys.stderr)
             return 1
         except (ingest.IngestError, OSError) as e:

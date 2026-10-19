@@ -94,7 +94,7 @@ def _add_job(game: str, edition: str | None, file: str | None, document: str | N
     hint = lambda g, e, d: f'then call add_game with game="{g}", edition="{e}", document="{d}" and file set to the PDF\'s path.'
     try:
         report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint, allow_untested=False)
-    except KeyError as e:  # not a game this release knows
+    except manifest.UnknownGame as e:
         return {"added": False, "error": e.args[0], "request_link": manifest.request_link(game), "notes": notes}
     except (ingest.IngestError, OSError) as e:
         return {"added": False, "error": str(e), "notes": notes}
@@ -120,13 +120,17 @@ def add_game(game: str, edition: str | None = None, file: str | None = None, doc
         if job is None:
             job = _adding[key] = _add_executor.submit(_add_job, *key)
     try:
-        result = job.result(timeout=_ADD_WAIT_SECONDS)
+        return job.result(timeout=_ADD_WAIT_SECONDS)
     except TimeoutError:
+        if job.done():  # the job itself raised TimeoutError
+            raise
         return {"status": "indexing", "message": f"Still indexing {game}. Call add_game again with the same arguments to keep waiting."}
-    with _adding_lock:
-        if _adding.get(key) is job:
-            del _adding[key]
-    return result
+    finally:
+        # A finished job, even one that failed unexpectedly, is forgotten so the next call starts afresh.
+        if job.done():
+            with _adding_lock:
+                if _adding.get(key) is job:
+                    del _adding[key]
 
 
 @mcp.tool()
