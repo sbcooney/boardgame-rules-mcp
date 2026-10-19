@@ -1,6 +1,6 @@
 [project]
 name = "boardgame-rules-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server that answers board game rules questions from official rulebooks, with exact citations"
 readme = "README.md"
 license = "MIT"

@@ -46,7 +46,10 @@ def test_missing_file_is_a_clear_error(game, capsys):
 
 def test_unknown_game_message(game, capsys):
     assert cli.main(["add", "chess"]) == 1
-    assert capsys.readouterr().err.strip() == "error: Unknown game 'chess'. Known games: demo"
+    assert capsys.readouterr().err.strip() == (
+        "error: Unknown game 'chess'. Known games: demo\n"
+        "Request it: https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml&title=Game%20request%3A%20chess&game=chess"
+    )
 
 
 def test_add_installs_what_it_can_and_lists_files_to_supply(game, monkeypatch):

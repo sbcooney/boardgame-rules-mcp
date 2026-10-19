@@ -1,0 +1,33 @@
+name: Game request
+description: Ask for a board game to be added
+title: "Game request: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Only official, publisher-issued rulebooks can be added (see [CONTRIBUTING.md](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/CONTRIBUTING.md)): no fan FAQs, wikis or forum posts. Please don't attach the PDF.
+  - type: input
+    id: game
+    attributes:
+      label: Game
+      description: The game's name, as printed on the box.
+      placeholder: Root
+    validations:
+      required: true
+  - type: input
+    id: edition
+    attributes:
+      label: Edition or printing
+      description: Rules can differ between editions. Leave blank if you're not sure.
+      placeholder: 2nd edition (2024)
+  - type: input
+    id: rulebook
+    attributes:
+      label: Official rulebook link
+      description: Where the publisher offers the rulebook PDF, if you know.
+      placeholder: https://...
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Expansions you'd like too, official FAQ or errata documents from the publisher, and so on.

@@ -179,7 +179,7 @@ def resolve_edition(db: sqlite3.Connection, game: str, edition: str | None) -> s
     editions = [r["edition"] for r in db.execute("SELECT DISTINCT edition FROM docs WHERE game=?", (game,))]
     if not editions:
         games = sorted({r["game"] for r in db.execute("SELECT game FROM docs")})
-        raise LookupError_(f"Game {game!r} is not installed. Installed games: {games or 'none'}. Install with: bgrules add {game}")
+        raise LookupError_(f"Game {game!r} is not installed. Installed games: {games or 'none'}. Install it with add_game (or `bgrules add {game}`).")
     if edition is None:
         if len(editions) > 1:
             raise LookupError_(f"{game} has several editions installed {editions}; pass edition= (rules differ between editions).")

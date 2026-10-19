@@ -4,7 +4,7 @@ import threading
 
 import pytest
 
-from bgrules import ingest, server
+from bgrules import ingest, manifest, server
 
 
 @pytest.fixture
@@ -18,7 +18,9 @@ def slow_add(monkeypatch):
         log("Extracting Rules…")
         release.wait(5)
         if game == "chess":
-            raise KeyError("Unknown game 'chess'. Known games: demo")
+            raise manifest.UnknownGame("Unknown game 'chess'. Known games: demo")
+        if game == "broken":
+            raise KeyError("title")  # a bug, not an unknown game
         return [{"doc": "Rules", "sections": 3, "passages": 4, "pages_without_text": []}]
 
     monkeypatch.setattr(ingest, "add", add)
@@ -45,6 +47,7 @@ def test_add_game_reports_errors(slow_add):
     result = server.add_game("chess")
     assert result["added"] is False
     assert result["error"] == "Unknown game 'chess'. Known games: demo"
+    assert result["request_link"].endswith("?template=game-request.yml&title=Game%20request%3A%20chess&game=chess")
 
 
 def test_add_game_expands_home_in_file_paths(slow_add, monkeypatch, tmp_path):
@@ -97,3 +100,27 @@ def test_untested_editions_are_hidden_and_refused(monkeypatch, tmp_path):
     assert "isn't supported here yet" in server._add_job("draft", None, None, None)["error"]
     # With the untested edition hidden, the game has one edition, so none needs naming.
     assert "can't be downloaded automatically" in server._add_job("demo", None, None, None)["error"]
+
+
+def test_request_links_open_the_game_request_form():
+    from pathlib import Path
+
+    from bgrules import manifest
+
+    form = Path(__file__).parents[1] / ".github" / "ISSUE_TEMPLATE" / "game-request.yml"
+    assert "id: game\n" in form.read_text()  # the field the link prefills
+    assert manifest.request_link() == "https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml"
+    assert manifest.request_link("Ticket to Ride: Europe").endswith(
+        "&title=Game%20request%3A%20Ticket%20to%20Ride%3A%20Europe&game=Ticket%20to%20Ride%3A%20Europe"
+    )
+    assert server.list_games()["request_a_game"] == manifest.request_link()
+
+
+def test_unexpected_errors_surface_and_are_not_cached(slow_add):
+    release, calls = slow_add
+    release.set()
+    for _ in range(2):
+        with pytest.raises(KeyError, match="title"):
+            server.add_game("broken")
+    assert len(calls) == 2  # the retry ran again instead of replaying the failed job
+    assert server._adding == {}
