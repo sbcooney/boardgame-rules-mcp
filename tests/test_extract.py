@@ -1,4 +1,4 @@
-from bgrules.extract import Line, Section, _is_full_width, _merge_inline, build_sections, join_lines, normalize_heading
+from bgrules.extract import Line, Section, _add_side_titles, _is_full_width, _merge_inline, build_sections, join_lines, normalize_heading
 from bgrules.store import expand_terms, query_terms
 
 
@@ -137,3 +137,14 @@ def test_inline_boxes_merge_split_off_words_back_into_their_line():
     boxes = _merge_inline([paragraph, after_icon, cards, callout, sidebar])
     assert [ln["text"] for ln in boxes[0]] == ["Separate Wild Location and", "Wild Industry cards and place", "them face up."]
     assert [b[0]["text"] for b in boxes[1:]] == ["C", "Note"]
+
+
+def test_side_titles_start_a_part_on_their_page():
+    by_page = {
+        3: [line("6 sea frame pieces", page=3)],
+        4: [line("Assemble the Frame", page=4, heading=True), line("Match the numbers.", page=4)],
+    }
+    _add_side_titles(by_page, {3: "Components", 4: "Fixed Setup", 9: "Not Extracted"})
+    sections = build_sections([ln for p in sorted(by_page) for ln in by_page[p]])
+    assert [s.path for s in sections] == [["Components"], ["Fixed Setup", "Assemble the Frame"]]
+    assert sections[0].text == "6 sea frame pieces"  # the title isn't part of the quoted text

@@ -416,6 +416,7 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
         by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
     for page_no, lines in _ocr_lines(pdf_path, ocr_pages, hints.get("ocr", {})):
         by_page[page_no] = lines
+    _add_side_titles(by_page, hints.get("side_titles", {}))
     skip = [re.compile(p) for p in hints.get("skip_text", [])]  # lines to drop: "VILLAIN GUIDE"
     # `page_order`: reading order for PDFs stored in print-imposition order
     # (a folded booklet whose cover is PDF page 3); unlisted pages follow.
@@ -425,6 +426,18 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
 
 
 OCR_SCALES = (3, 4)  # render scales (216 and 288 dpi): each region is read at both and merged
+
+
+def _add_side_titles(by_page: dict[int, list[Line]], titles: dict[int, str]) -> None:
+    """`side_titles`: page titles printed sideways down the margin, one letter
+    per line, which line extraction can't read ({pdf page: title}). Each
+    starts a part at the top of its page, as a printed page title would."""
+    for page_no, title in titles.items():
+        if by_page.get(page_no):
+            first = by_page[page_no][0]
+            x0, top = first.bbox[:2]
+            by_page[page_no].insert(0, Line(text=title, page=page_no, column=first.column,
+                                            bbox=(x0, top, x0, top), is_heading=True, is_part=True))
 
 
 def _overlap(a: tuple, b: tuple) -> float:
