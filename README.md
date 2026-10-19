@@ -117,7 +117,7 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 
 | Game | Rulebook | Install |
 | --- | --- | --- |
-| Catan (2020 edition) | Official PDF, downloaded automatically | `bgrules add catan --edition 2020` |
+| Catan (2020 and 2025 editions) | Official PDFs, downloaded automatically: the 2020 Game Rules & Almanac, and the 2025 6th-edition rulebook (its rules differ: a Production and an Action phase, and Longest Route in place of Longest Road) | `bgrules add catan --edition 2020` or `--edition 2025` |
 | Wingspan (base game) | Rulebook r24 and appendix r17 from [Stonemaier's official folder](https://www.dropbox.com/scl/fo/cfbnrvnwwms1fz7589byc/AI8I9LEYzDESkEkm_s3FhSo?rlkey=cykjw2zk47cehkebrl3a5wl7b&dl=0). The folder has no direct per-file links, so you download the two PDFs yourself. | `bgrules add wingspan --doc rulebook --file WS_Rulebook_r24.pdf`, then `--doc appendix --file WS_Appendix_r17.pdf` |
 | Spirit Island (core game) | Core rulebook plus the official errata pages of the Nature Incarnate rulebook, downloaded automatically from Greater Than Games' links | `bgrules add spirit-island` |
 | Brass: Birmingham | Rulebook v2018.11 from [Roxley's product page](https://roxley.com/products/brass-birmingham), downloaded automatically | `bgrules add brass-birmingham` |
@@ -188,6 +188,18 @@ A hit means a section that settles the question, or a subsection of it, is in th
 | **all answerable** | 57 | 61% | 84% | 88% | – | – |
 
 Synonyms map players' words to rulebook terms ("thief" → robber, "port" → harbor; see `synonyms` in the manifest). The held-out questions were committed before the synonym list but by the same author, so their 100% is optimistic. The independent questions are the fairer test, at 80%. Their one miss, "How many cards do I deal out?", assumes something Catan doesn't do: no cards are dealt.
+
+#### Catan (2025 edition), [`evals/catan_2025.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/catan_2025.yaml)
+
+| Category | n | Hit@1 | Hit@3 | Hit@5 | Correctly said "not found" |
+| --- | --- | --- | --- | --- | --- |
+| lookup | 27 | 78% | 89% | 89% | – |
+| edge | 8 | 88% | 100% | 100% | – |
+| vocab | 4 | 100% | 100% | 100% | – |
+| not addressed | 4 | – | – | – | 50% |
+| **all answerable** | 39 | 82% | 92% | 92% | – |
+
+Written from the rulebook's text, like the 2020 lookup and edge sets, so it's the easier kind of test. One vocab question found a cross-edition gap: "harbor" (the 2020 word) didn't find this edition's "port". The synonym `harbor` → port was added after seeing that miss, so that question's pass is optimistic (it was 90% hit@5 before); the 2020 results are unchanged by it.
 
 #### Wingspan (rulebook r24 + appendix r17), [`evals/wingspan_1st.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/wingspan_1st.yaml)
 

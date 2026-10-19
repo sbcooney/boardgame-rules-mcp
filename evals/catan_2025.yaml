@@ -1,0 +1,246 @@
+# Catan (2025 "CATAN – The Game Rulebook", 6th edition) eval questions.
+#
+# Same format as catan_2020.yaml: each answer is a short ruling in our own
+# words, checked against the indexed rulebook text; `sections` lists every
+# section that settles the question (retrieving any one of them counts as a
+# hit). No rulebook text is copied here. This edition differs from 2020: turns
+# have a Production phase and an Action phase, "Longest Route" replaces
+# Longest Road, there is no almanac, and setup comes in a fixed and a variable
+# version.
+#
+# categories: lookup, edge, vocab, not_addressed (see catan_2020.yaml)
+game: catan
+edition: "2025"
+game_name: Catan
+edition_desc: 6th English edition rules (2025 "CATAN – The Game Rulebook")
+
+core: [
+  vp-to-win, resolve-seven-discard, robber-steal, port-trade, dev-card-timing,
+  trade-off-turn, dev-cards-not-in-hand, longest-route-broken,
+  vocab-thief, vocab-harbor,
+  na-turn-timer, na-five-players,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: vp-to-win
+    category: lookup
+    question: How many victory points do you need to win?
+    answer: 10, reached during your own turn; the game ends at once.
+    sections: ["Introduction > Objective", "Winning the Game"]
+  - id: turn-phases
+    category: lookup
+    question: What happens on a turn?
+    answer: A Production phase, then an Action phase; then the dice pass to the left.
+    sections: ["Turn Overview"]
+  - id: resolve-seven-discard
+    category: lookup
+    question: When a 7 is rolled, who has to discard and how many cards?
+    answer: Anyone holding more than 7 resource cards returns half of them, rounded down.
+    sections: ["Production Phase > Resolve a 7"]
+  - id: robber-steal
+    category: lookup
+    question: What does the player who rolled a 7 do with the robber?
+    answer: Moves it to a different hex and steals 1 random resource card from a player with a building there.
+    sections: ["Production Phase > Resolve a 7"]
+  - id: robber-blocks
+    category: lookup
+    question: Does a hex with the robber on it still produce resources?
+    answer: No, not while the robber is on it.
+    sections: ["Production Phase > Resolve a 7"]
+  - id: city-production
+    category: lookup
+    question: How many resources does a city collect?
+    answer: 2 resource cards per city on a producing hex (a settlement gets 1).
+    sections: ["Production Phase > Collect Resources"]
+  - id: supply-runs-out
+    category: lookup
+    question: What if there aren't enough resource cards in the supply for everyone?
+    answer: Nobody gets that resource, unless only one player is owed it; that player takes whatever is left.
+    sections: ["Production Phase > Collect Resources"]
+  - id: general-trade
+    category: lookup
+    question: How do I trade with the bank without a port?
+    answer: 4 matching resource cards for 1 of a different resource.
+    sections: ["Action Phase > Trade"]
+  - id: port-trade
+    category: lookup
+    question: How do ports change trading with the supply?
+    answer: A building on a 3:1 port trades 3 matching cards for 1; on a 2:1 port, 2 of that port's resource for 1.
+    sections: ["Action Phase > Trade"]
+  - id: road-placement
+    category: lookup
+    question: Where can I build a road?
+    answer: On an empty edge connected to your own road or building, but not continuing past an opponent's building.
+    sections: ["Action Phase > Build > ROADS"]
+  - id: distance-rule
+    category: lookup
+    question: How far apart do settlements have to be?
+    answer: At least two edges from every other building (the Distance Rule).
+    sections: ["Action Phase > Build > The Distance Rule:", "Action Phase > Build > SETTLEMENTS"]
+  - id: settlement-limit
+    category: lookup
+    question: What happens when I've used all my settlements?
+    answer: You have 5; to build more you must first upgrade one to a city.
+    sections: ["Action Phase > Build > SETTLEMENTS"]
+  - id: city-limit
+    category: lookup
+    question: How many cities can I build?
+    answer: 4; you can't build more.
+    sections: ["Action Phase > Build > CITIES"]
+  - id: city-replaces
+    category: lookup
+    question: How do I build a city?
+    answer: It replaces one of your settlements, which goes back to your player area.
+    sections: ["Action Phase > Build > CITIES"]
+  - id: longest-route
+    category: lookup
+    question: How do you get the Longest Route tile and what is it worth?
+    answer: First to 5 continuous roads; anyone who then has more takes it. It's worth 2 VPs.
+    sections: ["Action Phase > Build > Longest Route"]
+  - id: largest-army
+    category: lookup
+    question: How many Knights do I need for Largest Army?
+    answer: First to 3 Knight cards in play; anyone with more takes it. Worth 2 VPs.
+    sections: ["Action Phase > Build > Largest Army", "Action Phase > Build > Knight"]
+  - id: monopoly
+    category: lookup
+    question: What does the Monopoly card do?
+    answer: Name one resource; every player gives you all their cards of it. Only one resource type.
+    sections: ["Action Phase > Build > Monopoly"]
+  - id: invention
+    category: lookup
+    question: What does the Invention card do?
+    answer: Take any 2 resource cards from the supply, the same or different.
+    sections: ["Action Phase > Build > Invention"]
+  - id: road-building
+    category: lookup
+    question: What does the Road Building card do?
+    answer: Build 2 roads without paying for them.
+    sections: ["Action Phase > Build > Road Building"]
+  - id: vp-cards
+    category: lookup
+    question: When do I reveal Victory Point cards?
+    answer: Only when revealing them gets you to the points needed to win; otherwise they stay hidden.
+    sections: ["Action Phase > Build > Victory Point", "Winning the Game"]
+  - id: dev-card-timing
+    category: lookup
+    question: When can I play a development card?
+    answer: One per turn, before rolling or any time in the Action phase, and not one built this turn.
+    sections: ["Action Phase > Build > DEVELOPMENT CARDS", "Production Phase > Play a Development Card"]
+  - id: dev-card-count
+    category: lookup
+    question: How many development cards are in the game?
+    answer: 25 (14 Knights, 5 Victory Points, and 2 each of Monopoly, Road Building and Invention).
+    sections: ["Components"]
+  - id: three-players
+    category: lookup
+    question: What changes in a 3-player game?
+    answer: The white pieces aren't used.
+    sections: ["Fixed Setup > Place the Robber and Player Pieces"]
+  - id: starting-placement
+    category: lookup
+    question: In the variable setup, in what order do players place their starting settlements?
+    answer: Round 1 in turn order from the first player; round 2 in reverse order, starting with the last player.
+    sections: ["Variable Setup > Place Your Starting Pieces"]
+  - id: starting-resources
+    category: lookup
+    question: Which starting resources do players get?
+    answer: One card for each hex next to their second settlement.
+    sections: ["Variable Setup > Collect Your Starting Resources", "Fixed Setup > Collect Your Starting Resources"]
+  - id: number-discs
+    category: lookup
+    question: How are the number discs placed in the variable setup?
+    answer: In A-B-C order, counterclockwise from a corner, skipping the desert.
+    sections: ["Variable Setup > Place the Number Discs"]
+  - id: first-player
+    category: lookup
+    question: Who goes first?
+    answer: Everyone rolls the dice; the highest roll goes first.
+    sections: ["Fixed Setup > Choose the First Player", "Variable Setup > Choose the First Player"]
+
+  # ---- edge --------------------------------------------------------------
+  - id: trade-off-turn
+    category: edge
+    question: Can two players trade with each other when it isn't either of their turns?
+    answer: No. During a turn, other players may only trade with the player whose turn it is.
+    sections: ["Action Phase > Trade"]
+  - id: give-away
+    category: edge
+    question: Can I give a card to another player for nothing, or trade 2 ore for 1 ore?
+    answer: No; giving cards away, including trades of matching resources, isn't allowed.
+    sections: ["Action Phase > Trade > TRADE WITH OTHER PLAYERS"]
+  - id: dev-cards-not-in-hand
+    category: edge
+    question: Do development cards count toward my hand when a 7 is rolled, and can the robber steal them?
+    answer: No to both.
+    sections: ["Action Phase > Build > DEVELOPMENT CARDS"]
+  - id: dev-card-trade
+    category: edge
+    question: Can I trade development cards to other players?
+    answer: No, they can't be traded or given away.
+    sections: ["Action Phase > Build > DEVELOPMENT CARDS"]
+  - id: dev-deck-empty
+    category: edge
+    question: What if the development card deck runs out?
+    answer: No more can be built; played cards never go back.
+    sections: ["Action Phase > Build > DEVELOPMENT CARDS"]
+  - id: longest-route-broken
+    category: edge
+    question: If my road is cut by another player's settlement and nobody qualifies anymore, who keeps Longest Route?
+    answer: Nobody; the tile goes back to the supply until one player has the single longest route of at least 5.
+    sections: ["Action Phase > Build > Longest Route"]
+  - id: win-immediately
+    category: edge
+    question: Do I have to wait until the end of my turn to win?
+    answer: No; reaching 10 at any point in your turn ends the game immediately.
+    sections: ["Winning the Game"]
+  - id: knight-robber
+    category: edge
+    question: What do I do when I play a Knight?
+    answer: Activate the Robber (move it and steal), and it counts toward Largest Army.
+    sections: ["Action Phase > Build > Knight", "Production Phase > Resolve a 7"]
+
+  # ---- vocab -------------------------------------------------------------
+  - id: vocab-thief
+    category: vocab
+    question: What does the thief do when you roll a seven?
+    answer: The rulebook calls it the robber; move it and steal 1 random card.
+    sections: ["Production Phase > Resolve a 7"]
+  - id: vocab-harbor
+    category: vocab
+    question: How do harbors work?
+    answer: This edition calls them ports; 3:1 or 2:1 trades with the supply.
+    sections: ["Action Phase > Trade"]
+  - id: vocab-longest-road
+    category: vocab
+    question: How do I get Longest Road?
+    answer: This edition calls it Longest Route; first to 5 continuous roads.
+    sections: ["Action Phase > Build > Longest Route"]
+  - id: vocab-soldier
+    category: vocab
+    question: What happens when I play a soldier card?
+    answer: The rulebook calls it a Knight; activate the robber.
+    sections: ["Action Phase > Build > Knight"]
+
+  # ---- not addressed -----------------------------------------------------
+  - id: na-turn-timer
+    category: not_addressed
+    question: Is there a time limit on how long a turn can take?
+    answer: The rulebook doesn't say.
+    sections: []
+  - id: na-five-players
+    category: not_addressed
+    question: How do you play with 5 or 6 players?
+    answer: This rulebook covers 3-4 players only.
+    sections: []
+  - id: na-take-back
+    category: not_addressed
+    question: Can I undo a building placement I regret?
+    answer: The rulebook doesn't say.
+    sections: []
+  - id: na-teams
+    category: not_addressed
+    question: Can we play in teams of two?
+    answer: The rulebook doesn't say.
+    sections: []

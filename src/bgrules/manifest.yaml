@@ -27,6 +27,9 @@
 #                  (boxes layout; pdfminer default 0.5)
 #   column_continuations: a line left of the current heading's column goes back
 #                  to the section headed above it in its own column
+#   side_titles:   {pdf page: title} for page titles printed sideways, one
+#                  letter per line, which extraction can't read; each starts
+#                  a part on that page
 #   inline_boxes:  words pdfminer split off a line into their own small text
 #                  box (beside inline icons) are merged back into that line
 #                  (boxes layout)
@@ -50,6 +53,7 @@ catan:
     village: [settlement]
     church: [city]  # the components list: cities are "shaped like churches"
     port: [harbor]
+    harbor: [port]  # the 2025 edition says port; players of the 2020 edition say harbor
     soldier: [knight]
     biggest: [largest]
     action: [development]
@@ -96,15 +100,32 @@ catan:
             - {name: Game Rules}
             - {name: Almanac, first_heading: Build (Building)}
     "2025":
-      status: untested  # indexes, but extraction and search haven't been checked against an eval set
       docs:
         - id: rulebook
           title: CATAN – The Game Rulebook (3-4 players)
           url: https://www.catan.com/sites/default/files/2025-03/CN3081%20CATAN%E2%80%93The%20Game%20Rulebook%20secure%20%281%29.pdf
           sha256: 0d81a40c1d4eb5eb438a62f80d71cdaab5f00404722c3cfa0b106d79b635ebc6
           extraction:
-            body_fonts: [ProximaNovaCond, ProximaNova]  # drop sub-1pt copyright watermark
+            layout: boxes
+            content_pages: [2, 12]
+            heading_fonts:
+              - {name: ProximaNova-Bold, min_size: 20.5, max_size: 21.5, part: true}  # page titles: "PRODUCTION PHASE"
+              - {name: ProximaNova-Bold, min_size: 13, max_size: 16}  # "RESOLVE A 7", setup steps, "OBJECTIVE"
+            subheadings:
+              - {fonts: [ProximaNova-Bold], min_size: 11.4, max_size: 11.6}  # "2. ACTIVATE THE ROBBER", "SETTLEMENTS"
+              - {pattern: '^The Distance Rule:', fonts: [ProximaNovaCond-BoldIt], min_size: 11.4, max_size: 11.6}  # a sidebar on the Build page
+            body_fonts: [ProximaNovaCond, ProximaNova]
+            body_size: [9, 13]  # drops card and tile art (under 5pt), the watermark, and the 8.5pt scoring table
+            captions:  # "Hills produce brick" labels under the terrain hexes
+              - {name: ProximaNovaCond-Bold, min_size: 7.9, max_size: 8.1}
+            side_titles: {3: Components, 4: Fixed Setup}
+            # Diagram labels ("1 VP each", "2x" under card pictures), and the 13pt
+            # flavor line that opens Variable Setup, which would read as a heading.
+            skip_text: ['1 VPs?|2 VPs?|each|front|back|[12]x', 'Level up your game!.*']
           # no almanac in this edition; rules differ from 2020 (Production/Action phases)
+          # Known gap: page 6's side column (three examples, and the terrain labels) is read
+          # after the main column, so it lands in "Activate the Robber" rather than beside
+          # the rule each example illustrates. Page citations are still right.
 
 wingspan:
   name: Wingspan
