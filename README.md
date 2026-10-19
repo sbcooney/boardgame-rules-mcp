@@ -195,11 +195,11 @@ Synonyms map players' words to rulebook terms ("thief" → robber, "port" → ha
 | --- | --- | --- | --- | --- | --- |
 | lookup | 27 | 78% | 89% | 89% | – |
 | edge | 8 | 88% | 100% | 100% | – |
-| vocab | 4 | 75% | 75% | 75% | – |
+| vocab | 4 | 100% | 100% | 100% | – |
 | not addressed | 4 | – | – | – | 50% |
-| **all answerable** | 39 | 79% | 90% | 90% | – |
+| **all answerable** | 39 | 82% | 92% | 92% | – |
 
-Written from the rulebook's text, like the 2020 lookup and edge sets, so it's the easier kind of test. Its vocab miss shows a cross-edition gap: "harbor" (the 2020 word) doesn't find this edition's "port".
+Written from the rulebook's text, like the 2020 lookup and edge sets, so it's the easier kind of test. One vocab question found a cross-edition gap: "harbor" (the 2020 word) didn't find this edition's "port". The synonym `harbor` → port was added after seeing that miss, so that question's pass is optimistic (it was 90% hit@5 before); the 2020 results are unchanged by it.
 
 #### Wingspan (rulebook r24 + appendix r17), [`evals/wingspan_1st.yaml`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/wingspan_1st.yaml)
 

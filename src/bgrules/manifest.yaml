@@ -53,6 +53,7 @@ catan:
     village: [settlement]
     church: [city]  # the components list: cities are "shaped like churches"
     port: [harbor]
+    harbor: [port]  # the 2025 edition says port; players of the 2020 edition say harbor
     soldier: [knight]
     biggest: [largest]
     action: [development]
