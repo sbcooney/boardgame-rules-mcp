@@ -93,6 +93,18 @@ def test_refusals_leave_nothing_behind(rulebook, tmp_path, monkeypatch):
     assert manifest.user_games() == {}
 
 
+def test_a_broken_new_copy_leaves_the_installed_one(rulebook, tmp_path):
+    ingest.add("Root", file=str(rulebook), log=quiet)
+    installed = store.home() / "pdfs" / "root" / ingest.OWN_EDITION / "rulebook.pdf"
+    good = installed.read_bytes()
+    broken = tmp_path / "broken.pdf"
+    broken.write_bytes(b"%PDF-1.4\nnot really")
+    with pytest.raises(ingest.IngestError, match="Couldn't read broken.pdf"):
+        ingest.add("Root", file=str(broken), log=quiet)
+    assert installed.read_bytes() == good
+    assert ingest.add("root", log=quiet)[0]["sections"] == 3
+
+
 def test_warns_when_few_headings_are_found(tmp_path, monkeypatch):
     monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
     pdf = make_pdf(tmp_path / "plain.pdf", [BODY] * 4)

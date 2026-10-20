@@ -94,19 +94,21 @@ def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: 
         raise IngestError(f"Edition {edition!r} can't be used as a name; try something like '2nd' or '2024'.")
     docs = eds.get(edition, {}).get("docs", [])
     known = [d for d in docs if d["id"] == doc_id] if doc_id else docs
+    if len(known) > 1:
+        return edition, lambda: None  # _add asks which document
+    # Checked before anything changes: indexing replaces the installed copy with
+    # this file, so a file that can't be read must not get that far.
+    if not Path(file).is_file():
+        raise IngestError(f"No such file: {file}")
+    if Path(file).suffix.lower() != ".pdf":
+        raise IngestError(f"{Path(file).name} isn't a PDF. Only PDF rulebooks can be added for now.")
+    try:
+        hints = default_hints(file)
+    except Exception as e:  # pdfminer raises its own errors for damaged files
+        raise IngestError(f"Couldn't read {Path(file).name} as a PDF ({e}).") from e
     if known:
-        if len(known) > 1:
-            return edition, lambda: None  # _add asks which document
         doc = known[0]
     else:
-        if not Path(file).is_file():
-            raise IngestError(f"No such file: {file}")
-        if Path(file).suffix.lower() != ".pdf":
-            raise IngestError(f"{Path(file).name} isn't a PDF. Only PDF rulebooks can be added for now.")
-        try:
-            hints = default_hints(file)
-        except Exception as e:  # pdfminer raises its own errors for damaged files
-            raise IngestError(f"Couldn't read {Path(file).name} as a PDF ({e}).") from e
         doc = {"id": doc_id or "rulebook", "user_added": True, "extraction": hints}
         entry = games.setdefault(game, {"name": name, "editions": {}})
         entry["editions"].setdefault(edition, {"docs": []})["docs"].append(doc)
