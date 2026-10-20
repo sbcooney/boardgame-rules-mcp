@@ -1,4 +1,7 @@
-from bgrules.extract import Line, Section, _add_side_titles, _is_full_width, _merge_inline, build_sections, join_lines, normalize_heading
+from bgrules.extract import (
+    Line, Section, _add_side_titles, _demote_long_headings, _is_full_width, _merge_inline, build_sections, join_lines,
+    normalize_heading,
+)
 from bgrules.store import expand_terms, query_terms
 
 
@@ -148,3 +151,17 @@ def test_side_titles_start_a_part_on_their_page():
     sections = build_sections([ln for p in sorted(by_page) for ln in by_page[p]])
     assert [s.path for s in sections] == [["Components"], ["Fixed Setup", "Assemble the Frame"]]
     assert sections[0].text == "6 sea frame pieces"  # the title isn't part of the quoted text
+
+
+def test_heading_lines_that_dont_read_as_titles_become_text():
+    intro = "The game board features a Mayan calendar represented by a 26-tooth gear connected to five smaller gears".split()
+    lines = [
+        line("Course of the Game", heading=True, top=0),
+        line(" ".join(intro[:9]), heading=True, top=100), line(" ".join(intro[9:]), heading=True, top=112),  # an intro set large
+        line("in the same phase.", heading=True, top=200),  # bold words that wrapped onto their own line
+        line("can", heading=True, top=300),
+        line("the solo Game", heading=True, top=400),  # small caps extract as mixed case
+        line("Players take turns.", top=412),
+    ]
+    _demote_long_headings(lines, max_words=12)
+    assert [ln.text for ln in lines if ln.is_heading] == ["Course of the Game", "the solo Game"]

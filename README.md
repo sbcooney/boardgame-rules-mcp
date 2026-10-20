@@ -47,6 +47,8 @@ No terminal needed:
 
 For a rulebook that can't be downloaded automatically (Wingspan, the Villainous guides), Claude gives you the publisher's download page; download the PDF and tell Claude where you saved it.
 
+For a game that isn't supported, you can [add your own copy of its rulebook](#your-own-rulebook): "Add my Root rulebook, it's in ~/Downloads/root-rules.pdf."
+
 The extension shares `~/.bgrules` with the command line below, so games added either way show up in both.
 
 ## Quick start
@@ -102,7 +104,7 @@ Point Claude at the clone with `claude mcp add bgrules -- uv --directory /path/t
 | Tool | Returns |
 | --- | --- |
 | `list_games()` | Installed games, editions and documents, each game's official changes (errata), and the games that can be added |
-| `add_game(game, edition?, file?, document?)` | Downloads and indexes a game's rulebook, or indexes a PDF you downloaded (`file`). Long rulebooks keep indexing in the background; calling again waits for them |
+| `add_game(game, edition?, file?, document?)` | Downloads and indexes a game's rulebook, or indexes a PDF you downloaded (`file`), including your own copy of a game that isn't supported. Long rulebooks keep indexing in the background; calling again waits for them |
 | `search_rules(game, query, edition?, max_results?)` | Verbatim passages with citations, or `found: false` with the nearest sections |
 | `get_section(section_id)` | A whole section, plus the ids of the sections before and after it |
 | `lookup_term(game, term, edition?)` | A section by its exact title, such as an almanac entry |
@@ -128,6 +130,18 @@ Prompts: `setup-game(game, players)` walks through setup and raises official cha
 | Sushi Roll | Rules of Play from [Gamewright](https://gamewright.com/product/Sushi-Roll), downloaded automatically. It's a fold-out sheet with no page numbers, so citations use the PDF's panels. | `bgrules add sushi-roll` |
 
 Want another game? [Request it](https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml). Claude offers the same link when you ask about a game that isn't supported. Only games with an official, publisher-issued rulebook can be added.
+
+### Your own rulebook
+
+Any game can be added from a rulebook PDF you have (from the publisher's website, or a scan):
+
+```sh
+bgrules add "Root" --file root-rules.pdf --edition 2nd
+```
+
+In Claude Desktop, ask Claude to add it and say where the PDF is. The rulebook is filed under the name you give (`root` here) and labelled a user-provided copy in `list_games` and in every citation, since nobody has checked its layout. Headings are found from the text itself: lines set clearly larger than the body text, or in bold, that read as titles. On the supported games' own rulebooks, that finds the section that settles a question 80% of the time, against 86% with their hand-tuned settings ([measured below](#rulebooks-you-add-yourself)). If very few headings are found, adding it says so.
+
+The settings it used are saved in `~/.bgrules/manifest.yaml`, in the same format as the bundled manifest: to tune them, edit them and run `bgrules add root --edition 2nd` again (no `--file` needed; the copy you added is kept). Pages without a text layer are read by OCR, on macOS. Photos of pages aren't supported yet.
 
 ## Adding a game
 
@@ -257,6 +271,26 @@ Keyword search can't reliably tell that a rulebook *doesn't* cover something, wh
 uv run python evals/retrieval.py evals/wingspan_1st.yaml --misses   # Catan by default
 ```
 
+#### Rulebooks you add yourself
+
+A rulebook you add gets default extraction settings instead of hand-tuned ones. To see what that costs, each supported game's rulebooks were re-indexed with those defaults and asked the same questions. The default sections are named differently, so a result counts when its text overlaps the section that settles the question ([`evals/default_extraction.py`](https://github.com/sbcooney/boardgame-rules-mcp/blob/main/evals/default_extraction.py)). Hit@5, answerable questions:
+
+| Game | Tuned settings | Defaults | No settings |
+| --- | --- | --- | --- |
+| A Feast for Odin | 81% | 70% | 56% |
+| Brass: Birmingham | 84% | 76% | 0% |
+| Catan (2020) | 88% | 86% | 11% |
+| Catan (2025) | 92% | 90% | 72% |
+| Spirit Island | 88% | 86% | 58% |
+| Star Wars Villainous | 81% | 81% | 48% |
+| Sushi Roll | 93% | 93% | 57% |
+| Tzolk'in | 81% | 73% | 19% |
+| Disney Villainous | 70% | 55% | 55% |
+| Wingspan | 90% | 84% | 39% |
+| **All (348 questions)** | **86%** | **80%** | **41%** |
+
+With no settings at all, a rulebook is one long section and its columns run together. The defaults find headings by size and weight (lines clearly larger than the body text, or bold, that read as titles rather than as part of a sentence) and read each text box separately. Disney Villainous loses the most: its headings start sentences ("**Ally** cards appear only in the Villain deck"), and three of its guides are image-only, read by OCR.
+
 ## Limitations
 
 - **Keyword search, not semantic search.** Questions worded very differently from the rulebook can miss; per-game synonym lists cover common table talk.
@@ -266,6 +300,7 @@ uv run python evals/retrieval.py evals/wingspan_1st.yaml --misses   # Catan by d
 - **Words around inline icons.** Some rulebooks print icons mid-sentence ("the 2-player (icon) count", "£1"), and the PDF can store the words beside each icon out of order. A per-rulebook setting puts them back (Brass: Birmingham uses it); a new rulebook with this layout reads scrambled until it's set.
 - **Sidebars can land mid-section.** On busy layouts (Feast for Odin, Brass: Birmingham), an example box or caption is sometimes placed between two paragraphs of the section beside it. Sentences stay intact, so quotes are still verbatim.
 - **Only what's indexed.** Expansions, scenarios and card text outside the rulebooks aren't covered; for Villainous that means each Villain's own cards.
+- **Rulebooks you add yourself aren't checked.** Their headings are found automatically, which misses some and can mistake emphasis for a heading, and they have no synonym lists. Citations from them are labelled "user-provided copy".
 - **Answers depend on the model following the server's instructions.** The server supplies text and citations; it can't stop a client from ignoring them.
 
 ## Contributing

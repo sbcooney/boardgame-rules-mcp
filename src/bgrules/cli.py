@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import shlex
 import sys
 from importlib import metadata
 
@@ -21,9 +22,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     add = sub.add_parser("add", help="download (or copy) and index a game's rulebook")
-    add.add_argument("game")
+    add.add_argument("game", help="a game's id or name; for a game this tool doesn't ship, the name to file your own rulebook under")
     add.add_argument("--edition")
-    add.add_argument("--file", help="path to a rulebook PDF you already have")
+    add.add_argument("--file", help="path to a rulebook PDF you already have (for any game)")
     add.add_argument("--doc", help="which document --file is, when an edition has several (e.g. rulebook, appendix)")
 
     sub.add_parser("list", help="list installed games")
@@ -42,7 +43,9 @@ def main(argv: list[str] | None = None) -> int:
         try:
             ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, log=lambda m: print(m, file=sys.stderr))
         except manifest.UnknownGame as e:
-            print(f"error: {e.args[0]}\nRequest it: {manifest.request_link(args.game)}", file=sys.stderr)
+            print(f"error: {e.args[0]}\nRequest it: {manifest.request_link(args.game)}\n"
+                  f"Or add your own copy of its rulebook: bgrules add {shlex.quote(args.game)} --file /path/to/rules.pdf",
+                  file=sys.stderr)
             return 1
         except (ingest.IngestError, OSError) as e:
             print(f"error: {e}", file=sys.stderr)
