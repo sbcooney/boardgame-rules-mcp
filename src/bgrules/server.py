@@ -51,7 +51,18 @@ Adding games:
   where they saved the PDF, and pass that path as add_game's `file`.
 - If the game isn't in `available` either, say it isn't supported yet and give the user a link to request it:
   add_game's `request_link` (prefilled with the game) or list_games' `request_a_game`. Don't point them to
-  unofficial rules sources instead."""
+  unofficial rules sources instead.
+- Also offer to add their own copy of the game's rulebook: if they have it as a PDF (from the publisher's
+  website, or a scan of the printed one), ask where it is and call add_game with the game's name, `file` set to
+  its path, and `edition` if they know it; then use the `game` id in the result. If they have a link to the
+  official rulebook PDF instead, pass it as `url`. Use only a link the user gives you: don't search for one,
+  since search turns up fan-hosted copies and summaries. Only the game's own rulebook: don't suggest adding fan
+  FAQs, wikis or rules summaries. Its layout hasn't been checked, so citations are only as good as the reading
+  of its headings: tell them so, pass on any `warning` in the result, and if it reads badly, suggest requesting
+  the game instead. A game added from a link comes with a `request_link` that includes the link, so the user
+  can ask for it to be supported properly.
+- A document with `user_provided` is the user's own copy, not a checked publisher edition. When citing it, say
+  it comes from the rulebook they added."""
 
 mcp = MCPServer("bgrules", instructions=INSTRUCTIONS)
 
@@ -71,9 +82,13 @@ def list_games() -> dict:
     """List the games, editions and rulebook documents installed on this machine,
     each game's official changes (errata) that older printed rulebooks lack, and
     the games that can be installed with add_game (`available`), and a link for
-    requesting a game that isn't available (`request_a_game`)."""
+    requesting a game that isn't available (`request_a_game`). Installed documents
+    marked `user_provided` are rulebooks the user added themselves."""
     return _call(lambda db: {
-        "installed": store.installed(db),
+        "installed": [
+            {**row, **({"user_provided": True} if manifest.is_user_added(row["game"], row["edition"], row["doc_id"]) else {})}
+            for row in store.installed(db)
+        ],
         "official_changes": store.official_changes(db),
         "available": manifest.available(),
         "request_a_game": manifest.request_link(),
@@ -89,20 +104,28 @@ _adding_lock = threading.Lock()
 _add_executor = ThreadPoolExecutor(max_workers=1)
 
 
-def _add_job(game: str, edition: str | None, file: str | None, document: str | None) -> dict:
+def _add_job(game: str, edition: str | None, file: str | None, document: str | None, url: str | None = None) -> dict:
     notes = []
     hint = lambda g, e, d: f'then call add_game with game="{g}", edition="{e}", document="{d}" and file set to the PDF\'s path.'
     try:
-        report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint, allow_untested=False)
+        report = ingest.add(game, edition=edition, file=file, doc_id=document, log=notes.append, supply_hint=hint,
+                            allow_untested=False, url=url)
     except manifest.UnknownGame as e:
-        return {"added": False, "error": e.args[0], "request_link": manifest.request_link(game), "notes": notes}
-    except (ingest.IngestError, OSError) as e:
+        return {"added": False, "error": e.args[0], "request_link": manifest.request_link(game),
+                "own_copy": "If the user has this game's rulebook, call add_game again with `file` set to the PDF's path, "
+                            "or `url` set to a link to it that they give you.",
+                "notes": notes}
+    except (ingest.IngestError, OSError) as e:  # urllib's errors are OSErrors
         return {"added": False, "error": str(e), "notes": notes}
-    return {"added": True, "documents": report, "notes": notes}
+    result = {"added": True, "game": manifest.game_id(game), "documents": report, "notes": notes}
+    if url:
+        result["request_link"] = manifest.request_link(game, url)
+    return result
 
 
 @mcp.tool()
-def add_game(game: str, edition: str | None = None, file: str | None = None, document: str | None = None) -> dict:
+def add_game(game: str, edition: str | None = None, file: str | None = None, document: str | None = None,
+             url: str | None = None) -> dict:
     """Install a game's official rulebook on this computer so its rules can be searched.
 
     `game` is an id from list_games' `available` list. Downloads come only from the
@@ -111,10 +134,15 @@ def add_game(game: str, edition: str | None = None, file: str | None = None, doc
     `file`: the path of the PDF the user downloaded (with `document` when the edition
     has several). Indexing can take a couple of minutes: if the result says
     status="indexing", call add_game again with the same arguments to keep waiting.
+
+    For any other game, `game` is its name and `file` the path of the user's own
+    rulebook PDF, or `url` a link to it that the user gave: it is indexed as a
+    user-provided copy (`edition` if they know it). Calling again with neither
+    re-indexes the copy already added.
     """
     if file:
         file = str(Path(file).expanduser())
-    key = (game, edition, file, document)
+    key = (game, edition, file, document, url)
     with _adding_lock:
         job = _adding.get(key)
         if job is None:

@@ -48,7 +48,8 @@ def test_unknown_game_message(game, capsys):
     assert cli.main(["add", "chess"]) == 1
     assert capsys.readouterr().err.strip() == (
         "error: Unknown game 'chess'. Known games: demo\n"
-        "Request it: https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml&title=Game%20request%3A%20chess&game=chess"
+        "Request it: https://github.com/sbcooney/boardgame-rules-mcp/issues/new?template=game-request.yml&title=Game%20request%3A%20chess&game=chess\n"
+        "Or add your own copy of its rulebook: bgrules add chess --file /path/to/rules.pdf (or --url <link to the PDF>)"
     )
 
 

@@ -26,7 +26,7 @@
   },
   "tools": [
     {"name": "list_games", "description": "List installed games, their official rule changes, and the games that can be added"},
-    {"name": "add_game", "description": "Download (or take a PDF you have) and index a game's official rulebook"},
+    {"name": "add_game", "description": "Download and index a game's official rulebook, or index your own rulebook PDF (a file or a link) for any game"},
     {"name": "search_rules", "description": "Search a game's rulebook and return verbatim passages with citations"},
     {"name": "get_section", "description": "Return the full text of one rulebook section"},
     {"name": "lookup_term", "description": "Look up a glossary or almanac entry by its title"},

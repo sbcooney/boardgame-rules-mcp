@@ -33,6 +33,11 @@
 #   inline_boxes:  words pdfminer split off a line into their own small text
 #                  box (beside inline icons) are merged back into that line
 #                  (boxes layout)
+#   heading_max_words: heading lines that don't read as a title become body
+#                  text: a wrapped run of more words than this (a paragraph
+#                  set large), all lowercase, or ending in a full stop. Part
+#                  of the default hints for rulebooks users add
+#                  (extract.default_hints)
 #   table.title_columns: table columns joined into each record's subsection
 #                  title (a card's number, name and points)
 #
