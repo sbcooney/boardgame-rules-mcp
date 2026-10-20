@@ -122,6 +122,50 @@ def test_add_game_returns_the_id_to_search_with(rulebook):
     assert server.search_rules(result["game"], "points to win")["found"] is True
 
 
+@pytest.fixture
+def web(monkeypatch):
+    """Serve {url: bytes} in place of the internet."""
+    import io
+
+    pages = {}
+
+    def open_url(url):
+        if url not in pages:
+            raise OSError(f"HTTP Error 404: Not Found ({url})")
+        return io.BytesIO(pages[url])
+
+    monkeypatch.setattr(ingest, "_open_url", open_url)
+    return pages
+
+
+def test_added_from_a_link_says_where_it_came_from(rulebook, web):
+    link = "https://www.leder-games.com/files/root-law.pdf"
+    web[link] = rulebook.read_bytes()
+    result = server._add_job("Root", "2nd", None, None, link)
+    assert result["added"] is True and result["documents"][0]["doc"] == "Rulebook (user-provided copy, from leder-games.com)"
+    assert result["request_link"].endswith("&rulebook=https%3A%2F%2Fwww.leder-games.com%2Ffiles%2Froot-law.pdf")
+    doc = manifest.user_games()["root"]["editions"]["2nd"]["docs"][0]
+    assert list(doc)[:3] == ["id", "title", "source_url"] and doc["source_url"] == link
+    assert not (store.home() / "downloads" / "root.pdf").exists()  # only the indexed copy is kept
+    # A new copy from a file replaces the source, and keeps the hints.
+    ingest.add("Root", file=str(rulebook), log=quiet)
+    doc = manifest.user_games()["root"]["editions"]["2nd"]["docs"][0]
+    assert doc["title"] == "Rulebook (user-provided copy)" and "source_url" not in doc
+
+
+def test_links_that_arent_rulebook_pdfs_are_refused(rulebook, web):
+    web["https://example.com/root"] = b"<!doctype html><title>Root | Leder Games</title>"
+    with pytest.raises(ingest.IngestError, match="opens a web page"):
+        ingest.add("Root", url="https://example.com/root", log=quiet)
+    with pytest.raises(ingest.IngestError, match="isn't a web link"):
+        ingest.add("Root", url="file:///etc/passwd", log=quiet)
+    with pytest.raises(OSError, match="404"):
+        ingest.add("Root", url="https://example.com/gone.pdf", log=quiet)
+    with pytest.raises(ingest.IngestError, match="supported already"):
+        ingest.add("Catan", url="https://example.com/catan.pdf", log=quiet)
+    assert manifest.user_games() == {} and not list((store.home() / "downloads").glob("*"))
+
+
 def test_unknown_game_in_claude_desktop_offers_own_copy(tmp_path, monkeypatch):
     monkeypatch.setenv("BGRULES_HOME", str(tmp_path))
     result = server._add_job("Root", None, None, None)

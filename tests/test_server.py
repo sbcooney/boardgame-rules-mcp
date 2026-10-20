@@ -13,7 +13,7 @@ def slow_add(monkeypatch):
     release = threading.Event()
     calls = []
 
-    def add(game, edition=None, file=None, doc_id=None, log=print, supply_hint=None, allow_untested=True):
+    def add(game, edition=None, file=None, doc_id=None, log=print, supply_hint=None, allow_untested=True, url=None):
         calls.append((game, edition, file, doc_id))
         log("Extracting Rules…")
         release.wait(5)

@@ -24,7 +24,9 @@ def main(argv: list[str] | None = None) -> int:
     add = sub.add_parser("add", help="download (or copy) and index a game's rulebook")
     add.add_argument("game", help="a game's id or name; for a game this tool doesn't ship, the name to file your own rulebook under")
     add.add_argument("--edition")
-    add.add_argument("--file", help="path to a rulebook PDF you already have (for any game)")
+    source = add.add_mutually_exclusive_group()
+    source.add_argument("--file", help="path to a rulebook PDF you already have (for any game)")
+    source.add_argument("--url", help="link to the official rulebook PDF, for a game this tool doesn't ship")
     add.add_argument("--doc", help="which document --file is, when an edition has several (e.g. rulebook, appendix)")
 
     sub.add_parser("list", help="list installed games")
@@ -41,10 +43,15 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "add":
         try:
-            ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, log=lambda m: print(m, file=sys.stderr))
+            ingest.add(args.game, edition=args.edition, file=args.file, doc_id=args.doc, url=args.url,
+                       log=lambda m: print(m, file=sys.stderr))
+            if args.url:
+                print(f"To ask for it to be supported, with its layout checked: {manifest.request_link(args.game, args.url)}",
+                      file=sys.stderr)
         except manifest.UnknownGame as e:
             print(f"error: {e.args[0]}\nRequest it: {manifest.request_link(args.game)}\n"
-                  f"Or add your own copy of its rulebook: bgrules add {shlex.quote(args.game)} --file /path/to/rules.pdf",
+                  f"Or add your own copy of its rulebook: bgrules add {shlex.quote(args.game)} --file /path/to/rules.pdf "
+                  "(or --url <link to the PDF>)",
                   file=sys.stderr)
             return 1
         except (ingest.IngestError, OSError) as e:

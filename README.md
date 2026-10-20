@@ -47,7 +47,7 @@ No terminal needed:
 
 For a rulebook that can't be downloaded automatically (Wingspan, the Villainous guides), Claude gives you the publisher's download page; download the PDF and tell Claude where you saved it.
 
-For a game that isn't supported, you can [add your own copy of its rulebook](#your-own-rulebook): "Add my Root rulebook, it's in ~/Downloads/root-rules.pdf."
+For a game that isn't supported, you can [add your own copy of its rulebook](#your-own-rulebook): "Add my Root rulebook, it's in ~/Downloads/root-rules.pdf," or give Claude a link to the publisher's PDF.
 
 The extension shares `~/.bgrules` with the command line below, so games added either way show up in both.
 
@@ -137,9 +137,10 @@ Any game can be added from a rulebook PDF you have (from the publisher's website
 
 ```sh
 bgrules add "Root" --file root-rules.pdf --edition 2nd
+bgrules add "Root" --url https://example.com/root-rules.pdf   # or a link to the publisher's PDF
 ```
 
-In Claude Desktop, ask Claude to add it and say where the PDF is. The rulebook is filed under the name you give (`root` here) and labelled a user-provided copy in `list_games` and in every citation, since nobody has checked its layout. Headings are found from the text itself: lines set clearly larger than the body text, or in bold, that read as titles. On the supported games' own rulebooks, that finds the section that settles a question 80% of the time, against 86% with their hand-tuned settings ([measured below](#rulebooks-you-add-yourself)). If very few headings are found, adding it says so.
+In Claude Desktop, ask Claude to add it and say where the PDF is, or paste the link. A link must lead to the PDF itself, not a product page or a file-sharing preview; citations then name the site it came from ("user-provided copy, from leder-games.com"), and you get a game-request link prefilled with it. The rulebook is filed under the name you give (`root` here) and labelled a user-provided copy in `list_games` and in every citation, since nobody has checked its layout. Headings are found from the text itself: lines set clearly larger than the body text, or in bold, that read as titles. On the supported games' own rulebooks, that finds the section that settles a question 80% of the time, against 86% with their hand-tuned settings ([measured below](#rulebooks-you-add-yourself)). If very few headings are found, adding it says so.
 
 The settings it used are saved in `~/.bgrules/manifest.yaml`, in the same format as the bundled manifest: to tune them, edit them and run `bgrules add root --edition 2nd` again (no `--file` needed; the copy you added is kept). Pages without a text layer are read by OCR, on macOS. Photos of pages aren't supported yet.
 

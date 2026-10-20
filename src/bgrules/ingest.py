@@ -5,6 +5,7 @@ import hashlib
 import shutil
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlparse
 
 from . import manifest, store
 from .extract import build_sections, default_hints, extract_lines
@@ -29,6 +30,39 @@ def download(url: str, dest: Path) -> None:
         shutil.copyfileobj(resp, f)
 
 
+MAX_PDF_BYTES = 200 * 1024 * 1024
+
+
+def _open_url(url: str):
+    req = urllib.request.Request(url, headers={"User-Agent": "bgrules (board game rules indexer)"})
+    return urllib.request.urlopen(req, timeout=60)
+
+
+def download_pdf(url: str, dest: Path) -> None:
+    """Download a rulebook PDF from a link the user gave. Many "rules" links open
+    a product page or a file-sharing preview instead of the file, so anything
+    that isn't a PDF is refused, as is anything over MAX_PDF_BYTES."""
+    if urlparse(url).scheme not in ("http", "https"):
+        raise IngestError(f"{url} isn't a web link (http or https). For a file on this computer, pass it as the file.")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with _open_url(url) as resp, open(dest, "wb") as f:
+            head = resp.read(1024)
+            if b"%PDF-" not in head:  # PDF files start with this header
+                raise IngestError(f"{url} opens a web page (or another kind of file), not a PDF. Download the "
+                                  "rulebook from there, then add the downloaded file instead.")
+            f.write(head)
+            size = len(head)
+            for chunk in iter(lambda: resp.read(1 << 20), b""):
+                size += len(chunk)
+                if size > MAX_PDF_BYTES:
+                    raise IngestError(f"{url} is larger than {MAX_PDF_BYTES >> 20} MB, too big for a rulebook.")
+                f.write(chunk)
+    except BaseException:
+        dest.unlink(missing_ok=True)
+        raise
+
+
 def cli_hint(game: str, edition: str, doc_id: str) -> str:
     return f"then run:\n  bgrules add {game} --edition {edition} --doc {doc_id} --file /path/to/{doc_id}.pdf"
 
@@ -36,58 +70,90 @@ def cli_hint(game: str, edition: str, doc_id: str) -> str:
 OWN_EDITION = "unspecified"  # edition of a user-added rulebook when the user doesn't say
 
 
-def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: str | None):
+def _own_title(doc_id: str, url: str | None) -> str:
+    """Says in every citation that this is the user's copy, and which site a downloaded one came from."""
+    label = doc_id.replace("-", " ").capitalize()
+    host = (urlparse(url).hostname or "").removeprefix("www.") if url else ""
+    return f"{label} (user-provided copy, from {host})" if host else f"{label} (user-provided copy)"
+
+
+def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: str | None, url: str | None):
     """A rulebook the user supplies for a game that isn't bundled: record it in the
-    user manifest, with default extraction hints, unless that edition and document
-    are already there (a new copy of a known document keeps its hints, which the
-    user may have tuned). Returns the edition and a function that undoes the change."""
+    user manifest, with default extraction hints and the link it came from (if
+    any). A new copy of a document already there keeps its hints, which the user
+    may have tuned, and only its source changes. Returns the edition and a
+    function that undoes the change."""
     games = manifest.user_games()
+    before = copy.deepcopy(games)
     eds = games.get(game, {}).get("editions", {})
     if edition is None:
-        if eds:
-            return None, lambda: None  # an existing game: _add picks (or asks for) the edition
-        edition = OWN_EDITION
+        if len(eds) > 1:
+            return None, lambda: None  # _add asks which edition
+        edition = next(iter(eds), OWN_EDITION)
     if not edition.strip() or "/" in edition or "\\" in edition or edition.startswith("."):
         raise IngestError(f"Edition {edition!r} can't be used as a name; try something like '2nd' or '2024'.")
     docs = eds.get(edition, {}).get("docs", [])
-    if docs and (doc_id is None or any(d["id"] == doc_id for d in docs)):
-        return edition, lambda: None
-    if not Path(file).is_file():
-        raise IngestError(f"No such file: {file}")
-    if Path(file).suffix.lower() != ".pdf":
-        raise IngestError(f"{Path(file).name} isn't a PDF. Only PDF rulebooks can be added for now.")
-    try:
-        hints = default_hints(file)
-    except Exception as e:  # pdfminer raises its own errors for damaged files
-        raise IngestError(f"Couldn't read {Path(file).name} as a PDF ({e}).") from e
-    before = copy.deepcopy(games)
-    doc_id = doc_id or "rulebook"
-    entry = games.setdefault(game, {"name": name, "editions": {}})
-    entry["editions"].setdefault(edition, {"docs": []})["docs"].append({
-        "id": doc_id, "title": f"{doc_id.replace('-', ' ').capitalize()} (user-provided copy)", "user_added": True,
-        "extraction": hints,
-    })
+    known = [d for d in docs if d["id"] == doc_id] if doc_id else docs
+    if known:
+        if len(known) > 1:
+            return edition, lambda: None  # _add asks which document
+        doc = known[0]
+    else:
+        if not Path(file).is_file():
+            raise IngestError(f"No such file: {file}")
+        if Path(file).suffix.lower() != ".pdf":
+            raise IngestError(f"{Path(file).name} isn't a PDF. Only PDF rulebooks can be added for now.")
+        try:
+            hints = default_hints(file)
+        except Exception as e:  # pdfminer raises its own errors for damaged files
+            raise IngestError(f"Couldn't read {Path(file).name} as a PDF ({e}).") from e
+        doc = {"id": doc_id or "rulebook", "user_added": True, "extraction": hints}
+        entry = games.setdefault(game, {"name": name, "editions": {}})
+        entry["editions"].setdefault(edition, {"docs": []})["docs"].append(doc)
+    doc["title"] = _own_title(doc["id"], url)
+    doc.pop("source_url", None)
+    if url:
+        doc["source_url"] = url
+    # Keep the keys in reading order: id, title, source_url, then the rest.
+    ordered = {k: doc.pop(k) for k in ["id", "title", "source_url", *list(doc)] if k in doc}
+    doc.update(ordered)
     manifest.save_user_games(games)
     return edition, lambda: manifest.save_user_games(before)
 
 
 def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print,
-        supply_hint=cli_hint, allow_untested=True) -> list[dict]:
+        supply_hint=cli_hint, allow_untested=True, url: str | None = None) -> list[dict]:
     """`supply_hint(game, edition, doc_id)` says how to add a document users must download themselves.
     With allow_untested=False, editions whose extraction hasn't been checked are refused.
-    `game` may be a game's name. With `file`, a game that isn't bundled is added from the user's
-    own copy (see _register_own); without, it is re-indexed from the copy it was added from."""
+    `game` may be a game's name. With `file`, or `url` (a link to the PDF), a game that isn't
+    bundled is added from the user's own copy (see _register_own); with neither, it is re-indexed
+    from the copy it was added from."""
     name, game = game, manifest.game_id(game)
     own = game not in manifest.load() or (game in manifest.user_games() and game not in manifest.bundled())
-    if own and file:
-        doc_id = store.slug(doc_id) if doc_id else None  # it names a file and every citation id
-        edition, undo = _register_own(name, game, edition, file, doc_id)
+    if url and file:
+        raise IngestError("Give the rulebook as a file or as a link, not both.")
+    if url and not own:
+        raise IngestError(f"{game} is supported already, from the publisher's own files: add it without a link.")
+    if not (own and (file or url)):
+        return _add(game, edition, file, doc_id, log, supply_hint, allow_untested)
+
+    doc_id = store.slug(doc_id) if doc_id else None  # it names a file and every citation id
+    downloaded = None
+    if url:
+        downloaded = store.home() / "downloads" / f"{game}.pdf"
+        log(f"Downloading {url}")
+        download_pdf(url, downloaded)
+        file = str(downloaded)
+    try:
+        edition, undo = _register_own(name, game, edition, file, doc_id, url)
         try:
             return _add(game, edition, file, doc_id, log, supply_hint, allow_untested)
         except BaseException:
             undo()  # don't leave a game listed that was never indexed
             raise
-    return _add(game, edition, file, doc_id, log, supply_hint, allow_untested)
+    finally:
+        if downloaded is not None:
+            downloaded.unlink(missing_ok=True)  # indexing keeps its own copy
 
 
 def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, log, supply_hint, allow_untested) -> list[dict]:
