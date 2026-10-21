@@ -187,23 +187,30 @@ def default_hints(pdf_path: str) -> dict:
     Pdfminer's text boxes keep sidebars apart, with a wide line margin so
     widely spaced lines still form one box. Measured on the bundled rulebooks
     with their own hints removed: 80% hit@5 on their eval sets, against 86%
-    with tuned hints (41% with no hints at all)."""
+    with tuned hints (41% with no hints at all). A run of pages twice as wide
+    as the file's narrowest page holds two-page spreads (a printed booklet,
+    with its cover and back page as single pages)."""
     sizes: dict[float, int] = {}
     with pdfplumber.open(pdf_path) as pdf:
         n_pages = len(pdf.pages)
+        narrowest = min(p.width for p in pdf.pages)
+        wide = [n for n, p in enumerate(pdf.pages, 1) if p.width >= 1.8 * narrowest]
         for page in pdf.pages:
             for c in page.chars:
                 if c["text"].strip():
                     size = round(c["size"] * 2) / 2
                     sizes[size] = sizes.get(size, 0) + 1
     body = max(sizes, key=sizes.get) if sizes else 10.0
-    return {
+    hints = {
         "layout": "boxes",
         "line_margin": 1.0,
         "content_pages": [1, n_pages],
         "heading_fonts": [{"name": "", "min_size": round(body * 1.15, 2)}, {"name": "Bold", "min_size": round(body - 0.3, 2)}],
         "heading_max_words": 12,
     }
+    if wide and wide == list(range(wide[0], wide[-1] + 1)):
+        hints["spreads"] = [wide[0], wide[-1]]
+    return hints
 
 
 def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
