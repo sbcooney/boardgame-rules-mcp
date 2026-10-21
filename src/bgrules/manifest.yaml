@@ -406,6 +406,7 @@ villainous:
           extraction:
             <<: *villainous_instructions
             content_pages: [2, 10]
+            spreads: [2, 10]  # PDF pages 2-10 are spreads: printed 2|3 ... 18|19
         - id: guide-gaston
           title: "Gaston Villain Guide, Despicable Plots (Ravensburger PDF via BoardGameGeek)"
           source: user_supplied  # DVE4_Gaston_VillainGuide_60001913_EN02.pdf

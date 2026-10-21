@@ -215,20 +215,36 @@ def _spread_hints(pages) -> dict:
     narrowest page and as tall (a smaller card or insert is shorter, and not
     half a spread). The page numbers printed in the first spread's bottom
     corners say where the count starts, e.g. 2|3 after a one-page cover, or
-    when there is no cover at all."""
+    when there is no cover at all. A file of spreads only (every page the same
+    landscape size) has nothing narrower to compare with, so there the printed
+    numbers decide: n|n+1 on at least half the pages."""
     single = min(pages, key=lambda p: p.width)
     wide = [n for n, p in enumerate(pages, 1)
             if 1.8 <= p.width / single.width <= 2.2 and abs(p.height - single.height) <= 0.02 * single.height]
+    same_size = all(abs(p.width - single.width) <= 0.02 * single.width
+                    and abs(p.height - single.height) <= 0.02 * single.height for p in pages)
+    if not wide and same_size and single.width > single.height:
+        if sum(_spread_numbers(p) is not None for p in pages) >= max(2, len(pages) / 2):
+            wide = list(range(1, len(pages) + 1))
     if not wide or wide != list(range(wide[0], wide[-1] + 1)):
         return {}
     hints = {"spreads": [wide[0], wide[-1]]}
-    first = pages[wide[0] - 1]
-    numbers = [(int(w["text"]), w["x0"] < first.width / 2) for w in first.extract_words()
-               if w["text"].isdigit() and len(w["text"]) <= 3 and w["top"] > 0.9 * first.height]
-    left = [n for n, is_left in numbers if is_left and (n + 1, False) in numbers]
-    if left and left[0] != wide[0]:  # without an offset, its left half is printed page wide[0]
-        hints["printed_page_offset"] = left[0] - wide[0]
+    for n in wide:
+        left = _spread_numbers(pages[n - 1])
+        if left is not None:
+            # Without an offset, the left half of spread n is printed page 2n - first.
+            if left != 2 * n - wide[0]:
+                hints["printed_page_offset"] = left - (2 * n - wide[0])
+            break
     return hints
+
+
+def _spread_numbers(page) -> int | None:
+    """The left page number of a spread whose bottom corners print n|n+1."""
+    numbers = [(int(w["text"]), w["x0"] < page.width / 2) for w in page.extract_words()
+               if w["text"].isdigit() and len(w["text"]) <= 3 and w["top"] > 0.9 * page.height]
+    left = [n for n, is_left in numbers if is_left and (n + 1, False) in numbers]
+    return left[0] if left else None
 
 
 def extract_lines(pdf_path: str, hints: dict) -> list[Line]:

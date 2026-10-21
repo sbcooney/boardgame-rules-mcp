@@ -81,8 +81,9 @@ def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: 
     """A rulebook the user supplies for a game that isn't bundled: record it in the
     user manifest, with default extraction hints and the link it came from (if
     any). A new copy of a document already there keeps its hints, which the user
-    may have tuned, and only its source changes. Returns the edition and a
-    function that undoes the change."""
+    may have tuned, gaining only defaults it lacks (see _fill_in_default_hints),
+    and its source changes. Returns the edition and a function that undoes the
+    change."""
     games = manifest.user_games()
     before = copy.deepcopy(games)
     eds = games.get(game, {}).get("editions", {})
@@ -108,6 +109,7 @@ def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: 
         raise IngestError(f"Couldn't read {Path(file).name} as a PDF ({e}).") from e
     if known:
         doc = known[0]
+        doc["extraction"] = {**hints, **doc.get("extraction", {})}
     else:
         doc = {"id": doc_id or "rulebook", "user_added": True, "extraction": hints}
         entry = games.setdefault(game, {"name": name, "editions": {}})
@@ -121,6 +123,20 @@ def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: 
     doc.update(ordered)
     manifest.save_user_games(games)
     return edition, lambda: manifest.save_user_games(before)
+
+
+def _fill_in_default_hints(game: str, edition: str, doc_id: str, pdf: str) -> dict:
+    """A user's copy with any default hint it lacks added to its saved hints, so
+    re-indexing picks up defaults gained since it was added (spread detection,
+    say). Saved hints win, so tuning is kept; to turn a default off, set it
+    empty rather than deleting it. Returns the document's manifest entry."""
+    games = manifest.user_games()
+    doc = next(d for d in games[game]["editions"][edition]["docs"] if d["id"] == doc_id)
+    hints = {**default_hints(pdf), **doc.get("extraction", {})}
+    if hints != doc.get("extraction"):
+        doc["extraction"] = hints
+        manifest.save_user_games(games)
+    return doc
 
 
 def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print,
@@ -209,6 +225,7 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
                 download(doc["url"], incoming)
         elif doc.get("user_added") and dest.exists():
             incoming = None  # re-index the user's copy (after tuning its hints, say)
+            doc = _fill_in_default_hints(game, edition, doc["id"], str(dest))
         else:
             where = f" Download it from {doc['download_page']}," if doc.get("download_page") else " Get the PDF yourself,"
             missing.append(f"'{doc['title']}' can't be downloaded automatically.{where} {supply_hint(game, edition, doc['id'])}")

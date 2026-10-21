@@ -103,6 +103,50 @@ def test_spreads_without_a_cover_count_from_their_printed_numbers(tmp_path, monk
         "Setup": 2, "Scoring": 3, "Taking a Turn": 4, "Winning the Game": 6}
 
 
+def test_a_file_of_only_spreads_is_found_by_its_page_numbers(tmp_path, monkeypatch):
+    # Every PDF page is a spread (2|3, 4|5): nothing narrower to compare with.
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
+    pdf = make_pdf(tmp_path / "booklet.pdf", [
+        [("Setup", "R", 16), *BODY, ("Scoring", "R", 16, 700), ("Each potion scores its points.", "R", 10, 700),
+         ("2", "R", 10, 30, 30), ("3", "R", 10, 1190, 30)],
+        [("Taking a Turn", "R", 16), *BODY, ("4", "R", 10, 30, 30), ("5", "R", 10, 1190, 30)],
+    ], sizes=[(1224, 792)] * 2)
+    ingest.add("Potion Explosion", file=str(pdf), log=quiet)
+    assert printed_pages("potion-explosion", ("potion scores points", "turn round ends")) == {
+        "Setup": 2, "Scoring": 3, "Taking a Turn": 4}
+    # Landscape pages without facing page numbers are single pages.
+    plain = make_pdf(tmp_path / "landscape.pdf", [BODY] * 3, sizes=[(792, 612)] * 3)
+    assert "spreads" not in extract.default_hints(str(plain))
+
+
+def test_copies_added_earlier_gain_new_defaults_and_keep_their_tuning(tmp_path, monkeypatch):
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
+    pdf = make_pdf(tmp_path / "booklet.pdf", [
+        [("Setup", "R", 16), *BODY],
+        [("Taking a Turn", "R", 16), *BODY, ("Scoring", "R", 16, 700), ("Each potion scores its points.", "R", 10, 700)],
+        [("Winning the Game", "R", 16), ("The first player to reach 30 points wins.", "R", 10)],
+    ], sizes=[(612, 792), (1224, 792), (612, 792)])
+    ingest.add("Potion Explosion", file=str(pdf), log=quiet)
+
+    def saved_hints():
+        return manifest.user_games()["potion-explosion"]["editions"][ingest.OWN_EDITION]["docs"][0]["extraction"]
+
+    def older_copy():  # as added before spreads were detected, then tuned by hand
+        games = manifest.user_games()
+        hints = games["potion-explosion"]["editions"][ingest.OWN_EDITION]["docs"][0]["extraction"]
+        del hints["spreads"]
+        hints["heading_max_words"] = 8
+        manifest.save_user_games(games)
+
+    older_copy()
+    ingest.add("potion-explosion", log=quiet)  # re-index the installed copy
+    assert saved_hints()["spreads"] == [2, 2] and saved_hints()["heading_max_words"] == 8
+    assert printed_pages("potion-explosion", ("potion scores points",))["Scoring"] == 3
+    older_copy()
+    ingest.add("Potion Explosion", file=str(pdf), log=quiet)  # or add a new copy
+    assert saved_hints()["spreads"] == [2, 2] and saved_hints()["heading_max_words"] == 8
+
+
 def test_a_smaller_page_is_not_half_a_spread(tmp_path):
     # A letter-size rulebook ending with a small reference card.
     pdf = make_pdf(tmp_path / "rules.pdf", [BODY] * 4, sizes=[(612, 792)] * 3 + [(300, 420)])
