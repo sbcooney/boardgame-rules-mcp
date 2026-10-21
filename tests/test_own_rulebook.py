@@ -2,24 +2,27 @@
 
 import pytest
 
-from bgrules import ingest, manifest, server, store
+from bgrules import extract, ingest, manifest, server, store
 
 
-def make_pdf(path, pages, widths=None):
+def make_pdf(path, pages, sizes=None):
     """A minimal PDF: each page is a list of (text, font, size) lines, top to bottom,
-    each optionally with an x position. Fonts: R (Helvetica) and B (Helvetica-Bold).
-    `widths` gives each page's width (default 612)."""
+    each optionally with an x position, or (x, y) to place it anywhere.
+    Fonts: R (Helvetica) and B (Helvetica-Bold). `sizes` gives each page's
+    (width, height) (default 612 x 792)."""
     objs = ["<< /Type /Catalog /Pages 2 0 R >>", None,
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"]
     kids = []
     for n, lines in enumerate(pages):
         y, stream = 740, "BT\n"
-        for text, font, size, *x in lines:
-            stream += f"/{font} {size} Tf 1 0 0 1 {x[0] if x else 72} {y} Tm ({text}) Tj\n"
-            y -= size * 1.5
+        for text, font, size, *pos in lines:
+            x, at = (pos + [None])[:2] if pos else (72, None)
+            stream += f"/{font} {size} Tf 1 0 0 1 {x} {at or y} Tm ({text}) Tj\n"
+            if at is None:
+                y -= size * 1.5
         objs.append(f"<< /Length {len(stream) + 2} >>\nstream\n{stream}ET\nendstream")
-        objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {widths[n] if widths else 612} 792] /Contents {len(objs)} 0 R "
+        objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {sizes[n][0] if sizes else 612} {sizes[n][1] if sizes else 792}] /Contents {len(objs)} 0 R "
                     "/Resources << /Font << /R 3 0 R /B 4 0 R >> >> >>")
         kids.append(f"{len(objs)} 0 R")
     objs[1] = f"<< /Type /Pages /Kids [{' '.join(kids)}] /Count {len(kids)} >>"
@@ -65,20 +68,45 @@ def test_added_under_its_name_and_labelled(rulebook):
     assert [(r["game"], r.get("user_provided")) for r in installed] == [("root", True)]
 
 
+def printed_pages(game, queries):
+    db = store.connect()
+    return {r["section_path"][-1]: r["printed_page"] for q in queries for r in store.search(db, game, q)["results"]}
+
+
 def test_two_page_spreads_are_cited_by_printed_page(tmp_path, monkeypatch):
     # Cover, then one PDF page holding printed pages 2|3, then the back page (4).
     monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
     pdf = make_pdf(tmp_path / "booklet.pdf", [
         [("Setup", "R", 16), *BODY],
-        [("Taking a Turn", "R", 16, 72), *BODY, ("Scoring", "R", 16, 700), ("Each potion scores its points.", "R", 10, 700)],
+        [("Taking a Turn", "R", 16, 72), *BODY, ("Scoring", "R", 16, 700), ("Each potion scores its points.", "R", 10, 700),
+         ("2", "R", 10, 30, 30), ("3", "R", 10, 1190, 30)],
         [("Winning the Game", "R", 16), ("The first player to reach 30 points wins.", "R", 10)],
-    ], widths=[612, 1224, 612])
+    ], sizes=[(612, 792), (1224, 792), (612, 792)])
     ingest.add("Potion Explosion", file=str(pdf), log=quiet)
-    assert manifest.user_games()["potion-explosion"]["editions"][ingest.OWN_EDITION]["docs"][0]["extraction"]["spreads"] == [2, 2]
-    db = store.connect()
-    pages = {r["section_path"][-1]: r["printed_page"] for q in ("potion scores points", "turn round ends", "reach 30 points")
-             for r in store.search(db, "potion-explosion", q)["results"]}
-    assert pages == {"Setup": 1, "Taking a Turn": 2, "Scoring": 3, "Winning the Game": 4}
+    hints = manifest.user_games()["potion-explosion"]["editions"][ingest.OWN_EDITION]["docs"][0]["extraction"]
+    assert hints["spreads"] == [2, 2] and "printed_page_offset" not in hints
+    assert printed_pages("potion-explosion", ("potion scores points", "turn round ends", "reach 30 points")) == {
+        "Setup": 1, "Taking a Turn": 2, "Scoring": 3, "Winning the Game": 4}
+
+
+def test_spreads_without_a_cover_count_from_their_printed_numbers(tmp_path, monkeypatch):
+    # No cover: PDF page 1 is already printed pages 2|3, then 4|5, then the back page (6).
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
+    pdf = make_pdf(tmp_path / "booklet.pdf", [
+        [("Setup", "R", 16), *BODY, ("Scoring", "R", 16, 700), ("Each potion scores its points.", "R", 10, 700),
+         ("2", "R", 10, 30, 30), ("3", "R", 10, 1190, 30)],
+        [("Taking a Turn", "R", 16), *BODY, ("4", "R", 10, 30, 30), ("5", "R", 10, 1190, 30)],
+        [("Winning the Game", "R", 16), ("The first player to reach 30 points wins.", "R", 10)],
+    ], sizes=[(1224, 792), (1224, 792), (612, 792)])
+    ingest.add("Potion Explosion", file=str(pdf), log=quiet)
+    assert printed_pages("potion-explosion", ("potion scores points", "turn round ends", "reach 30 points")) == {
+        "Setup": 2, "Scoring": 3, "Taking a Turn": 4, "Winning the Game": 6}
+
+
+def test_a_smaller_page_is_not_half_a_spread(tmp_path):
+    # A letter-size rulebook ending with a small reference card.
+    pdf = make_pdf(tmp_path / "rules.pdf", [BODY] * 4, sizes=[(612, 792)] * 3 + [(300, 420)])
+    assert "spreads" not in extract.default_hints(str(pdf))
 
 
 def test_reindexed_from_the_installed_copy(rulebook):

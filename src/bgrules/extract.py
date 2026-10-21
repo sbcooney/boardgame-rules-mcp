@@ -187,14 +187,12 @@ def default_hints(pdf_path: str) -> dict:
     Pdfminer's text boxes keep sidebars apart, with a wide line margin so
     widely spaced lines still form one box. Measured on the bundled rulebooks
     with their own hints removed: 80% hit@5 on their eval sets, against 86%
-    with tuned hints (41% with no hints at all). A run of pages twice as wide
-    as the file's narrowest page holds two-page spreads (a printed booklet,
-    with its cover and back page as single pages)."""
+    with tuned hints (41% with no hints at all). Two-page spreads are found
+    by _spread_hints."""
     sizes: dict[float, int] = {}
     with pdfplumber.open(pdf_path) as pdf:
         n_pages = len(pdf.pages)
-        narrowest = min(p.width for p in pdf.pages)
-        wide = [n for n, p in enumerate(pdf.pages, 1) if p.width >= 1.8 * narrowest]
+        spreads = _spread_hints(pdf.pages)
         for page in pdf.pages:
             for c in page.chars:
                 if c["text"].strip():
@@ -208,8 +206,28 @@ def default_hints(pdf_path: str) -> dict:
         "heading_fonts": [{"name": "", "min_size": round(body * 1.15, 2)}, {"name": "Bold", "min_size": round(body - 0.3, 2)}],
         "heading_max_words": 12,
     }
-    if wide and wide == list(range(wide[0], wide[-1] + 1)):
-        hints["spreads"] = [wide[0], wide[-1]]
+    return {**hints, **spreads}
+
+
+def _spread_hints(pages) -> dict:
+    """`spreads` (and `printed_page_offset`) for a PDF of a printed booklet whose
+    inside pages are stored as spreads: a run of pages twice as wide as the
+    narrowest page and as tall (a smaller card or insert is shorter, and not
+    half a spread). The page numbers printed in the first spread's bottom
+    corners say where the count starts, e.g. 2|3 after a one-page cover, or
+    when there is no cover at all."""
+    single = min(pages, key=lambda p: p.width)
+    wide = [n for n, p in enumerate(pages, 1)
+            if 1.8 <= p.width / single.width <= 2.2 and abs(p.height - single.height) <= 0.02 * single.height]
+    if not wide or wide != list(range(wide[0], wide[-1] + 1)):
+        return {}
+    hints = {"spreads": [wide[0], wide[-1]]}
+    first = pages[wide[0] - 1]
+    numbers = [(int(w["text"]), w["x0"] < first.width / 2) for w in first.extract_words()
+               if w["text"].isdigit() and len(w["text"]) <= 3 and w["top"] > 0.9 * first.height]
+    left = [n for n, is_left in numbers if is_left and (n + 1, False) in numbers]
+    if left and left[0] != wide[0]:  # without an offset, its left half is printed page wide[0]
+        hints["printed_page_offset"] = left[0] - wide[0]
     return hints
 
 
