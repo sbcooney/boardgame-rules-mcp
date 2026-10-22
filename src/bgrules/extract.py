@@ -7,6 +7,7 @@ pages. Long sections are split into passages so search results stay specific.
 """
 
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 
 import pdfplumber
@@ -187,23 +188,69 @@ def default_hints(pdf_path: str) -> dict:
     Pdfminer's text boxes keep sidebars apart, with a wide line margin so
     widely spaced lines still form one box. Measured on the bundled rulebooks
     with their own hints removed: 80% hit@5 on their eval sets, against 86%
-    with tuned hints (41% with no hints at all)."""
+    with tuned hints (41% with no hints at all). Two-page spreads are found
+    by _spread_hints."""
     sizes: dict[float, int] = {}
     with pdfplumber.open(pdf_path) as pdf:
         n_pages = len(pdf.pages)
+        spreads = _spread_hints(pdf.pages)
         for page in pdf.pages:
             for c in page.chars:
                 if c["text"].strip():
                     size = round(c["size"] * 2) / 2
                     sizes[size] = sizes.get(size, 0) + 1
     body = max(sizes, key=sizes.get) if sizes else 10.0
-    return {
+    hints = {
         "layout": "boxes",
         "line_margin": 1.0,
         "content_pages": [1, n_pages],
         "heading_fonts": [{"name": "", "min_size": round(body * 1.15, 2)}, {"name": "Bold", "min_size": round(body - 0.3, 2)}],
         "heading_max_words": 12,
     }
+    return {**hints, **spreads}
+
+
+def _spread_hints(pages) -> dict:
+    """`spreads` (and `printed_page_offset`) for a PDF of a printed booklet whose
+    inside pages are stored as spreads: a run of pages twice as wide as the
+    narrowest page and as tall (a smaller card or insert is shorter, and not
+    half a spread). The page numbers printed in the first spread's bottom
+    corners say where the count starts, e.g. 2|3 after a one-page cover, or
+    when there is no cover at all. A file of spreads only (every page the same
+    landscape size) has nothing narrower to compare with, so there the printed
+    numbers decide: n|n+1 on at least half the pages."""
+    single = min(pages, key=lambda p: p.width)
+    wide = [n for n, p in enumerate(pages, 1)
+            if 1.8 <= p.width / single.width <= 2.2 and abs(p.height - single.height) <= 0.02 * single.height]
+    same_size = all(abs(p.width - single.width) <= 0.02 * single.width
+                    and abs(p.height - single.height) <= 0.02 * single.height for p in pages)
+    if not wide and same_size and single.width > single.height:
+        if sum(_spread_numbers(p) is not None for p in pages) >= max(2, len(pages) / 2):
+            wide = list(range(1, len(pages) + 1))
+    if not wide or wide != list(range(wide[0], wide[-1] + 1)):
+        return {}
+    hints = {"spreads": [wide[0], wide[-1]]}
+    # Without an offset, the left half of spread n is printed page 2n - first;
+    # take the offset most numbered spreads agree on.
+    offsets = Counter(left - (2 * n - wide[0]) for n in wide if (left := _spread_numbers(pages[n - 1])) is not None)
+    if offsets and (offset := offsets.most_common(1)[0][0]):
+        hints["printed_page_offset"] = offset
+    return hints
+
+
+def _spread_numbers(page) -> int | None:
+    """The left page number of a spread that prints n|n+1 along its bottom edge,
+    placed as page numbers are: each well into its own half and mirroring the
+    other (so not a score track or diagram labels running across the middle)."""
+    w = page.width
+    numbers = [x for x in page.extract_words()
+               if x["text"].isdigit() and len(x["text"]) <= 3 and x["top"] > 0.9 * page.height]
+    for a in numbers:
+        for b in numbers:
+            if (int(b["text"]) == int(a["text"]) + 1 and a["x1"] < 0.4 * w and b["x0"] > 0.6 * w
+                    and abs(a["x0"] - (w - b["x1"])) <= 0.05 * w):
+                return int(a["text"])
+    return None
 
 
 def extract_lines(pdf_path: str, hints: dict) -> list[Line]:

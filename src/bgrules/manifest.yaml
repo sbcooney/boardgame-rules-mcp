@@ -21,6 +21,8 @@
 #   run_in_headings: a heading that starts a line of body text ("Ally cards
 #                  appear ...") also titles a section
 #   spreads:       [first, last] PDF pages holding two printed pages side by side
+#   printed_page_offset: added to PDF page numbers to give printed ones
+#                  (-1 when an unnumbered cover is PDF page 1)
 #   page_order:    reading order of PDF pages, for files stored in print
 #                  order (a booklet whose cover is PDF page 3)
 #   line_margin:   how far apart lines may be and still form one text box
@@ -406,6 +408,7 @@ villainous:
           extraction:
             <<: *villainous_instructions
             content_pages: [2, 10]
+            spreads: [2, 10]  # PDF pages 2-10 are spreads: printed 2|3 ... 18|19
         - id: guide-gaston
           title: "Gaston Villain Guide, Despicable Plots (Ravensburger PDF via BoardGameGeek)"
           source: user_supplied  # DVE4_Gaston_VillainGuide_60001913_EN02.pdf
