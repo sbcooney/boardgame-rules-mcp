@@ -145,6 +145,26 @@ def test_copies_added_earlier_gain_new_defaults_and_keep_their_tuning(tmp_path, 
     older_copy()
     ingest.add("Potion Explosion", file=str(pdf), log=quiet)  # or add a new copy
     assert saved_hints()["spreads"] == [2, 2] and saved_hints()["heading_max_words"] == 8
+    # A re-index that fails leaves the saved hints as they were.
+    older_copy()
+    before = saved_hints()
+
+    def no_ocr(path, hints):
+        raise RuntimeError("Pages [1] have no text, only images, so they need OCR")
+
+    monkeypatch.setattr(ingest, "extract_lines", no_ocr)
+    with pytest.raises(ingest.IngestError, match="need OCR"):
+        ingest.add("potion-explosion", log=quiet)
+    assert saved_hints() == before
+
+
+def test_a_score_track_is_not_taken_for_page_numbers(tmp_path):
+    # A 11-20 track across the bottom of the 2|3 spread, above its page numbers.
+    track = [(str(10 + i), "R", 10, 400 + i * 40, 60) for i in range(1, 11)]
+    pdf = make_pdf(tmp_path / "booklet.pdf", [BODY, [*BODY, *track, ("2", "R", 10, 30, 30), ("3", "R", 10, 1190, 30)], BODY],
+                   sizes=[(612, 792), (1224, 792), (612, 792)])
+    hints = extract.default_hints(str(pdf))
+    assert hints["spreads"] == [2, 2] and "printed_page_offset" not in hints
 
 
 def test_a_smaller_page_is_not_half_a_spread(tmp_path):

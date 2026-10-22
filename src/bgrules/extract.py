@@ -7,6 +7,7 @@ pages. Long sections are split into passages so search results stay specific.
 """
 
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 
 import pdfplumber
@@ -229,22 +230,27 @@ def _spread_hints(pages) -> dict:
     if not wide or wide != list(range(wide[0], wide[-1] + 1)):
         return {}
     hints = {"spreads": [wide[0], wide[-1]]}
-    for n in wide:
-        left = _spread_numbers(pages[n - 1])
-        if left is not None:
-            # Without an offset, the left half of spread n is printed page 2n - first.
-            if left != 2 * n - wide[0]:
-                hints["printed_page_offset"] = left - (2 * n - wide[0])
-            break
+    # Without an offset, the left half of spread n is printed page 2n - first;
+    # take the offset most numbered spreads agree on.
+    offsets = Counter(left - (2 * n - wide[0]) for n in wide if (left := _spread_numbers(pages[n - 1])) is not None)
+    if offsets and (offset := offsets.most_common(1)[0][0]):
+        hints["printed_page_offset"] = offset
     return hints
 
 
 def _spread_numbers(page) -> int | None:
-    """The left page number of a spread whose bottom corners print n|n+1."""
-    numbers = [(int(w["text"]), w["x0"] < page.width / 2) for w in page.extract_words()
-               if w["text"].isdigit() and len(w["text"]) <= 3 and w["top"] > 0.9 * page.height]
-    left = [n for n, is_left in numbers if is_left and (n + 1, False) in numbers]
-    return left[0] if left else None
+    """The left page number of a spread that prints n|n+1 along its bottom edge,
+    placed as page numbers are: each well into its own half and mirroring the
+    other (so not a score track or diagram labels running across the middle)."""
+    w = page.width
+    numbers = [x for x in page.extract_words()
+               if x["text"].isdigit() and len(x["text"]) <= 3 and x["top"] > 0.9 * page.height]
+    for a in numbers:
+        for b in numbers:
+            if (int(b["text"]) == int(a["text"]) + 1 and a["x1"] < 0.4 * w and b["x0"] > 0.6 * w
+                    and abs(a["x0"] - (w - b["x1"])) <= 0.05 * w):
+                return int(a["text"])
+    return None
 
 
 def extract_lines(pdf_path: str, hints: dict) -> list[Line]:

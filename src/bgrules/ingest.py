@@ -125,18 +125,16 @@ def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: 
     return edition, lambda: manifest.save_user_games(before)
 
 
-def _fill_in_default_hints(game: str, edition: str, doc_id: str, pdf: str) -> dict:
+def _fill_in_default_hints(game: str, edition: str, doc_id: str, pdf: str):
     """A user's copy with any default hint it lacks added to its saved hints, so
     re-indexing picks up defaults gained since it was added (spread detection,
     say). Saved hints win, so tuning is kept; to turn a default off, set it
-    empty rather than deleting it. Returns the document's manifest entry."""
+    empty rather than deleting it. Returns the document's manifest entry and a
+    function that saves it, for once indexing has succeeded."""
     games = manifest.user_games()
     doc = next(d for d in games[game]["editions"][edition]["docs"] if d["id"] == doc_id)
-    hints = {**default_hints(pdf), **doc.get("extraction", {})}
-    if hints != doc.get("extraction"):
-        doc["extraction"] = hints
-        manifest.save_user_games(games)
-    return doc
+    doc["extraction"] = {**default_hints(pdf), **doc.get("extraction", {})}
+    return doc, lambda: manifest.save_user_games(games)
 
 
 def add(game: str, edition: str | None = None, file: str | None = None, doc_id: str | None = None, log=print,
@@ -207,6 +205,7 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
     report = []
     missing = []  # documents users must download themselves, not supplied this time
     for doc in docs:
+        save_hints = None
         dest = store.home() / "pdfs" / game / edition / f"{doc['id']}.pdf"
         expected = doc.get("sha256") or doc.get("expected_sha256")
         # A new copy goes to a .part file first and replaces the installed PDF only
@@ -223,9 +222,10 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
             else:
                 log(f"Downloading {doc['title']} from {doc['url']}")
                 download(doc["url"], incoming)
-        elif doc.get("user_added") and dest.exists():
-            incoming = None  # re-index the user's copy (after tuning its hints, say)
-            doc = _fill_in_default_hints(game, edition, doc["id"], str(dest))
+        elif (doc.get("user_added") or doc.get("source") == "user_supplied") and dest.exists():
+            incoming = None  # re-index the copy the user supplied (after a hints change, say)
+            if doc.get("user_added"):
+                doc, save_hints = _fill_in_default_hints(game, edition, doc["id"], str(dest))
         else:
             where = f" Download it from {doc['download_page']}," if doc.get("download_page") else " Get the PDF yourself,"
             missing.append(f"'{doc['title']}' can't be downloaded automatically.{where} {supply_hint(game, edition, doc['id'])}")
@@ -269,6 +269,8 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
             with pdfplumber.open(dest) as pdf:
                 doc = {**doc, "spreads": {"first": spreads[0], "last": spreads[1], "split": pdf.pages[spreads[0] - 1].width / 2}}
         n = store.replace_doc(db, game, edition, doc, dest, digest, sections)
+        if save_hints:
+            save_hints()
         content = doc.get("extraction", {}).get("content_pages")
         pages_with_text = {ln.page for ln in lines}
         skipped = set(doc.get("extraction", {}).get("skip_pages", []))
