@@ -108,7 +108,7 @@ Point Claude at the clone with `claude mcp add bgrules -- uv --directory /path/t
 | `search_rules(game, query, edition?, max_results?)` | Verbatim passages with citations, or `found: false` with the nearest sections |
 | `get_section(section_id)` | A whole section, plus the ids of the sections before and after it |
 | `lookup_term(game, term, edition?)` | A section by its exact title, such as an almanac entry |
-| `show_passage(citation_id, quote=None)` | An image of the page region with the cited passage highlighted; with `quote`, just the quoted words |
+| `show_passage(citation_id, quote=None)` | An image of the page region with the passage marked; with `quote`, the quoted words underlined |
 | `get_page(game, page, edition?, document?)` | A whole page image with its rules text highlighted, plus the passages on it |
 | `open_in_rulebook(citation_id)` | Opens the PDF on your computer at the cited page (in Chrome, Firefox, Edge or Brave; other PDF viewers open at page 1) |
 | `verify_quote(citation_id, text)` | Whether a quote appears word for word in the cited section |
