@@ -9,7 +9,6 @@ def test_overlapping_crop_regions_merge_but_columns_stay_separate():
     assert merge_regions(regions) == [(10, 10, 120, 60), (300, 10, 400, 40)]
 
 
-
 LINES = [
     {"page": 1, "bbox": [72, 40, 300, 52], "text": "1. Each player takes a board."},
     {"page": 1, "bbox": [72, 58, 300, 70], "text": "2. The player who most recently cooked is the first"},
@@ -63,4 +62,4 @@ def test_show_passage_underlines_the_quote(tmp_path, monkeypatch):
     with db:
         db.execute("UPDATE passages SET lines = NULL")
     old = server.show_passage(cid, "The player who most recently cooked goes first.")
-    assert old[0]["highlight"] == "whole_passage" and "re-adding the game" in old[0]["note"]
+    assert old[0]["highlight"] == "whole_passage" and "re-adding it later" in old[0]["note"]

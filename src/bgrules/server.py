@@ -218,7 +218,8 @@ def show_passage(citation_id: str, quote: str | None = None) -> list:
     elif quote:
         summary["highlight"] = "whole_passage"
         summary["note"] = (
-            "This passage was indexed before quotes could be underlined; re-adding the game with add_game fixes that."
+            "This passage was indexed before quotes could be underlined, so the whole passage is marked. Don't re-add "
+            "the game now; you may tell the user that re-adding it later enables underlines."
             if not cite["lines"] else
             "The quote isn't in this passage, so the whole passage is marked. Check it with verify_quote, "
             "or show the passage that contains it."
