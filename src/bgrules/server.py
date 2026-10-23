@@ -33,8 +33,11 @@ When answering a rules question:
   it and ask, or offer the likely rulebook term as a possibility. Don't assume what they meant.
 - Rules differ between editions; always state which edition you are citing.
 - Copy quotes exactly from `quote`. If you shorten or splice a quote, check it with verify_quote first.
-- To let the user check a citation: show_passage shows the rulebook page with the passage highlighted;
-  open_in_rulebook opens the PDF on their computer at that page.
+- Show the user the rule itself: once you know which passage your answer rests on, call show_passage for it,
+  with `quote` set to the words you quote from it, so they see the printed rule highlighted. Once per answer,
+  for the main citation only, and as its own step: not in parallel with other tool calls, since some apps
+  then shrink the image to a thumbnail. Skip it when the rulebook doesn't address the question.
+- open_in_rulebook opens the PDF on the user's computer at the cited page, to read the passage in context.
 
 Official changes (errata):
 - Some rules were officially changed after older rulebooks were printed. A result with `amended_by` is one of
@@ -192,10 +195,11 @@ def lookup_term(game: str, term: str, edition: str | None = None) -> dict:
 
 
 @mcp.tool(structured_output=False)
-def show_passage(citation_id: str) -> list:
+def show_passage(citation_id: str, quote: str | None = None) -> list:
     """Show the cited passage as it appears in the printed rulebook: an image of
-    the page region with the passage highlighted. Use when the user wants to see
-    or check where an answer came from."""
+    the page region with the passage highlighted. Pass `quote` (the words you
+    quote from the passage; '...' may join fragments) to highlight just those,
+    with the rest of the passage shaded lightly."""
     db = store.connect()
     try:
         cite, pdf_path = store.get_passage(db, citation_id)
@@ -203,11 +207,20 @@ def show_passage(citation_id: str) -> list:
         return [{"error": str(e)}]
     finally:
         db.close()
-    images = []
-    for page in sorted({s["page"] for s in cite["spans"]}):
-        boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
-        images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36), format="png"))
     summary = {k: cite[k] for k in ("citation_id", "game", "edition", "document", "section_path", "printed_page", "open_link")}
+    focus = render.quote_boxes(pdf_path, cite["spans"], quote) if quote else None
+    if quote and focus is None:
+        summary["quote_highlighted"] = False
+        summary["note"] = ("The quote wasn't found in this passage on the page, so the whole passage is highlighted. "
+                           "Check it with verify_quote, or show the passage that contains it.")
+    elif focus:
+        summary["quote_highlighted"] = True
+    images = []
+    # With a quote, only the pages it is on.
+    for page in sorted({s["page"] for s in focus or cite["spans"]}):
+        boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
+        on_page = [s["bbox"] for s in focus if s["page"] == page] if focus else None
+        images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36, focus=on_page), format="png"))
     return [summary, *images]
 
 
