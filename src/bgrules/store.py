@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS sections (
 );
 CREATE TABLE IF NOT EXISTS passages (
     citation_id TEXT PRIMARY KEY, section_id TEXT, game TEXT, edition TEXT, doc_id TEXT,
-    ord INTEGER, page INTEGER, text TEXT, spans TEXT
+    ord INTEGER, page INTEGER, text TEXT, spans TEXT, lines TEXT
 );
 -- Official changes published after a rulebook was printed (errata): which
 -- section of the errata document changes which section of the rulebook.
@@ -76,6 +76,9 @@ def _migrate_doc_columns(db: sqlite3.Connection) -> None:
         if "spreads" not in cols:
             # JSON {"first", "last", "split"}: PDF pages that hold two printed pages side by side
             db.execute("ALTER TABLE docs ADD COLUMN spreads TEXT")
+        if "lines" not in {r["name"] for r in db.execute("PRAGMA table_info(passages)")}:
+            # JSON: each line's page, box and text, for underlining quotes (NULL until re-indexed)
+            db.execute("ALTER TABLE passages ADD COLUMN lines TEXT")
 
 
 def slug(text: str) -> str:
@@ -150,9 +153,10 @@ def replace_doc(db: sqlite3.Connection, game: str, edition: str, doc: dict, pdf_
             for p_ord, passage in enumerate(sec.passages(), start=1):
                 citation_id = f"{section_id}-{p_ord}"
                 db.execute(
-                    "INSERT INTO passages VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO passages (citation_id, section_id, game, edition, doc_id, ord, page, text, spans, lines) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (citation_id, section_id, game, edition, doc_id, p_ord, passage.page,
-                     passage.text, json.dumps(passage.spans)),
+                     passage.text, json.dumps(passage.spans), json.dumps(passage.line_boxes)),
                 )
                 n_passages += 1
         rebuild_fts(db, game, edition)
@@ -383,14 +387,15 @@ def search(db: sqlite3.Connection, game: str, query: str, edition: str | None = 
 
 
 def get_passage(db: sqlite3.Connection, citation_id: str) -> tuple[dict, str]:
-    """A passage's citation plus the local PDF path it came from."""
+    """A passage's citation, with its `lines` (None if indexed before lines were
+    stored), plus the local PDF path it came from."""
     row = db.execute("SELECT * FROM passages WHERE citation_id=?", (citation_id,)).fetchone()
     if row is None:
         raise LookupError_(f"No passage {citation_id!r}. Use citation_id values returned by search_rules.")
     doc = db.execute(
         "SELECT pdf_path FROM docs WHERE game=? AND edition=? AND doc_id=?", (row["game"], row["edition"], row["doc_id"])
     ).fetchone()
-    return citation(db, row), doc["pdf_path"]
+    return {**citation(db, row), "lines": json.loads(row["lines"]) if row["lines"] else None}, doc["pdf_path"]
 
 
 def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | None = None, document: str | None = None) -> tuple[dict, str]:

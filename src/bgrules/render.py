@@ -5,13 +5,19 @@ which matches pypdfium2's rendered bitmap once scaled.
 """
 
 import io
+import re
+import unicodedata
 
 import pypdfium2 as pdfium
 from PIL import Image, ImageDraw
 
-# Blue, not yellow: rulebook pages are often yellow or cream (Catan's are).
-HIGHLIGHT_FILL = (0, 110, 255, 40)
-HIGHLIGHT_EDGE = (0, 80, 220, 255)
+from .store import quote_fragments, quote_key
+
+# Blue: rulebook pages are often yellow or cream (Catan's are). The white edge
+# keeps marks visible on dark pages. Marks go beside or under the text, never
+# over it, so the printed colours stay as they are.
+MARK = (0, 80, 220)
+MARK_EDGE = (255, 255, 255)
 STACK_GAP = 12  # pixels between stacked crops
 
 
@@ -39,8 +45,60 @@ def merge_regions(regions: list[tuple[float, float, float, float]]) -> list[tupl
     return [tuple(g[:4]) for g in sorted(groups, key=lambda g: g[4])]
 
 
-def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.5, crop_margin: float | None = None) -> bytes:
-    """Render one page (1-based) with `boxes` highlighted.
+def _key(text: str) -> str:
+    # Hyphens are dropped too: a word split across lines ("con-" / "tinue") may
+    # have been joined without its hyphen in the passage text.
+    return quote_key(unicodedata.normalize("NFKC", text)).replace("-", "")
+
+
+def quote_lines(lines: list[dict], quote: str) -> dict | None:
+    """Where `quote` is in a passage's `lines` (as stored by the index): a box per
+    line to underline, trimmed to the quoted part of the first and last lines.
+    None when it isn't there. Fragments are matched in order, as verify_quote does.
+
+    `highlight` is "exact" when the boxes are the lines' own, or "approximate"
+    with `reasons`: "partial_line" (a line's quoted part is estimated from its
+    share of characters), "ocr" (positions read from a page image) or
+    "repeated" (the quote's start appears more than once; the first is used)."""
+    fragments = [k for k in (_key(f) for f in quote_fragments(quote)) if k]
+    if not fragments:
+        return None
+    keys = [_key(ln["text"]) for ln in lines]
+    text = "".join(keys)
+    owner = [(i, j) for i, k in enumerate(keys) for j in range(len(k))]  # text[n] is keys[i][j]
+    covered: dict[int, list[int]] = {}
+    pos = 0
+    for frag in fragments:
+        at = text.find(frag, pos)
+        if at < 0:
+            return None
+        for i, j in owner[at:at + len(frag)]:
+            lo, hi = covered.get(i, [j, j])
+            covered[i] = [min(lo, j), max(hi, j)]
+        pos = at + len(frag)
+    reasons = set()
+    boxes = []
+    for i, (lo, hi) in sorted(covered.items()):
+        key, (x0, top, x1, bottom) = keys[i], lines[i]["bbox"]
+        # Punctuation the quote left off (a final full stop) still counts as covered.
+        lo = 0 if re.fullmatch(r"\W*", key[:lo]) else lo
+        hi = len(key) - 1 if re.fullmatch(r"\W*", key[hi + 1:]) else hi
+        if (lo, hi) != (0, len(key) - 1):
+            reasons.add("partial_line")
+            x0, x1 = x0 + (x1 - x0) * lo / len(key), x0 + (x1 - x0) * (hi + 1) / len(key)
+        if lines[i].get("ocr"):
+            reasons.add("ocr")
+        boxes.append({"page": lines[i]["page"], "bbox": [x0, top, x1, bottom]})
+    if text.count(fragments[0]) > 1:
+        reasons.add("repeated")
+    return {"boxes": boxes, "highlight": "approximate" if reasons else "exact", "reasons": sorted(reasons)}
+
+
+def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.5, crop_margin: float | None = None,
+           underline: list[list[float]] | None = None) -> bytes:
+    """Render one page (1-based) with `boxes` marked by a bar in the margin
+    beside each, or, with `underline` set (a quote within them), those lines
+    underlined instead; crops still follow `boxes`.
 
     With crop_margin set, crop each box (plus that margin, in points)
     separately and stack the crops top to bottom in reading order, so a
@@ -49,17 +107,23 @@ def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.
     """
     pdf = pdfium.PdfDocument(pdf_path)
     try:
-        img = pdf[page - 1].render(scale=scale).to_pil().convert("RGBA")
+        img = pdf[page - 1].render(scale=scale).to_pil().convert("RGB")
     finally:
         pdf.close()
 
-    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-    pad = 3
-    for x0, top, x1, bottom in boxes:
-        rect = [(x0 - pad) * scale, (top - pad) * scale, (x1 + pad) * scale, (bottom + pad) * scale]
-        draw.rectangle(rect, fill=HIGHLIGHT_FILL, outline=HIGHLIGHT_EDGE, width=max(2, round(scale * 1.5)))
-    img = Image.alpha_composite(img, overlay).convert("RGB")
+    draw = ImageDraw.Draw(img)
+
+    def mark(points, width):
+        draw.line(points, fill=MARK_EDGE, width=width + 2 * max(1, round(scale)))
+        draw.line(points, fill=MARK, width=width)
+    if underline:
+        for x0, top, x1, bottom in underline:
+            y = (bottom + 0.5) * scale  # below the descenders, so the edge never cuts into letters
+            mark([(x0 * scale, y), (x1 * scale, y)], max(2, round(scale * 1.5)))
+    else:
+        for x0, top, x1, bottom in boxes:
+            x = max(2, x0 - 7) * scale
+            mark([(x, top * scale), (x, bottom * scale)], max(3, round(scale * 2.5)))
 
     if crop_margin is not None and boxes:
         w, h = img.size

@@ -33,8 +33,12 @@ When answering a rules question:
   it and ask, or offer the likely rulebook term as a possibility. Don't assume what they meant.
 - Rules differ between editions; always state which edition you are citing.
 - Copy quotes exactly from `quote`. If you shorten or splice a quote, check it with verify_quote first.
-- To let the user check a citation: show_passage shows the rulebook page with the passage highlighted;
-  open_in_rulebook opens the PDF on their computer at that page.
+- Show the user the rule itself: once you know which passage your answer rests on, call show_passage for it,
+  with `quote` set to the words you quote from it, so they see the printed rule with the quote underlined.
+  Once per answer, for the main citation only, and as its own step: not in parallel with other tool calls,
+  since some apps then shrink the image to a thumbnail. Skip it when the rulebook doesn't address the question.
+  If its `highlight` is "approximate" because of "ocr" or "repeated", say the underline may be slightly off.
+- open_in_rulebook opens the PDF on the user's computer at the cited page, to read the passage in context.
 
 Official changes (errata):
 - Some rules were officially changed after older rulebooks were printed. A result with `amended_by` is one of
@@ -192,10 +196,12 @@ def lookup_term(game: str, term: str, edition: str | None = None) -> dict:
 
 
 @mcp.tool(structured_output=False)
-def show_passage(citation_id: str) -> list:
+def show_passage(citation_id: str, quote: str | None = None) -> list:
     """Show the cited passage as it appears in the printed rulebook: an image of
-    the page region with the passage highlighted. Use when the user wants to see
-    or check where an answer came from."""
+    the page region with a bar beside the passage. Pass `quote` (the words you
+    quote from it; '...' may join fragments) to underline just those instead;
+    `highlight` then says how exactly the underline fits ("exact", "approximate"
+    with `highlight_reasons`, or "whole_passage" when it couldn't be placed)."""
     db = store.connect()
     try:
         cite, pdf_path = store.get_passage(db, citation_id)
@@ -203,11 +209,28 @@ def show_passage(citation_id: str) -> list:
         return [{"error": str(e)}]
     finally:
         db.close()
-    images = []
-    for page in sorted({s["page"] for s in cite["spans"]}):
-        boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
-        images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36), format="png"))
     summary = {k: cite[k] for k in ("citation_id", "game", "edition", "document", "section_path", "printed_page", "open_link")}
+    found = render.quote_lines(cite["lines"], quote) if quote and cite["lines"] else None
+    if found:
+        summary["highlight"] = found["highlight"]
+        if found["reasons"]:
+            summary["highlight_reasons"] = found["reasons"]
+    elif quote:
+        summary["highlight"] = "whole_passage"
+        summary["note"] = (
+            "This passage was indexed before quotes could be underlined, so the whole passage is marked. Don't re-add "
+            "the game now; you may tell the user that re-adding it later enables underlines."
+            if not cite["lines"] else
+            "The quote isn't in this passage, so the whole passage is marked. Check it with verify_quote, "
+            "or show the passage that contains it."
+        )
+    underline = found["boxes"] if found else None
+    images = []
+    # With a quote, only the pages it is on.
+    for page in sorted({s["page"] for s in underline or cite["spans"]}):
+        boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
+        on_page = [s["bbox"] for s in underline if s["page"] == page] if underline else None
+        images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36, underline=on_page), format="png"))
     return [summary, *images]
 
 

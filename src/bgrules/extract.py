@@ -45,6 +45,12 @@ class Passage:
     def spans(self) -> list[dict]:
         return spans(self.heading_lines + self.lines)
 
+    @property
+    def line_boxes(self) -> list[dict]:
+        """Each line of the text with its page and box, for underlining a quote."""
+        return [{"page": ln.page, "bbox": [round(v, 1) for v in ln.bbox], "text": ln.text, **({"ocr": True} if ln.ocr else {})}
+                for ln in self.lines]
+
 
 @dataclass
 class Section:

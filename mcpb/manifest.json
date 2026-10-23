@@ -4,7 +4,7 @@
   "display_name": "Board Game Rules",
   "version": "0.0.0",
   "description": "Answers board game rules questions from official rulebooks, with exact quotes and page citations.",
-  "long_description": "Ask Claude a rules question and it answers only from the publisher's rulebook, quoting it word for word and citing the section and page. It can show the cited page with the passage highlighted, and flags official rule changes (errata) that older printed rulebooks lack. Ask Claude to add a game: rulebooks download from the publisher (or you point it at a PDF you downloaded) and are indexed on your computer. Nothing is sent anywhere else.",
+  "long_description": "Ask Claude a rules question and it answers only from the publisher's rulebook, quoting it word for word and citing the section and page. It shows the cited rule as printed, with the quoted words underlined, and flags official rule changes (errata) that older printed rulebooks lack. Ask Claude to add a game: rulebooks download from the publisher (or you point it at a PDF you downloaded) and are indexed on your computer. Nothing is sent anywhere else.",
   "author": {
     "name": "sbcooney",
     "url": "https://github.com/sbcooney"
@@ -30,7 +30,7 @@
     {"name": "search_rules", "description": "Search a game's rulebook and return verbatim passages with citations"},
     {"name": "get_section", "description": "Return the full text of one rulebook section"},
     {"name": "lookup_term", "description": "Look up a glossary or almanac entry by its title"},
-    {"name": "show_passage", "description": "Show the cited passage highlighted on the rulebook page"},
+    {"name": "show_passage", "description": "Show the cited passage on the rulebook page, with the quoted words underlined"},
     {"name": "get_page", "description": "Show a whole rulebook page and the passages on it"},
     {"name": "open_in_rulebook", "description": "Open the rulebook PDF on your computer at the cited page"},
     {"name": "verify_quote", "description": "Check that a quote appears word for word in the rulebook"}
