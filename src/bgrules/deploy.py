@@ -14,6 +14,7 @@ is ever created; the only secret is the connector token, kept in
 
 import hashlib
 import json
+import math
 import os
 import re
 import secrets
@@ -230,15 +231,19 @@ def setup_project(gcloud: GCloud, config: dict, budget_given: bool = False) -> N
         gcloud("projects", "create", project, "--name=Board game rules")
     billing = gcloud.value("billing", "projects", "describe", project, "--format=value(billingAccountName)")
     if not billing:
-        if config.get("deployed_project") == project:
-            # Most likely the hard stop. This month's cost is still at the budget, so billing turned
+        if config.get("deployed_to", "").startswith(f"{project}/"):
+            # If the hard stop did it, this month's cost is still at the budget, and billing turned
             # back on would be turned off again at the budget's next notice, within hours.
             if not budget_given:
                 raise DeployError(
-                    f"Billing for project {project} is off, most likely because this month's spending reached the "
-                    f"budget ({config['budget']} {config['currency']}) and the hard stop turned it off. Turned back on "
-                    "now, it would be stopped again within hours. Once a new month has started, or to raise the "
-                    "budget, run: bgrules deploy --budget <amount>")
+                    f"Billing for project {project} is off. Either the hard stop turned it off because this month's "
+                    f"spending reached the budget ({config['budget']} {config['currency']}), or a free trial ended, or "
+                    "it was turned off by hand. After a hard stop, billing turned back on this month would be stopped "
+                    "again within hours unless the budget is higher. To turn it back on: "
+                    "bgrules deploy --budget <amount> (the same amount is fine in a new month, or if it wasn't the hard stop)")
+            # Raise the budget first, so a notice still carrying the old one can't stop billing mid-deploy.
+            gcloud.project = project
+            ensure_budget(gcloud, config)
             _step("Turning billing back on for this project")
         _step(f"Linking billing account {config['billing_account']}")
         gcloud("billing", "projects", "link", project, f"--billing-account={config['billing_account']}")
@@ -254,16 +259,16 @@ def setup_project(gcloud: GCloud, config: dict, budget_given: bool = False) -> N
                "--role=roles/run.builder", "--condition=None", "--format=none")
 
 
-def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
-    """Budget -> Pub/Sub -> function that unlinks billing from this project
-    (Google's "cap costs" pattern). Checked, and repaired, on every deploy."""
-    project, account = config["project"], config["billing_account"]
-    if not gcloud.ok("pubsub", "topics", "describe", TOPIC):
-        gcloud("pubsub", "topics", "create", TOPIC)
-    topic = f"projects/{project}/topics/{TOPIC}"
+THRESHOLDS = [0.5, 0.9, 1.0]  # emails at 50% and 90%; the hard stop acts at 100%
 
+
+def ensure_budget(gcloud: GCloud, config: dict) -> None:
+    """The project's monthly budget, at the configured amount, notifying the hard stop."""
+    project, account = config["project"], config["billing_account"]
+    topic = f"projects/{project}/topics/{TOPIC}"
     name = f"bgrules {project}"
     amount = f"--budget-amount={config['budget']}{config['currency']}"
+    rules = [f"percent={p}" for p in THRESHOLDS]
     budgets = gcloud(f"--billing-project={project}", "billing", "budgets", "list", f"--billing-account={account}",
                      "--format=json").stdout
     budget = next((b for b in json.loads(budgets or "[]") if b.get("displayName") == name), None)
@@ -272,12 +277,23 @@ def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
               "and a hard stop at 100%")
         gcloud(f"--billing-project={project}", "billing", "budgets", "create", f"--billing-account={account}",
                f"--display-name={name}", amount, f"--filter-projects=projects/{project}",
-               "--threshold-rule=percent=0.5", "--threshold-rule=percent=0.9", "--threshold-rule=percent=1.0",
-               f"--notifications-rule-pubsub-topic={topic}")
-    elif _budget_amount(budget) != float(config["budget"]) or budget.get("notificationsRule", {}).get("pubsubTopic") != topic:
+               *(f"--threshold-rule={r}" for r in rules), f"--notifications-rule-pubsub-topic={topic}")
+    elif (_budget_cents(budget) != round(float(config["budget"]) * 100)
+          or budget.get("notificationsRule", {}).get("pubsubTopic") != topic
+          or sorted(r.get("thresholdPercent") for r in budget.get("thresholdRules", [])) != THRESHOLDS):
         _step(f"Updating the budget to {config['budget']} {config['currency']}/month, with the hard stop")
         gcloud(f"--billing-project={project}", "billing", "budgets", "update", budget["name"],
-               f"--billing-account={account}", amount, f"--notifications-rule-pubsub-topic={topic}")
+               f"--billing-account={account}", amount, f"--notifications-rule-pubsub-topic={topic}",
+               "--clear-threshold-rules", *(f"--add-threshold-rule={r}" for r in rules))
+
+
+def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
+    """Budget -> Pub/Sub -> function that unlinks billing from this project
+    (Google's "cap costs" pattern). Checked, and repaired, on every deploy."""
+    project, account = config["project"], config["billing_account"]
+    if not gcloud.ok("pubsub", "topics", "describe", TOPIC):
+        gcloud("pubsub", "topics", "create", TOPIC)
+    ensure_budget(gcloud, config)
 
     # The function's own identity, allowed to do one thing: unlink billing from this project.
     # Cloud Billing asks for Project Billing Manager on the project plus Billing Account Viewer
@@ -291,23 +307,29 @@ def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
     gcloud("billing", "accounts", "add-iam-policy-binding", account, f"--member={member}", "--role=roles/billing.viewer",
            "--format=none")
 
-    # Deployed again if it's missing, broken, or older than this package's copy.
+    # Deployed again if it's missing, broken, or different from this package's copy (code or settings).
     source = Path(__file__).parent / "budget_stop"
-    digest = hashlib.sha256(b"".join(f.read_bytes() for f in sorted(source.glob("*")) if f.is_file())).hexdigest()
+    flags = ["--gen2", "--runtime=python313", f"--region={region}", f"--source={source}", "--entry-point=stop_billing",
+             f"--trigger-topic={TOPIC}", f"--service-account={member.split(':')[1]}",
+             f"--trigger-service-account={member.split(':')[1]}", f"--set-env-vars=GOOGLE_CLOUD_PROJECT={project}",
+             "--max-instances=1", "--memory=256Mi", "--no-allow-unauthenticated"]
+    digest = hashlib.sha256(json.dumps([
+        [f.name, f.read_text()] for f in sorted(source.iterdir()) if f.is_file() and not f.name.startswith(".")
+    ] + [f for f in flags if not f.startswith("--source=")]).encode()).hexdigest()
     state = gcloud("functions", "describe", STOP_FUNCTION, f"--region={region}", "--format=value(state)", check=False)
-    if state.returncode != 0 or state.stdout.strip() != "ACTIVE" or config.get("stop_function") != digest:
+    state = state.stdout.strip() if state.returncode == 0 else "MISSING"
+    if state in ("DEPLOYING", "DELETING"):
+        raise DeployError(f"The hard-stop function is busy ({state.lower()}), perhaps from a deploy still running. "
+                          "Wait a few minutes, then run the deploy again.")
+    if state != "ACTIVE" or config.get("stop_function") != digest:
         _step("Deploying the hard-stop function")
-        gcloud("functions", "deploy", STOP_FUNCTION, "--gen2", "--runtime=python313", f"--region={region}",
-               f"--source={source}", "--entry-point=stop_billing",
-               f"--trigger-topic={TOPIC}", f"--service-account={member.split(':')[1]}",
-               f"--trigger-service-account={member.split(':')[1]}", f"--set-env-vars=GOOGLE_CLOUD_PROJECT={project}",
-               "--max-instances=1", "--memory=256Mi", "--no-allow-unauthenticated")
+        gcloud("functions", "deploy", STOP_FUNCTION, *flags)
         config["stop_function"] = digest
 
 
-def _budget_amount(budget: dict) -> float:
+def _budget_cents(budget: dict) -> int:
     amount = budget.get("amount", {}).get("specifiedAmount", {})
-    return int(amount.get("units", 0)) + amount.get("nanos", 0) / 1e9
+    return int(amount.get("units", 0)) * 100 + round(amount.get("nanos", 0) / 10_000_000)
 
 
 def _parse_budget(amount: str) -> int | float:
@@ -315,8 +337,8 @@ def _parse_budget(amount: str) -> int | float:
         budget = float(amount.strip().lstrip("$€£"))
     except ValueError:
         raise DeployError(f"Not an amount: {amount!r}") from None
-    if budget <= 0:
-        raise DeployError("The budget must be more than 0.")
+    if not math.isfinite(budget) or budget <= 0:
+        raise DeployError("The budget must be an amount more than 0.")
     return int(budget) if budget.is_integer() else budget
 
 
@@ -369,10 +391,22 @@ def deploy(new_token: bool = False, project: str | None = None, region: str | No
     setup_hard_stop(gcloud, config, region)
     save_config(config)
 
-    # A new token is saved only once the service has it, so a failed deploy leaves the old link working.
-    secret = None if new_token else saved_token()
-    fresh = secret is None
-    secret = secret or make_token()
+    # A new token waits in token.pending until a deploy finishes. A deploy that fails can still have
+    # put it live (gcloud can fail after the new revision serves), so the next run reuses it.
+    pending = remote_home() / "token.pending"
+    if new_token:
+        secret = make_token()
+        _write_private(pending, secret + "\n")
+    elif pending.exists():
+        secret = pending.read_text().strip()
+    else:
+        secret = saved_token()
+        if secret is None:
+            secret = make_token()
+            _write_private(pending, secret + "\n")
+    fresh = pending.exists()
+    target = f"{config['project']}/{region}"
+    same_link = not fresh and config.get("deployed_to") == target
     with tempfile.TemporaryDirectory(prefix="bgrules-deploy-") as tmp:
         tmp = Path(tmp)
         games = build_context(tmp / "source")
@@ -381,14 +415,14 @@ def deploy(new_token: bool = False, project: str | None = None, region: str | No
         _step(f"Uploading {len(games)} games and building the server in Google Cloud (a few minutes)")
         gcloud("run", "deploy", SERVICE, f"--source={tmp / 'source'}", f"--region={region}", "--allow-unauthenticated",
                *RUN_LIMITS, f"--env-vars-file={env_file}")
+        config["deployed_to"] = target  # a service exists here now (the hard-stop check relies on it)
+        save_config(config)
         if fresh:
             save_token(secret)
+            pending.unlink()
         setup_cleanup(gcloud, region, tmp)
     url = gcloud.value("run", "services", "describe", SERVICE, f"--region={region}", "--format=value(status.url)")
     connector = f"{url}/{secret}/mcp"
-    same_link = not fresh and config.get("service_url") == url
-    config.update(deployed_project=config["project"], service_url=url)
-    save_config(config)
 
     print(f"\nGoogle Cloud project: {config['project']} (region {region})")
     print(f"Games on your private instance: {', '.join(games)}")

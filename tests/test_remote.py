@@ -158,6 +158,12 @@ def test_build_context_needs_a_game(tmp_path):
         deploy.build_context(tmp_path / "ctx", home=tmp_path / "empty")
 
 
+def _money(text: str) -> dict:
+    """An amount as the Budget API returns it: whole units as a string, plus nanos."""
+    units, _, frac = text.partition(".")
+    return {"units": units, **({"nanos": int(frac.ljust(9, "0"))} if frac else {})}
+
+
 class FakeGCloud:
     """Stands in for subprocess.run(["gcloud", ...]): a brand-new account with one
     billing account, remembering what the deploy creates."""
@@ -170,6 +176,7 @@ class FakeGCloud:
         self.budgets = []
         self.function = ""  # its state, once deployed
         self.fail_run_deploy = False
+        self.budget_updates = 0
 
     def __call__(self, cmd, capture_output=True, text=True):
         assert cmd[0] == "gcloud"
@@ -183,6 +190,7 @@ class FakeGCloud:
             out = "billingAccounts/0000-1111-2222\tMy account"
         elif joined.startswith("billing projects link"):
             self.billing = "billingAccounts/0000-1111-2222"
+            self.linked_with_budget = self.budgets[0]["amount"]["specifiedAmount"] if self.budgets else None
         elif "describe" in args:
             if "--format=value(projectNumber)" in args:
                 out = "123456"
@@ -199,14 +207,18 @@ class FakeGCloud:
         elif "budgets list" in joined:
             out = json.dumps(self.budgets)
         elif "budgets create" in joined:
-            units = next(a for a in args if a.startswith("--budget-amount="))[16:-3]
+            amount = _money(next(a for a in args if a.startswith("--budget-amount="))[16:-3])
             topic = next(a for a in args if a.startswith("--notifications-rule-pubsub-topic="))[34:]
             self.budgets.append({"name": "billingAccounts/0000-1111-2222/budgets/b1", "displayName": next(
-                a for a in args if a.startswith("--display-name="))[15:], "amount": {"specifiedAmount": {"units": units}},
-                "notificationsRule": {"pubsubTopic": topic}})
+                a for a in args if a.startswith("--display-name="))[15:], "amount": {"specifiedAmount": amount},
+                "notificationsRule": {"pubsubTopic": topic},
+                "thresholdRules": [{"thresholdPercent": float(a.split("=")[-1])} for a in args if a.startswith("--threshold-rule=")]})
         elif "budgets update" in joined:
-            self.budgets[0]["amount"]["specifiedAmount"]["units"] = next(
-                a for a in args if a.startswith("--budget-amount="))[16:-3]
+            self.budget_updates += 1
+            self.budgets[0]["amount"]["specifiedAmount"] = _money(next(
+                a for a in args if a.startswith("--budget-amount="))[16:-3])
+            self.budgets[0]["thresholdRules"] = [{"thresholdPercent": float(a.split("=")[-1])}
+                                                 for a in args if a.startswith("--add-threshold-rule=")]
         elif args[:2] == ["functions", "deploy"]:
             self.function = "ACTIVE"
         elif joined.startswith("run deploy"):
@@ -277,15 +289,19 @@ def test_redeploy_keeps_the_link(fake_home, remote_home, gcloud, monkeypatch, ca
     assert second != first and "New link" in capsys.readouterr().out
 
 
-def test_a_failed_new_token_deploy_keeps_the_old_link(fake_home, remote_home, gcloud, capsys):
+def test_a_failed_new_token_deploy_keeps_the_new_token_for_the_retry(fake_home, remote_home, gcloud, capsys):
     first = deploy.deploy()
-    gcloud.fail_run_deploy = True
+    gcloud.fail_run_deploy = True  # gcloud can fail after the new revision already serves
     with pytest.raises(deploy.DeployError):
         deploy.deploy(new_token=True)
+    assert first.endswith(f"/{deploy.saved_token()}/mcp")  # the old token stays until a deploy finishes
     gcloud.fail_run_deploy = False
     capsys.readouterr()
-    assert deploy.deploy() == first
-    assert "Same link as before" in capsys.readouterr().out
+    second = deploy.deploy()
+    assert second != first and gcloud.env["BGRULES_TOKEN"] == deploy.saved_token()
+    assert "New link" in capsys.readouterr().out
+    assert not (remote_home / "token.pending").exists()
+    assert deploy.deploy() == second
 
 
 def test_a_failed_first_deploy_still_says_to_add_the_connector(fake_home, remote_home, gcloud, capsys):
@@ -305,13 +321,29 @@ def test_after_the_hard_stop_redeploying_needs_a_budget(fake_home, remote_home, 
     assert not any(c[:3] == ["billing", "projects", "link"] for c in gcloud.calls[-5:])
     deploy.deploy(budget="20")
     assert gcloud.billing
-    assert gcloud.budgets[0]["amount"]["specifiedAmount"]["units"] == "20"
+    assert gcloud.linked_with_budget == {"units": "20"}  # raised before billing went back on
+
+
+def test_an_unchanged_budget_is_left_alone(fake_home, remote_home, gcloud):
+    deploy.deploy(budget="7.5")
+    deploy.deploy()
+    assert gcloud.budget_updates == 0
+
+
+@pytest.mark.parametrize("amount", ["inf", "nan", "-1", "0", "five"])
+def test_budget_must_be_a_positive_amount(amount):
+    with pytest.raises(deploy.DeployError):
+        deploy._parse_budget(amount)
 
 
 def test_a_broken_hard_stop_function_is_deployed_again(fake_home, remote_home, gcloud):
     deploy.deploy()
     gcloud.function = "FAILED"
     deploy.deploy()
+    assert sum(c[:2] == ["functions", "deploy"] for c in gcloud.calls) == 2
+    gcloud.function = "DEPLOYING"
+    with pytest.raises(deploy.DeployError, match="busy"):
+        deploy.deploy()
     assert sum(c[:2] == ["functions", "deploy"] for c in gcloud.calls) == 2
 
 

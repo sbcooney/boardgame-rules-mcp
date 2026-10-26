@@ -3,8 +3,8 @@
 The budget publishes a notice to Pub/Sub several times a day, with the month's
 cost so far. When the cost reaches the budget, this unlinks the project from its
 billing account (Google's "cap costs" pattern): everything in the project stops.
-Other projects and the billing account itself are untouched. `bgrules deploy`
-turns billing back on.
+Other projects and the billing account itself are untouched.
+`bgrules deploy --budget <amount>` turns billing back on.
 """
 
 import base64
