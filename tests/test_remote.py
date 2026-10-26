@@ -67,14 +67,14 @@ def test_a_short_or_missing_token_is_refused(monkeypatch):
 def test_remote_mode_drops_local_tools_and_explains_redeploying():
     code = ("import asyncio, json; from bgrules import server, store; server.remote_mode(); "
             "print(json.dumps({'tools': [t.name for t in asyncio.run(server.mcp.list_tools())], "
-            "'instructions': server.mcp.instructions, 'links': store.OPEN_LINKS}))")
+            "'instructions': server.mcp.instructions, 'remote': store.REMOTE}))")
     out = json.loads(subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout)
     assert "add_game" not in out["tools"] and "open_in_rulebook" not in out["tools"]
     assert {"list_games", "search_rules", "get_section", "lookup_term", "show_passage", "get_page", "verify_quote"} <= set(out["tools"])
     assert "run the deploy command again" in out["instructions"]
     assert "Nothing changes on their phone" in out["instructions"]
     assert "open_in_rulebook" not in out["instructions"] and "add_game" not in out["instructions"]
-    assert out["links"] is False
+    assert out["remote"] is True
 
 
 def test_local_instructions_keep_adding_games():
@@ -94,6 +94,18 @@ def test_pdf_found_under_a_moved_home(tmp_path, monkeypatch):
     # Nothing there either: the stored path stands, and rendering reports it missing.
     assert store.pdf_path("/Users/someone/.bgrules/pdfs/wingspan/1st/rulebook.pdf") == "/Users/someone/.bgrules/pdfs/wingspan/1st/rulebook.pdf"
     assert store.pdf_path("/elsewhere/rules.pdf") == "/elsewhere/rules.pdf"
+    assert store.pdf_path("C:\\Users\\me\\.bgrules\\pdfs\\catan\\2020\\rules.pdf") == str(pdf)
+
+
+def test_remote_not_installed_points_to_the_deploy(monkeypatch, tmp_path):
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path))
+    db = store.connect()
+    with pytest.raises(store.LookupError_, match="add_game"):
+        store.search(db, "catan", "robber")
+    monkeypatch.setattr(store, "REMOTE", True)
+    with pytest.raises(store.LookupError_, match="deploy") as e:
+        store.search(db, "catan", "robber")
+    assert "add_game" not in str(e.value)
 
 
 # --- deploy: token, package, gcloud commands --------------------------------
@@ -104,13 +116,13 @@ def remote_home(tmp_path, monkeypatch):
     return tmp_path / "remote"
 
 
-def test_token_is_private_and_reused(remote_home):
-    first = deploy.token()
-    assert len(first) >= server.MIN_TOKEN_LENGTH
+def test_token_is_private(remote_home):
+    assert deploy.saved_token() is None
+    token = deploy.make_token()
+    assert len(token) >= server.MIN_TOKEN_LENGTH and deploy.make_token() != token
+    deploy.save_token(token)
     assert stat.S_IMODE((remote_home / "token").stat().st_mode) == 0o600
-    assert deploy.token() == first
-    assert deploy.token(new=True) != first
-    assert deploy.token() != first
+    assert deploy.saved_token() == token
 
 
 @pytest.fixture
@@ -147,11 +159,17 @@ def test_build_context_needs_a_game(tmp_path):
 
 
 class FakeGCloud:
-    """Stands in for subprocess.run(["gcloud", ...]): a brand-new account with one billing account."""
+    """Stands in for subprocess.run(["gcloud", ...]): a brand-new account with one
+    billing account, remembering what the deploy creates."""
 
-    def __init__(self):
+    def __init__(self, currency="USD"):
         self.calls = []
         self.env_file = None
+        self.currency = currency
+        self.billing = ""  # the project's billing account, once linked
+        self.budgets = []
+        self.function = ""  # its state, once deployed
+        self.fail_run_deploy = False
 
     def __call__(self, cmd, capture_output=True, text=True):
         assert cmd[0] == "gcloud"
@@ -163,16 +181,37 @@ class FakeGCloud:
             out = "me@example.com"
         elif joined.startswith("billing accounts list"):
             out = "billingAccounts/0000-1111-2222\tMy account"
+        elif joined.startswith("billing projects link"):
+            self.billing = "billingAccounts/0000-1111-2222"
         elif "describe" in args:
             if "--format=value(projectNumber)" in args:
                 out = "123456"
             elif "--format=value(status.url)" in args:
                 out = "https://bgrules-abc-uc.a.run.app"
-            elif "--format=value(billingAccountName)" not in args:
-                code = 1  # nothing exists yet
+            elif "--format=value(currencyCode)" in args:
+                out = self.currency
+            elif "--format=value(billingAccountName)" in args:
+                out = self.billing
+            elif args[0] == "functions" and self.function:
+                out = self.function
+            else:
+                code = 1  # nothing else exists
         elif "budgets list" in joined:
-            out = "[]"
+            out = json.dumps(self.budgets)
+        elif "budgets create" in joined:
+            units = next(a for a in args if a.startswith("--budget-amount="))[16:-3]
+            topic = next(a for a in args if a.startswith("--notifications-rule-pubsub-topic="))[34:]
+            self.budgets.append({"name": "billingAccounts/0000-1111-2222/budgets/b1", "displayName": next(
+                a for a in args if a.startswith("--display-name="))[15:], "amount": {"specifiedAmount": {"units": units}},
+                "notificationsRule": {"pubsubTopic": topic}})
+        elif "budgets update" in joined:
+            self.budgets[0]["amount"]["specifiedAmount"]["units"] = next(
+                a for a in args if a.startswith("--budget-amount="))[16:-3]
+        elif args[:2] == ["functions", "deploy"]:
+            self.function = "ACTIVE"
         elif joined.startswith("run deploy"):
+            if self.fail_run_deploy:
+                return subprocess.CompletedProcess(cmd, 1, "", "build failed")
             self.env_file = next(a.split("=", 1)[1] for a in args if a.startswith("--env-vars-file="))
             self.env = json.loads(Path(self.env_file).read_text())
             self.source = next(a.split("=", 1)[1] for a in args if a.startswith("--source="))
@@ -182,17 +221,23 @@ class FakeGCloud:
         return subprocess.CompletedProcess(cmd, code, out, "")
 
 
-def test_deploy_sets_limits_and_hard_stop_before_deploying(fake_home, remote_home, monkeypatch, capsys):
+@pytest.fixture
+def gcloud(monkeypatch):
     fake = FakeGCloud()
     monkeypatch.setattr(deploy.shutil, "which", lambda name: "/usr/bin/gcloud")
     monkeypatch.setattr(deploy.subprocess, "run", fake)
     monkeypatch.setattr("builtins.input", lambda prompt: "")  # take the suggested budget
+    return fake
 
+
+def test_deploy_sets_limits_and_hard_stop_before_deploying(fake_home, remote_home, gcloud, capsys):
+    fake = gcloud
     url = deploy.deploy()
 
     token = (remote_home / "token").read_text().strip()
     assert url == f"https://bgrules-abc-uc.a.run.app/{token}/mcp"
-    assert url in capsys.readouterr().out
+    printed = capsys.readouterr().out
+    assert url in printed and "New link" in printed
     config = json.loads((remote_home / "config.json").read_text())
     assert config["budget"] == deploy.DEFAULT_BUDGET and config["billing_account"] == "0000-1111-2222"
 
@@ -219,14 +264,62 @@ def test_deploy_sets_limits_and_hard_stop_before_deploying(fake_home, remote_hom
     assert not any("keys" in c for c in fake.calls)
 
 
-def test_redeploy_keeps_the_link(fake_home, remote_home, monkeypatch):
-    monkeypatch.setattr(deploy.shutil, "which", lambda name: "/usr/bin/gcloud")
-    monkeypatch.setattr(deploy.subprocess, "run", FakeGCloud())
-    monkeypatch.setattr("builtins.input", lambda prompt: "3")
+def test_redeploy_keeps_the_link(fake_home, remote_home, gcloud, monkeypatch, capsys):
     first = deploy.deploy()
     monkeypatch.setattr("builtins.input", lambda prompt: pytest.fail("asked again"))
+    capsys.readouterr()
     assert deploy.deploy() == first
-    assert deploy.deploy(new_token=True) != first
+    assert "Same link as before" in capsys.readouterr().out
+    # The hard-stop function and budget are already in place: not deployed or created again.
+    assert sum(c[:2] == ["functions", "deploy"] for c in gcloud.calls) == 1
+    assert sum("create" in c and "budgets" in c for c in gcloud.calls) == 1
+    second = deploy.deploy(new_token=True)
+    assert second != first and "New link" in capsys.readouterr().out
+
+
+def test_a_failed_new_token_deploy_keeps_the_old_link(fake_home, remote_home, gcloud, capsys):
+    first = deploy.deploy()
+    gcloud.fail_run_deploy = True
+    with pytest.raises(deploy.DeployError):
+        deploy.deploy(new_token=True)
+    gcloud.fail_run_deploy = False
+    capsys.readouterr()
+    assert deploy.deploy() == first
+    assert "Same link as before" in capsys.readouterr().out
+
+
+def test_a_failed_first_deploy_still_says_to_add_the_connector(fake_home, remote_home, gcloud, capsys):
+    gcloud.fail_run_deploy = True
+    with pytest.raises(deploy.DeployError):
+        deploy.deploy()
+    gcloud.fail_run_deploy = False
+    deploy.deploy()
+    assert "New link" in capsys.readouterr().out
+
+
+def test_after_the_hard_stop_redeploying_needs_a_budget(fake_home, remote_home, gcloud):
+    deploy.deploy()
+    gcloud.billing = ""  # the hard stop unlinked it
+    with pytest.raises(deploy.DeployError, match="--budget"):
+        deploy.deploy()
+    assert not any(c[:3] == ["billing", "projects", "link"] for c in gcloud.calls[-5:])
+    deploy.deploy(budget="20")
+    assert gcloud.billing
+    assert gcloud.budgets[0]["amount"]["specifiedAmount"]["units"] == "20"
+
+
+def test_a_broken_hard_stop_function_is_deployed_again(fake_home, remote_home, gcloud):
+    deploy.deploy()
+    gcloud.function = "FAILED"
+    deploy.deploy()
+    assert sum(c[:2] == ["functions", "deploy"] for c in gcloud.calls) == 2
+
+
+def test_budget_is_in_the_billing_accounts_currency(fake_home, remote_home, gcloud):
+    gcloud.currency = "EUR"
+    deploy.deploy()
+    budget = next(c for c in gcloud.calls if "budgets" in c and "create" in c)
+    assert "--budget-amount=5EUR" in budget
 
 
 def test_deploy_without_gcloud(monkeypatch):
@@ -324,7 +417,8 @@ def test_serve_http_end_to_end(tmp_path):
     finally:
         proc.terminate()
         proc.wait(10)
-    tools, search, shown = result
+    instructions, tools, search, shown = result
+    assert "run the deploy command again" in instructions  # what the client actually receives
     assert "add_game" not in tools and "open_in_rulebook" not in tools
     top = json.loads(search.content[0].text)["results"][0]
     assert top["section_path"] == ["Almanac", "Robber"] and "open_link" not in top
@@ -335,9 +429,9 @@ def test_serve_http_end_to_end(tmp_path):
 async def _remote_calls(url):
     async with streamable_http_client(url) as (read, write, *_):
         async with ClientSession(read, write) as session:
-            await session.initialize()
+            init = await session.initialize()
             tools = [t.name for t in (await session.list_tools()).tools]
             search = await session.call_tool("search_rules", {"game": "catan", "edition": "2020", "query": "What happens when I move the robber?"})
             cid = json.loads(search.content[0].text)["results"][0]["citation_id"]
             shown = await session.call_tool("show_passage", {"citation_id": cid, "quote": "The robber begins the game in the desert."})
-            return tools, search, shown
+            return init.instructions, tools, search, shown

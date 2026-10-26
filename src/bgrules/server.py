@@ -112,7 +112,7 @@ def _call(fn, *args, **kwargs) -> dict:
 
 @mcp.tool()
 def list_games() -> dict:
-    """List the games, editions and rulebook documents installed on this machine,
+    """List the games, editions and rulebook documents installed,
     each game's official changes (errata) that older printed rulebooks lack, and
     the games that can be installed with add_game (`available`), and a link for
     requesting a game that isn't available (`request_a_game`). Installed documents
@@ -369,7 +369,7 @@ def remote_mode() -> None:
     mcp.remove_tool("add_game")
     mcp.remove_tool("open_in_rulebook")
     mcp._lowlevel_server.instructions = REMOTE_INSTRUCTIONS
-    store.OPEN_LINKS = False
+    store.REMOTE = True
 
 
 class _TokenGate:

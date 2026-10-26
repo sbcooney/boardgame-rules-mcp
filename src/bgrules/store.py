@@ -53,22 +53,24 @@ def home() -> Path:
     return Path(os.environ.get("BGRULES_HOME", Path.home() / ".bgrules"))
 
 
-# Off on a remote instance: a file:// link to the server's copy is no use to the user.
-OPEN_LINKS = True
+# On a remote instance (`serve --http`): a file:// link to the server's copy is no use to the
+# user, and games are added on the user's computer, not here.
+REMOTE = False
 
 
 def pdf_path(stored: str) -> str:
     """Where a document's PDF is now. The index stores absolute paths; when the
     home folder has moved (a copy deployed elsewhere), the same file is looked
     for under this home's pdfs/ folder."""
-    if Path(stored).exists() or "/pdfs/" not in stored:
+    portable = stored.replace("\\", "/")  # indexed on Windows
+    if Path(stored).exists() or "/pdfs/" not in portable:
         return stored
-    moved = home() / "pdfs" / stored.rsplit("/pdfs/", 1)[1]
+    moved = home() / "pdfs" / portable.rsplit("/pdfs/", 1)[1]
     return str(moved) if moved.exists() else stored
 
 
 def _open_link(stored: str, page: int) -> dict:
-    return {"open_link": Path(pdf_path(stored)).as_uri() + f"#page={page}"} if OPEN_LINKS else {}
+    return {"open_link": Path(pdf_path(stored)).as_uri() + f"#page={page}"} if not REMOTE else {}
 
 
 def connect(path: Path | None = None) -> sqlite3.Connection:
@@ -201,7 +203,9 @@ def resolve_edition(db: sqlite3.Connection, game: str, edition: str | None) -> s
     editions = [r["edition"] for r in db.execute("SELECT DISTINCT edition FROM docs WHERE game=?", (game,))]
     if not editions:
         games = sorted({r["game"] for r in db.execute("SELECT game FROM docs")})
-        raise LookupError_(f"Game {game!r} is not installed. Installed games: {games or 'none'}. Install it with add_game (or `bgrules add {game}`).")
+        how = ("Games are added on the user's computer, then the deploy is run again (see the server's instructions)."
+               if REMOTE else f"Install it with add_game (or `bgrules add {game}`).")
+        raise LookupError_(f"Game {game!r} is not installed. Installed games: {games or 'none'}. {how}")
     if edition is None:
         if len(editions) > 1:
             raise LookupError_(f"{game} has several editions installed {editions}; pass edition= (rules differ between editions).")

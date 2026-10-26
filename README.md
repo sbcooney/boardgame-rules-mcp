@@ -119,7 +119,7 @@ Skip this if you already use Google Cloud.
 4. Set up a payments profile: choose **Individual** as the account type (it can't be changed later), and add a credit or debit card. Google may place a temporary hold on the card to check it; it isn't a charge and clears within a few business days.
 5. Click **Submit and enable billing**.
 
-New customers are usually offered the [free trial](https://cloud.google.com/free/docs/free-cloud-features): $300 of credit for 90 days, with no charges during it. When it ends, Google turns billing off and stops everything unless you upgrade to a paid account (**Activate full account** in the console). Your instance stops then too; after upgrading, run `bgrules deploy` again. Normal use stays within the free tier either way, so a paid account costs nothing or close to it (see [Cost](#cost)).
+New customers are usually offered the [free trial](https://cloud.google.com/free/docs/free-cloud-features): $300 of credit for 90 days, with no charges during it. When it ends, Google turns billing off and stops everything unless you upgrade to a paid account (**Activate full account** in the console). Your instance stops then too. After upgrading, run `bgrules deploy` again; if it says billing is off, run `bgrules deploy --budget 5` (your budget). Normal use stays within the free tier either way, so a paid account costs nothing or close to it (see [Cost](#cost)).
 
 **2. Install and sign in to `gcloud` (in the terminal, once)**
 
@@ -138,7 +138,7 @@ bgrules deploy
 (or `uvx boardgame-rules-mcp deploy`). The first run asks two things:
 
 - **Which billing account** to use, if you have more than one.
-- **A monthly budget** in US dollars (suggested: $5). Billing for the project is turned off when it's passed (the [hard stop](#cost)).
+- **A monthly budget**, in your billing account's currency (suggested: 5). Change it later with `bgrules deploy --budget <amount>`. Billing for the project is turned off when it's passed (the [hard stop](#cost)).
 
 Then it creates a Google Cloud project just for this (named `bgrules-` and six random characters), turns on the services it needs, sets up the budget and hard stop, and uploads and builds your games. The first run takes several minutes. It ends by printing the project's name, the games on the instance, and the **connector URL**.
 
@@ -190,7 +190,7 @@ That's about $2,800 a month, or about $90 a day. A flood of page-image requests 
 Caveats:
 
 - Google's spending reports lag, sometimes by hours, so spending can pass the budget before the stop. At the worst-case rate above, that's up to about $90 for a day's delay.
-- After a stop, the service stays down until you turn billing back on. Running `bgrules deploy` again does that and redeploys.
+- After a stop, the service stays down until billing is back on. This month's spending is still at the budget, so turning billing on again the same month would be stopped again within hours. Once a new month starts, or to raise the budget, run `bgrules deploy --budget <amount>`: it turns billing back on and redeploys. A plain `bgrules deploy` explains this instead of turning billing on.
 - Google may eventually delete resources in a project without billing. The deploy recreates everything.
 
 ### Turn it off

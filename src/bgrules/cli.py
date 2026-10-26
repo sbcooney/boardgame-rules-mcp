@@ -45,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
     deploy.add_argument("--new-token", action="store_true", help="make a new secret link, shutting out the old one")
     deploy.add_argument("--project", help="Google Cloud project to use (default: a new one just for this)")
     deploy.add_argument("--region", help="Cloud Run region (default: us-central1)")
+    deploy.add_argument("--budget", help="change the monthly budget (in your billing account's currency); "
+                                         "also needed to turn billing back on after the hard stop")
 
     args = ap.parse_args(argv)
 
@@ -82,7 +84,7 @@ def main(argv: list[str] | None = None) -> int:
         from . import deploy
 
         try:
-            deploy.deploy(new_token=args.new_token, project=args.project, region=args.region)
+            deploy.deploy(new_token=args.new_token, project=args.project, region=args.region, budget=args.budget)
         except deploy.DeployError as e:
             print(f"error: {e}", file=sys.stderr)
             return 1
