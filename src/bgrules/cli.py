@@ -37,7 +37,14 @@ def main(argv: list[str] | None = None) -> int:
     search.add_argument("--edition")
     search.add_argument("-n", type=int, default=3)
 
-    sub.add_parser("serve", help="run the MCP server over stdio")
+    serve = sub.add_parser("serve", help="run the MCP server over stdio")
+    serve.add_argument("--http", action="store_true",
+                       help="serve over HTTP on $PORT instead, as a remote instance (needs BGRULES_TOKEN; see bgrules deploy)")
+
+    deploy = sub.add_parser("deploy", help="put a private copy of your games on Google Cloud Run, for the Claude mobile app")
+    deploy.add_argument("--new-token", action="store_true", help="make a new secret link, shutting out the old one")
+    deploy.add_argument("--project", help="Google Cloud project to use (default: a new one just for this)")
+    deploy.add_argument("--region", help="Cloud Run region (default: us-central1)")
 
     args = ap.parse_args(argv)
 
@@ -68,9 +75,17 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.cmd == "serve":
-        from .server import run
+        from . import server
 
-        run()
+        server.run_http() if args.http else server.run()
+    elif args.cmd == "deploy":
+        from . import deploy
+
+        try:
+            deploy.deploy(new_token=args.new_token, project=args.project, region=args.region)
+        except deploy.DeployError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
     return 0
 
 

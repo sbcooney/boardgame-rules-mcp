@@ -53,6 +53,24 @@ def home() -> Path:
     return Path(os.environ.get("BGRULES_HOME", Path.home() / ".bgrules"))
 
 
+# Off on a remote instance: a file:// link to the server's copy is no use to the user.
+OPEN_LINKS = True
+
+
+def pdf_path(stored: str) -> str:
+    """Where a document's PDF is now. The index stores absolute paths; when the
+    home folder has moved (a copy deployed elsewhere), the same file is looked
+    for under this home's pdfs/ folder."""
+    if Path(stored).exists() or "/pdfs/" not in stored:
+        return stored
+    moved = home() / "pdfs" / stored.rsplit("/pdfs/", 1)[1]
+    return str(moved) if moved.exists() else stored
+
+
+def _open_link(stored: str, page: int) -> dict:
+    return {"open_link": Path(pdf_path(stored)).as_uri() + f"#page={page}"} if OPEN_LINKS else {}
+
+
 def connect(path: Path | None = None) -> sqlite3.Connection:
     path = path or home() / "index.sqlite"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -303,7 +321,7 @@ def citation(db: sqlite3.Connection, row: sqlite3.Row) -> dict:
         "pdf_page": row["page"],
         "quote": row["text"],
         "spans": json.loads(row["spans"]),
-        "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={row['page']}",
+        **_open_link(doc["pdf_path"], row["page"]),
     }
     amended = amendments_for(db, row["game"], row["edition"], row["doc_id"], path)
     if amended:
@@ -395,7 +413,7 @@ def get_passage(db: sqlite3.Connection, citation_id: str) -> tuple[dict, str]:
     doc = db.execute(
         "SELECT pdf_path FROM docs WHERE game=? AND edition=? AND doc_id=?", (row["game"], row["edition"], row["doc_id"])
     ).fetchone()
-    return {**citation(db, row), "lines": json.loads(row["lines"]) if row["lines"] else None}, doc["pdf_path"]
+    return {**citation(db, row), "lines": json.loads(row["lines"]) if row["lines"] else None}, pdf_path(doc["pdf_path"])
 
 
 def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | None = None, document: str | None = None) -> tuple[dict, str]:
@@ -435,10 +453,10 @@ def page_contents(db: sqlite3.Connection, game: str, page: int, edition: str | N
         "document": doc["title"],
         "printed_page": page,
         "passages": passages,
-        "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={pdf_page}",
+        **_open_link(doc["pdf_path"], pdf_page),
         "_boxes": boxes,
         "_pdf_page": pdf_page,
-    }, doc["pdf_path"]
+    }, pdf_path(doc["pdf_path"])
 
 
 def _normalize(text: str) -> str:
@@ -513,7 +531,7 @@ def get_section(db: sqlite3.Connection, section_id: str) -> dict:
         "printed_page_end": printed_page(doc, sec["page_end"], _span_x(spans, sec["page_end"], last=True)),
         "text": sec["text"],
         "spans": spans,
-        "open_link": Path(doc["pdf_path"]).as_uri() + f"#page={sec['page_start']}",
+        **_open_link(doc["pdf_path"], sec["page_start"]),
         "previous_section": next(({"section_id": n["section_id"], "section_path": json.loads(n["path"])} for n in neighbours if n["ord"] < sec["ord"]), None),
         "next_section": next(({"section_id": n["section_id"], "section_path": json.loads(n["path"])} for n in neighbours if n["ord"] > sec["ord"]), None),
     }

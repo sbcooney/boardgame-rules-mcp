@@ -63,7 +63,7 @@ bgrules search catan "What happens when I move the robber?"
 
 This puts the `bgrules` command on your PATH; `uv tool upgrade boardgame-rules-mcp` updates it. Rulebooks and the index live in `~/.bgrules` (set `BGRULES_HOME` to move them). To try it without installing, run `uvx boardgame-rules-mcp` in place of `bgrules`.
 
-The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code. The Claude mobile apps and claude.ai can't run local servers, so it isn't available there.
+The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code. The Claude mobile apps and claude.ai can't run local servers. To use it there, put a private copy on Google Cloud: see [Use it from your phone](#use-it-from-your-phone-private-instance).
 
 ### Connect to Claude Code
 
@@ -98,6 +98,80 @@ uv run pytest
 ```
 
 Point Claude at the clone with `claude mcp add bgrules -- uv --directory /path/to/boardgame-rules-mcp run bgrules serve`.
+
+## Use it from your phone (private instance)
+
+The Claude mobile app can't run the server, but it can reach one on the internet through a custom connector. `bgrules deploy` puts a private copy of your games on [Google Cloud Run](https://cloud.google.com/run), built from your `~/.bgrules`. Nothing runs on your computer, so it doesn't need to be awake.
+
+There's no public instance: the rulebooks are the publishers', so each person runs their own copy of the rulebooks they have.
+
+### Set it up
+
+1. Install `gcloud`. On a Mac: `brew install --cask gcloud-cli` ([other systems](https://cloud.google.com/sdk/docs/install)).
+2. Run `gcloud init` and sign in with your Google account.
+3. Create a billing account at [console.cloud.google.com/billing](https://console.cloud.google.com/billing), if you don't have one. New accounts get free credit, and normal use stays within the free tier (see [Cost](#cost)).
+4. Add your games on this computer as usual, then run the deploy command:
+   ```sh
+   bgrules deploy
+   ```
+   (or `uvx boardgame-rules-mcp deploy`). The first run asks for a monthly budget (suggested: $5), creates a Google Cloud project just for this, sets up the [hard stop](#cost), and uploads your games. It takes a few minutes, and prints a connector URL.
+5. On [claude.ai](https://claude.ai), go to **Settings > Connectors > Add custom connector** and paste the URL. Connectors can't be added from the phone, but once added they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
+6. Ask a rules question in the mobile app.
+
+### Adding a game later
+
+1. On your computer, add the game as usual: ask Claude Desktop or Claude Code to add it, or run `bgrules add <game>`. It goes into `~/.bgrules`, the folder the phone's copy is built from.
+2. On the same computer, run `bgrules deploy` again. It sends a fresh copy of `~/.bgrules` to Google Cloud, which rebuilds the instance in a few minutes.
+3. Nothing changes on your phone. The link stays the same, so the connector keeps working, and the game is there once the deploy finishes.
+
+On the phone, Claude explains these steps when you ask about a game the instance doesn't have. Adding games and opening the PDF aren't available there; search, quotes and page images are.
+
+### Keep the link private
+
+The connector URL holds a long random token: `https://<service>.run.app/<token>/mcp`. Claude's custom connectors can't send passwords or sign in to Google, so the token in the URL is what keeps others out. Every other address gets a plain 404. Anyone with the link can read your copies of the rulebooks, so don't share it.
+
+- The token is saved in `~/.bgrules-remote/token` (readable only by you) and reused, so the link never changes. If it leaks, run `bgrules deploy --new-token` and replace the URL in the connector on claude.ai.
+- There are no keys to leak. The deploy runs as you, through `gcloud`; it never creates an API key or a service-account key.
+- Cloud Run's request logs in your project record the URL, token included. Only people with access to your project can see them.
+- Turn on [2-Step Verification](https://myaccount.google.com/signinoptions/twosv) for your Google account: it controls the project and its billing.
+
+### Cost
+
+**Normal use costs nothing or close to it.** A few questions a day stay well inside Cloud Run's monthly free tier, and the instance scales to zero, so nothing is billed while it's idle. Each deploy uses a few of Cloud Build's 2,500 free build-minutes. The stored image is about $0.10 a month: Artifact Registry charges $0.10 per GB-month above 0.5 GB, and the deploy keeps only the two newest images. Uploads are deleted after a day.
+
+**The limits.** The service runs at most one instance (1 CPU, 512 MB), with a 60-second request timeout. That caps what it can spend even if someone floods it.
+
+**The worst case** is someone flooding the address around the clock, for a whole month. Wrong-token requests still reach the server, and Cloud Run bills every request that does. Prices from Google, October 2026, in a Tier 1 region such as `us-central1`:
+
+| Cost | Rate | Free each month | Worst case, 30 days |
+| --- | --- | --- | --- |
+| Requests (about 2,600 a second, measured on one CPU) | $0.40 per million | 2 million | about $2,700 |
+| CPU, busy all month | $0.000024 per vCPU-second | 180,000 vCPU-seconds | about $58 |
+| Memory, 512 MB all month | $0.0000025 per GiB-second | 360,000 GiB-seconds | about $2 |
+
+That's about $2,800 a month, or about $90 a day. A flood of page-image requests costs less: about 1.2 TB of data a month, at roughly $0.12 per GB, is about $140.
+
+**The hard stop.** The deploy creates a monthly budget for the project. Google emails you at 50% and 90% of it. At 100%, a small function in the project turns billing off for that project (Google's ["cap costs"](https://cloud.google.com/billing/docs/how-to/disable-billing-with-notifications) setup), which stops the service. Your other projects and the billing account itself aren't touched. The function's own account can only unlink billing from this project: it has Project Billing Manager on the project, and Billing Account Viewer on the account, which lets it read but not change it.
+
+Caveats:
+
+- Google's spending reports lag, sometimes by hours, so spending can pass the budget before the stop. At the worst-case rate above, that's up to about $90 for a day's delay.
+- After a stop, the service stays down until you turn billing back on. Running `bgrules deploy` again does that and redeploys.
+- Google may eventually delete resources in a project without billing. The deploy recreates everything.
+
+### Turn it off
+
+Delete the service (the deploy prints your project's id; it starts with `bgrules-`):
+
+```sh
+gcloud run services delete bgrules --region us-central1 --project <project>
+```
+
+Or delete the whole project, which stops everything it holds:
+
+```sh
+gcloud projects delete <project>
+```
 
 ## Tools
 
