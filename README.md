@@ -107,16 +107,50 @@ There's no public instance: the rulebooks are the publishers', so each person ru
 
 ### Set it up
 
-1. Install `gcloud`. On a Mac: `brew install --cask gcloud-cli` ([other systems](https://cloud.google.com/sdk/docs/install)).
-2. Run `gcloud init` and sign in with your Google account.
-3. Create a billing account at [console.cloud.google.com/billing](https://console.cloud.google.com/billing), if you don't have one. New accounts get free credit, and normal use stays within the free tier (see [Cost](#cost)).
-4. Add your games on this computer as usual, then run the deploy command:
-   ```sh
-   bgrules deploy
-   ```
-   (or `uvx boardgame-rules-mcp deploy`). The first run asks for a monthly budget (suggested: $5), creates a Google Cloud project just for this, sets up the [hard stop](#cost), and uploads your games. It takes a few minutes, and prints a connector URL.
-5. On [claude.ai](https://claude.ai), go to **Settings > Connectors > Add custom connector** and paste the URL. Connectors can't be added from the phone, but once added they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
-6. Ask a rules question in the mobile app.
+You do two things in a browser: create a billing account on Google Cloud's website, and add the connector on claude.ai. The deploy command does everything else (the project, its services, the budget and hard stop, the server) from the terminal, so you don't need to find your way around Google Cloud's console.
+
+**1. Create a Google Cloud billing account (in a browser, once)**
+
+Skip this if you already use Google Cloud.
+
+1. Go to [console.cloud.google.com/billing](https://console.cloud.google.com/billing) and sign in with your Google account. The first time, you may be asked to accept Google Cloud's terms of service.
+2. Click **Create account** (or accept the free trial if it's offered; see below).
+3. Give it a name, choose your country and click **Continue**. The country and its currency can't be changed later.
+4. Set up a payments profile: choose **Individual** as the account type (it can't be changed later), and add a credit or debit card. Google may place a temporary hold on the card to check it; it isn't a charge and clears within a few business days.
+5. Click **Submit and enable billing**.
+
+New customers are usually offered the [free trial](https://cloud.google.com/free/docs/free-cloud-features): $300 of credit for 90 days, with no charges during it. When it ends, Google turns billing off and stops everything unless you upgrade to a paid account (**Activate full account** in the console). Your instance stops then too; after upgrading, run `bgrules deploy` again. Normal use stays within the free tier either way, so a paid account costs nothing or close to it (see [Cost](#cost)).
+
+**2. Install and sign in to `gcloud` (in the terminal, once)**
+
+1. Install it. On a Mac: `brew install --cask gcloud-cli` ([other systems](https://cloud.google.com/sdk/docs/install)).
+2. Run `gcloud init`. It opens a browser to sign in to your Google account: sign in and click **Allow**.
+3. Back in the terminal, it may ask which project to use, or offer to create one. The deploy makes and uses its own project, so any answer is fine; skip creating one if you can.
+
+**3. Deploy (in the terminal)**
+
+Add your games on this computer as usual, then run:
+
+```sh
+bgrules deploy
+```
+
+(or `uvx boardgame-rules-mcp deploy`). The first run asks two things:
+
+- **Which billing account** to use, if you have more than one.
+- **A monthly budget** in US dollars (suggested: $5). Billing for the project is turned off when it's passed (the [hard stop](#cost)).
+
+Then it creates a Google Cloud project just for this (named `bgrules-` and six random characters), turns on the services it needs, sets up the budget and hard stop, and uploads and builds your games. The first run takes several minutes. It ends by printing the project's name, the games on the instance, and the **connector URL**.
+
+**4. Add the connector (in a browser, once)**
+
+1. On [claude.ai](https://claude.ai), go to **Settings > Connectors** and click **Add custom connector**.
+2. Give it a name (for example "Board game rules") and paste the connector URL. Leave any sign-in (OAuth) settings empty.
+3. Connectors can't be added from the phone, but once added on claude.ai they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
+
+**5. Ask a rules question in the mobile app**
+
+Check that the connector is turned on for the chat (in the chat's tools menu), then ask, for example: "In Potion Explosion, how many Skill tokens are used with 3 players?"
 
 ### Adding a game later
 
