@@ -754,12 +754,16 @@ def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
     list of fragments: bold column headers taken for headings, lone numbers
     dropped as labels. Find one-line boxes in near-body-size text that line up
     in columns, two or more cells a row with none missing, each row close under
-    the last, for at least TABLE_MIN_ROWS rows; merge them into one box, a line per row written
-    as a Markdown table row ("| 2 | 4 Skill tokens |", so rows stay apart in
-    running text), placed where the table's first cell was in reading
-    order. A stray box beside the header's row (a diagram callout) is left out
-    once the second row shows which columns continue (see follow). Rows with
-    nothing within the table's width (a caption in another column) don't end it."""
+    the last, for at least TABLE_MIN_ROWS rows, with no other text inside or
+    just beside them (see alone). Merge them into one box, a line per row
+    written as a Markdown table row ("| 2 | 4 Skill tokens |", so rows stay
+    apart in running text), read right after the text box that starts nearest
+    above the table (the sentence that introduces it).
+
+    A stray box beside the header's row (a diagram callout) is left out once
+    the second row shows which columns continue (see follow). Rows with
+    nothing within the table's width (a caption in another column) don't end
+    it, so a second table beside the first, in another column, isn't merged."""
     def size(ln):
         return max(c["size"] for c in ln["chars"])
     sizes = sorted(size(ln) for b in boxes for ln in b)
