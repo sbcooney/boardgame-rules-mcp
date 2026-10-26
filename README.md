@@ -63,7 +63,7 @@ bgrules search catan "What happens when I move the robber?"
 
 This puts the `bgrules` command on your PATH; `uv tool upgrade boardgame-rules-mcp` updates it. Rulebooks and the index live in `~/.bgrules` (set `BGRULES_HOME` to move them). To try it without installing, run `uvx boardgame-rules-mcp` in place of `bgrules`.
 
-The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code.
+The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code. The Claude mobile apps and claude.ai can't run local servers, so it isn't available there.
 
 ### Connect to Claude Code
 
