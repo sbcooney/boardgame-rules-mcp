@@ -139,8 +139,10 @@ def join_lines(lines: list[str], join_words: frozenset[str] = frozenset()) -> st
 
 
 def normalize_heading(text: str) -> str:
-    """Small-caps fonts extract as mixed case ("lonGest road"); title-case them."""
+    """Small-caps fonts extract as mixed case ("lonGest road"); title-case them.
+    Ornaments standing alone around a title ("• Game Setup •") are dropped."""
     small = {"a", "an", "and", "of", "the", "to", "in", "on", "or", "for"}
+    text = re.sub(r"(?:^|(?<=\s))[•·◆◇★☆✦❖]+(?=\s|$)", " ", text)
 
     def fix(m: re.Match) -> str:
         word = m.group(0)
@@ -312,7 +314,8 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             chars = ln["chars"]
             if not chars or not ln["text"].strip():
                 continue
-            heading = sum(is_heading_char(c) for c in chars) > len(chars) / 2
+            # A table row (see _merge_tables) is never a heading, even in bold.
+            heading = not ln.get("table") and sum(is_heading_char(c) for c in chars) > len(chars) / 2
             if heading and any(uppercase_only(c) for c in chars) and any(ch.islower() for ch in ln["text"]):
                 # An `uppercase: true` heading font in normal case is flavor
                 # text, not a heading: keep it as ordinary text.
@@ -323,7 +326,7 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 continue  # heading-font symbols in diagrams ("=", "+")
             if re.fullmatch(r"[A-Z]|\d{1,3}", ln["text"].strip()):
                 continue  # almanac divider letters; page numbers
-            subheading = not heading and is_subheading(ln)
+            subheading = not heading and not ln.get("table") and is_subheading(ln)
             part = heading and sum(any(h.get("part") and h["name"] in c["fontname"] and in_size(c, h) for h in heading_fonts) for c in chars) > len(chars) / 2
             if subheading:
                 # A subheading whose sentence starts on the same line ("Spending
@@ -339,7 +342,7 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                                         bbox=(min(c["x0"] for c in part_chars), min(c["top"] for c in part_chars),
                                               max(c["x1"] for c in part_chars), max(c["bottom"] for c in part_chars))))
                     continue
-            if run_in and not heading and not subheading:
+            if run_in and not heading and not subheading and not ln.get("table"):
                 # A run-in heading starts the line in a heading font and the text
                 # continues on the same line ("Ally cards appear only in ..."):
                 # the heading's words become the section title, and the whole
@@ -733,10 +736,97 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
         boxes = [box_lines(box, layout) for box in reading_order(layout)]
         if inline_boxes:
             boxes = _merge_inline(boxes)
+        boxes = _merge_tables(boxes)
         for box_no, lines in enumerate(boxes):
             for line in lines:
                 del line["runs"]
                 yield page_no, box_no, line
+
+
+TABLE_MIN_ROWS = 3  # a header and two rows, or three rows
+TABLE_CELL_MAX_WORDS = 8
+
+
+def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
+    """A small table set as loose text puts every cell in a one-line box of its
+    own ("Number of players", "2", "4 Skill tokens"), which would read as a
+    list of fragments: bold column headers taken for headings, lone numbers
+    dropped as labels. Find one-line boxes in near-body-size text that line up
+    in columns, two or more cells a row, each row close under the last, for at
+    least TABLE_MIN_ROWS rows; merge them into one box, a line per row written
+    as a Markdown table row ("| 2 | 4 Skill tokens |", so rows stay apart in
+    running text), placed where the table's first cell was in reading
+    order. The first row's columns are kept only where the second row has a
+    cell under them, so a stray box on the header's row (a diagram callout)
+    is left out; after that, every row fills every column."""
+    def size(ln):
+        return max(c["size"] for c in ln["chars"])
+    sizes = sorted(size(ln) for b in boxes for ln in b)
+    if not sizes:
+        return boxes
+    typical = sizes[len(sizes) // 2]
+    cells = [i for i, b in enumerate(boxes)
+             if len(b) == 1 and len(b[0]["text"].split()) <= TABLE_CELL_MAX_WORDS and size(b[0]) >= 0.8 * typical]
+    line = {i: boxes[i][0] for i in cells}
+
+    def same_row(i: int, j: int) -> bool:  # overlapping by half the shorter one's height
+        a, b = line[i], line[j]
+        overlap = min(a["bottom"], b["bottom"]) - max(a["top"], b["top"])
+        return overlap > 0.5 * min(a["bottom"] - a["top"], b["bottom"] - b["top"])
+
+    rows: list[list[int]] = []  # cells sharing a row, left to right
+    for i in sorted(cells, key=lambda i: line[i]["top"]):
+        if rows and same_row(i, rows[-1][0]):
+            rows[-1].append(i)
+        else:
+            rows.append([i])
+    rows = [sorted(r, key=lambda i: line[i]["x0"]) for r in rows]
+
+    def overlaps(a: tuple, i: int) -> bool:
+        return a[0] < line[i]["x1"] and line[i]["x0"] < a[1]
+
+    def follow(table: dict, r: list[int]) -> bool:
+        """Add row `r` to `table` if it lines up under the table's columns."""
+        under = [[i for i in r if overlaps(col, i)] for col in table["cols"]]
+        keep = [k for k, m in enumerate(under) if len(m) == 1]
+        if len(table["rows"]) > 1 and len(keep) < len(under) or len(keep) < 2:
+            return False
+        picked = [under[k][0] for k in keep]
+        prev = [table["rows"][-1][k] for k in keep]
+        height = max(line[i]["bottom"] - line[i]["top"] for i in prev)
+        if len(set(picked)) < len(picked) or min(line[i]["top"] for i in picked) - max(line[i]["bottom"] for i in prev) > 2 * height:
+            return False
+        table["rows"] = [[row[k] for k in keep] for row in table["rows"]] + [picked]
+        table["cols"] = [(min(table["cols"][k][0], line[i]["x0"]), max(table["cols"][k][1], line[i]["x1"])) for k, i in zip(keep, picked)]
+        return True
+
+    tables, table = [], None
+    for r in rows:
+        if table and follow(table, r):
+            continue
+        tables.append(table)
+        apart = all(line[a]["x1"] < line[b]["x0"] for a, b in zip(r, r[1:]))
+        table = {"cols": [(line[i]["x0"], line[i]["x1"]) for i in r], "rows": [r]} if len(r) >= 2 and apart else None
+    tables.append(table)
+
+    merged: dict[int, list[dict]] = {}  # first box of each table -> its row lines
+    gone: set[int] = set()
+    for table in tables:
+        if not table or len(table["rows"]) < TABLE_MIN_ROWS:
+            continue
+        lines = []
+        for r in table["rows"]:
+            parts = [line[i] for i in r]
+            lines.append({
+                "text": "| " + " | ".join(ln["text"] for ln in parts) + " |", "chars": [c for ln in parts for c in ln["chars"]],
+                "runs": [run for ln in parts for run in ln["runs"]], "table": True,
+                "x0": min(ln["x0"] for ln in parts), "x1": max(ln["x1"] for ln in parts),
+                "top": min(ln["top"] for ln in parts), "bottom": max(ln["bottom"] for ln in parts),
+            })
+        ids = [i for r in table["rows"] for i in r]
+        merged[min(ids)] = lines
+        gone.update(ids)
+    return [merged.get(i, b) for i, b in enumerate(boxes) if i in merged or i not in gone]
 
 
 def _is_label(line: dict) -> bool:
