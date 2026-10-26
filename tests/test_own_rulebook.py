@@ -1,5 +1,7 @@
 """Adding a rulebook for a game the tool doesn't ship, from the user's own PDF."""
 
+import json
+
 import pytest
 
 from bgrules import extract, ingest, manifest, server, store
@@ -291,3 +293,32 @@ def test_unknown_game_in_claude_desktop_offers_own_copy(tmp_path, monkeypatch):
     monkeypatch.setenv("BGRULES_HOME", str(tmp_path))
     result = server._add_job("Root", None, None, None)
     assert result["added"] is False and "request_link" in result and "file" in result["own_copy"]
+
+
+def test_tables_stay_whole_in_the_section_that_introduces_them(tmp_path, monkeypatch):
+    # Each cell is its own text box, as in Potion Explosion's setup table: a bold
+    # header row at body size (read as a heading before) and lone numbers
+    # (dropped as callouts before). A big diagram callout shares the header's row.
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
+    table = [("Number of players", "B", 10, 72, 600), ("Countdown stack", "B", 10, 200, 600), ("3", "R", 22, 450, 596)]
+    for n, (players, tokens) in enumerate([("2", "4 Skill tokens"), ("3", "5 Skill tokens"), ("4", "6 Skill tokens")], 1):
+        table += [(players, "R", 10, 110, 600 - 24 * n), (tokens, "R", 10, 210, 600 - 24 * n)]
+    table.append(("A caption", "R", 10, 480, 564))  # in the next column, between two rows; ends nothing
+    pdf = make_pdf(tmp_path / "rules.pdf", [[
+        ("Game Setup", "R", 16, 72, 700), *[(t, f, s, 72, 680 - 15 * i) for i, (t, f, s) in enumerate(BODY)],
+        ("The number of Skill tokens depends on the number of players (see the following table):", "R", 10, 72, 630),
+        *table,
+        ("You are ready to go!", "R", 10, 72, 480),
+        ("7", "R", 10, 450, 400),  # a lone callout elsewhere is still dropped
+    ], [
+        ("\\267 End of Game \\267", "R", 16), ("The game ends when the countdown stack is empty.", "R", 10), *BODY,
+    ]])
+    ingest.add("Potions", file=str(pdf), log=quiet)
+    db = store.connect()
+    paths = [json.loads(r["path"]) for r in db.execute("SELECT path FROM sections WHERE game='potions' ORDER BY ord")]
+    assert paths == [["Game Setup"], ["End of Game"]]  # no section for the table's header; no ornaments
+    hit = store.search(db, "potions", "how many skill tokens with 3 players")["results"][0]
+    assert hit["section_path"] == ["Game Setup"]
+    assert ("(see the following table): | Number of players | Countdown stack | | 2 | 4 Skill tokens | "
+            "| 3 | 5 Skill tokens | | 4 | 6 Skill tokens | You are ready to go!") in hit["quote"]
+    assert " 7" not in hit["quote"]
