@@ -63,13 +63,23 @@ bgrules search catan "What happens when I move the robber?"
 
 This puts the `bgrules` command on your PATH; `uv tool upgrade boardgame-rules-mcp` updates it. Rulebooks and the index live in `~/.bgrules` (set `BGRULES_HOME` to move them). To try it without installing, run `uvx boardgame-rules-mcp` in place of `bgrules`.
 
-The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code.
+The server runs locally over stdio, so it works with MCP clients that launch local servers, such as Claude Desktop and Claude Code. The Claude mobile apps and claude.ai in a browser only connect to remote servers, so they can't run it directly; from your phone, use it through Claude Code's Remote Control (below).
 
 ### Connect to Claude Code
 
 ```sh
 claude mcp add bgrules -- bgrules serve
 ```
+
+#### From your phone
+
+[Remote Control](https://code.claude.com/docs/en/remote-control) lets you use a Claude Code session on your computer from the Claude app, with its MCP servers. Start one on your computer:
+
+```sh
+claude --remote-control
+```
+
+Then in the Claude app, tap **Code** and pick the session (or scan the QR code in the terminal). The server and your rulebooks stay on your computer, so it has to stay on with the session running. `open_in_rulebook` opens the PDF on the computer, not the phone.
 
 ### Connect to Claude Desktop (without the extension)
 
