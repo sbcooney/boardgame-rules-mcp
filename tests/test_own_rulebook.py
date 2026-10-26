@@ -303,6 +303,7 @@ def test_tables_stay_whole_in_the_section_that_introduces_them(tmp_path, monkeyp
     table = [("Number of players", "B", 10, 72, 600), ("Countdown stack", "B", 10, 200, 600), ("3", "R", 22, 450, 596)]
     for n, (players, tokens) in enumerate([("2", "4 Skill tokens"), ("3", "5 Skill tokens"), ("4", "6 Skill tokens")], 1):
         table += [(players, "R", 10, 110, 600 - 24 * n), (tokens, "R", 10, 210, 600 - 24 * n)]
+    table.append(("A caption", "R", 10, 480, 564))  # in the next column, between two rows; ends nothing
     pdf = make_pdf(tmp_path / "rules.pdf", [[
         ("Game Setup", "R", 16, 72, 700), *[(t, f, s, 72, 680 - 15 * i) for i, (t, f, s) in enumerate(BODY)],
         ("The number of Skill tokens depends on the number of players (see the following table):", "R", 10, 72, 630),

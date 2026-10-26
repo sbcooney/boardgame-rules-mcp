@@ -745,6 +745,7 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
 
 TABLE_MIN_ROWS = 3  # a header and two rows, or three rows
 TABLE_CELL_MAX_WORDS = 8
+TABLE_MARGIN = 40.0  # points beside a table where other text means a wider grid
 
 
 def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
@@ -752,13 +753,13 @@ def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
     own ("Number of players", "2", "4 Skill tokens"), which would read as a
     list of fragments: bold column headers taken for headings, lone numbers
     dropped as labels. Find one-line boxes in near-body-size text that line up
-    in columns, two or more cells a row, each row close under the last, for at
-    least TABLE_MIN_ROWS rows; merge them into one box, a line per row written
+    in columns, two or more cells a row with none missing, each row close under
+    the last, for at least TABLE_MIN_ROWS rows; merge them into one box, a line per row written
     as a Markdown table row ("| 2 | 4 Skill tokens |", so rows stay apart in
     running text), placed where the table's first cell was in reading
-    order. The first row's columns are kept only where the second row has a
-    cell under them, so a stray box on the header's row (a diagram callout)
-    is left out; after that, every row fills every column."""
+    order. A stray box beside the header's row (a diagram callout) is left out
+    once the second row shows which columns continue (see follow). Rows with
+    nothing within the table's width (a caption in another column) don't end it."""
     def size(ln):
         return max(c["size"] for c in ln["chars"])
     sizes = sorted(size(ln) for b in boxes for ln in b)
@@ -786,10 +787,17 @@ def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
         return a[0] < line[i]["x1"] and line[i]["x0"] < a[1]
 
     def follow(table: dict, r: list[int]) -> bool:
-        """Add row `r` to `table` if it lines up under the table's columns."""
+        """Add row `r` to `table` if it lines up under the table's columns. Only
+        columns outside the kept ones may be dropped, and only on the second
+        row; a cell inside the table's width that isn't under a column ends it
+        (a ruled grid with empty cells, whose rows would otherwise be paired
+        with the wrong column)."""
         under = [[i for i in r if overlaps(col, i)] for col in table["cols"]]
         keep = [k for k, m in enumerate(under) if len(m) == 1]
-        if len(table["rows"]) > 1 and len(keep) < len(under) or len(keep) < 2:
+        if len(table["rows"]) > 1 and len(keep) < len(under) or len(keep) < 2 or keep != list(range(keep[0], keep[-1] + 1)):
+            return False
+        span = (table["cols"][keep[0]][0], table["cols"][keep[-1]][1])
+        if any(overlaps(span, i) and not any(i in m for m in under) for i in r):
             return False
         picked = [under[k][0] for k in keep]
         prev = [table["rows"][-1][k] for k in keep]
@@ -804,18 +812,29 @@ def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
     for r in rows:
         if table and follow(table, r):
             continue
+        if table and not any(overlaps((table["cols"][0][0], table["cols"][-1][1]), i) for i in r):
+            continue  # text elsewhere on the page (another column) between two rows
         tables.append(table)
         apart = all(line[a]["x1"] < line[b]["x0"] for a, b in zip(r, r[1:]))
         table = {"cols": [(line[i]["x0"], line[i]["x1"]) for i in r], "rows": [r]} if len(r) >= 2 and apart else None
     tables.append(table)
 
-    merged: dict[int, list[dict]] = {}  # first box of each table -> its row lines
-    gone: set[int] = set()
-    for table in tables:
-        if not table or len(table["rows"]) < TABLE_MIN_ROWS:
-            continue
+    def alone(t: dict) -> bool:
+        """No other text inside the table's area, or just beside it on its rows:
+        a grid with wrapped or longer cells, or more columns (A Feast for Odin's
+        card index), is more than the rows found."""
+        ids = {i for r in t["rows"] for i in r}
+        x0, x1 = t["cols"][0][0] - TABLE_MARGIN, t["cols"][-1][1] + TABLE_MARGIN
+        top, bottom = line[t["rows"][0][0]]["top"], max(line[i]["bottom"] for i in t["rows"][-1])
+        return not any(ln["x0"] < x1 and x0 < ln["x1"] and top < (ln["top"] + ln["bottom"]) / 2 < bottom
+                       for j, b in enumerate(boxes) if j not in ids for ln in b if size(ln) >= 0.8 * typical)
+
+    found = [t for t in tables if t and len(t["rows"]) >= TABLE_MIN_ROWS and alone(t)]
+    gone = {i for t in found for r in t["rows"] for i in r}
+    after: dict[int, list[list[dict]]] = {}  # box index -> tables read right after it
+    for t in found:
         lines = []
-        for r in table["rows"]:
+        for r in t["rows"]:
             parts = [line[i] for i in r]
             lines.append({
                 "text": "| " + " | ".join(ln["text"] for ln in parts) + " |", "chars": [c for ln in parts for c in ln["chars"]],
@@ -823,10 +842,22 @@ def _merge_tables(boxes: list[list[dict]]) -> list[list[dict]]:
                 "x0": min(ln["x0"] for ln in parts), "x1": max(ln["x1"] for ln in parts),
                 "top": min(ln["top"] for ln in parts), "bottom": max(ln["bottom"] for ln in parts),
             })
-        ids = [i for r in table["rows"] for i in r]
-        merged[min(ids)] = lines
-        gone.update(ids)
-    return [merged.get(i, b) for i, b in enumerate(boxes) if i in merged or i not in gone]
+        # Read the table after the text it follows in its column: of the boxes
+        # that start above it and overlap it across, the one starting nearest
+        # (it can also hold a callout beside the table). Failing that, where
+        # its first cell was.
+        x0, x1, top = min(ln["x0"] for ln in lines), max(ln["x1"] for ln in lines), lines[0]["top"]
+        above = [j for j, b in enumerate(boxes) if j not in gone and b
+                 and min(ln["top"] for ln in b) < top and min(ln["x0"] for ln in b) < x1 and x0 < max(ln["x1"] for ln in b)]
+        first = min(i for r in t["rows"] for i in r)
+        anchor = max(above, key=lambda j: (min(ln["top"] for ln in boxes[j]), j)) if above else first - 1
+        after.setdefault(anchor, []).append(lines)
+    out = after.get(-1, [])
+    for i, b in enumerate(boxes):
+        if i not in gone:
+            out.append(b)
+        out += after.get(i, [])
+    return out
 
 
 def _is_label(line: dict) -> bool:
