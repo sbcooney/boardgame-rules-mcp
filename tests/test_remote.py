@@ -474,28 +474,56 @@ NOT_READY = ("ERROR: Failed to create topic: ... organization policy ... If the 
              "and then retry this operation.")
 
 
-def test_gcloud_waits_for_a_new_project(monkeypatch, capsys):
-    results = [1, 1, 0]
-    monkeypatch.setattr(deploy.subprocess, "run",
-                        lambda cmd, **kw: subprocess.CompletedProcess(cmd, (code := results.pop(0)), "", NOT_READY if code else ""))
-    slept = []
-    monkeypatch.setattr(deploy.time, "sleep", slept.append)
+@pytest.fixture
+def clock(monkeypatch):
+    """A fake clock: sleeping advances it, and each gcloud call takes `call_seconds`."""
+    clock = type("Clock", (), {"now": 0.0, "call_seconds": 0, "slept": []})()
+    def sleep(seconds):
+        clock.slept.append(seconds)
+        clock.now += seconds
+    monkeypatch.setattr(deploy.time, "sleep", sleep)
+    monkeypatch.setattr(deploy.time, "monotonic", lambda: clock.now)
+    return clock
+
+
+def fake_run(clock, codes, stderr):
+    def run(cmd, **kw):
+        clock.now += clock.call_seconds
+        code = codes.pop(0) if isinstance(codes, list) else codes
+        return subprocess.CompletedProcess(cmd, code, "", stderr if code else "")
+    return run
+
+
+def test_gcloud_waits_for_a_new_project(monkeypatch, clock, capsys):
+    monkeypatch.setattr(deploy.subprocess, "run", fake_run(clock, [1, 1, 0], NOT_READY))
     assert deploy.GCloud("p")("pubsub", "topics", "create", "t").returncode == 0
-    assert slept == [20, 20]
-    assert "isn't ready yet" in capsys.readouterr().err
+    assert clock.slept == [20, 20]
+    assert capsys.readouterr().err.count("isn't ready yet") == 1
 
 
-def test_gcloud_gives_up_on_a_project_that_never_gets_ready(monkeypatch):
-    monkeypatch.setattr(deploy.subprocess, "run", lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1, "", NOT_READY))
-    slept = []
-    monkeypatch.setattr(deploy.time, "sleep", slept.append)
+def test_gcloud_gives_up_on_a_project_that_never_gets_ready(monkeypatch, clock):
+    monkeypatch.setattr(deploy.subprocess, "run", fake_run(clock, 1, NOT_READY))
     with pytest.raises(deploy.DeployError, match="recently created"):
         deploy.GCloud("p")("pubsub", "topics", "create", "t")
-    assert sum(slept) == 600
+    assert sum(clock.slept) == 600
 
 
-def test_gcloud_does_not_retry_other_failures(monkeypatch):
-    monkeypatch.setattr(deploy.subprocess, "run", lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1, "", "PERMISSION_DENIED"))
-    monkeypatch.setattr(deploy.time, "sleep", lambda s: pytest.fail("slept"))
+def test_gcloud_retry_limit_counts_slow_commands(monkeypatch, clock):
+    clock.call_seconds = 300  # a build that fails after five minutes
+    monkeypatch.setattr(deploy.subprocess, "run", fake_run(clock, 1, NOT_READY))
+    with pytest.raises(deploy.DeployError):
+        deploy.GCloud("p")("run", "deploy", "s")
+    assert len(clock.slept) == 1
+
+
+def test_gcloud_waits_for_a_new_service_account(monkeypatch, clock):
+    monkeypatch.setattr(deploy.subprocess, "run", fake_run(clock, [1, 1, 0], "Service account x does not exist."))
+    assert deploy.GCloud("p")("projects", "add-iam-policy-binding", "p").returncode == 0
+    assert clock.slept == [5, 5]
+
+
+def test_gcloud_does_not_retry_other_failures(monkeypatch, clock):
+    monkeypatch.setattr(deploy.subprocess, "run", fake_run(clock, 1, "PERMISSION_DENIED"))
     with pytest.raises(deploy.DeployError):
         deploy.GCloud("p")("pubsub", "topics", "create", "t")
+    assert clock.slept == []

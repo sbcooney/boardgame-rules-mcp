@@ -194,16 +194,18 @@ class GCloud:
             cmd.append(f"--project={self.project}")
         if quiet:
             cmd.append("--quiet")
-        waited = 0
+        start, announced = time.monotonic(), False
         while True:
             result = subprocess.run(cmd, capture_output=True, text=True)
             delay, limit = _retry_delay(args, result)
+            # Measured from the first try, so a slow command (a build) isn't retried for hours.
+            waited = time.monotonic() - start
             if not delay or waited >= limit:
                 break
-            if waited == 0 and limit > 60:
+            if limit > 60 and not announced:
                 _step("The new project isn't ready yet; waiting for Google Cloud to finish setting it up...")
+                announced = True
             time.sleep(delay)
-            waited += delay
         if check and result.returncode != 0:
             raise DeployError(f"`{' '.join(cmd[:4])} ...` failed:\n{result.stderr.strip()}")
         return result
