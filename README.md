@@ -125,7 +125,10 @@ New customers are usually offered the [free trial](https://cloud.google.com/free
 
 1. Install it. On a Mac: `brew install --cask gcloud-cli` ([other systems](https://cloud.google.com/sdk/docs/install)).
 2. Run `gcloud init`. It opens a browser to sign in to your Google account: sign in and click **Allow**.
-3. Back in the terminal, it may ask which project to use, or offer to create one. The deploy makes and uses its own project, so any answer is fine; skip creating one if you can.
+3. Back in the terminal, it asks you to pick a cloud project. The deploy creates and uses its own project, so this choice doesn't matter:
+   - If it lists projects you already have, enter the number of any of them.
+   - If you have none, it offers to create one. Project IDs may only use lowercase letters, digits and hyphens (no underscores), so enter something like `bgrules-setup`.
+   - If creating the project fails (for example `project_id contains invalid characters`), gcloud still finishes signing you in. Run `gcloud config unset project` to clear the bad choice and carry on.
 
 **3. Deploy (in the terminal)**
 
@@ -135,7 +138,12 @@ Add your games on this computer as usual, then run:
 bgrules deploy
 ```
 
-(or `uvx boardgame-rules-mcp deploy`). The first run asks two things:
+This needs the `bgrules` command, version 0.7.0 or later:
+
+- If you get `command not found: bgrules`, it isn't installed. Install it as shown in [Quick start](#quick-start) (`uv tool install boardgame-rules-mcp`), or run `uvx boardgame-rules-mcp@latest deploy` instead.
+- If you get `invalid choice: 'deploy'`, your copy is older. Update it with `uv tool upgrade boardgame-rules-mcp`.
+
+The first run asks two things:
 
 - **Which billing account** to use, if you have more than one.
 - **A monthly budget**, in your billing account's currency (suggested: 5). Change it later with `bgrules deploy --budget <amount>`. Billing for the project is turned off when it's passed (the [hard stop](#cost)).
