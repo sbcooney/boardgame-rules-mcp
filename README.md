@@ -152,9 +152,11 @@ Then it creates a Google Cloud project just for this (named `bgrules-` and six r
 
 **4. Add the connector (in a browser, once)**
 
-1. On [claude.ai](https://claude.ai), go to **Settings > Connectors** and click **Add custom connector**.
-2. Give it a name (for example "Board game rules") and paste the connector URL. Leave any sign-in (OAuth) settings empty.
-3. Connectors can't be added from the phone, but once added on claude.ai they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
+1. On [claude.ai](https://claude.ai), go to **Customize > Connectors**, click **+ Add**, then **Add custom connector**. (On a Team or Enterprise plan, an owner adds it under **Organization settings > Connectors** instead.)
+2. Give it a name (for example "Board game rules"), paste the connector URL and click **Continue**.
+3. For sign-in, choose **No sign-in**: the secret in the URL is what keeps it private. Leave **Request headers** empty and click **Add**.
+4. In a chat, click **+** in the lower left, open **Connectors** and make sure it's turned on.
+5. Connectors can't be added from the phone, but once added on claude.ai they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
 
 **5. Ask a rules question in the mobile app**
 
