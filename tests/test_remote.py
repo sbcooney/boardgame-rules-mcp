@@ -73,6 +73,7 @@ def test_remote_mode_drops_local_tools_and_explains_redeploying():
     assert {"list_games", "search_rules", "get_section", "lookup_term", "show_passage", "get_page", "verify_quote"} <= set(out["tools"])
     assert "run the deploy command again" in out["instructions"]
     assert "Nothing changes on their phone" in out["instructions"]
+    assert "isn't from\n  the rulebook" in out["instructions"]
     assert "open_in_rulebook" not in out["instructions"] and "add_game" not in out["instructions"]
     assert out["remote"] is True
 
@@ -105,7 +106,18 @@ def test_remote_not_installed_points_to_the_deploy(monkeypatch, tmp_path):
     monkeypatch.setattr(store, "REMOTE", True)
     with pytest.raises(store.LookupError_, match="deploy") as e:
         store.search(db, "catan", "robber")
-    assert "add_game" not in str(e.value)
+    # The steps themselves, not a pointer to instructions some apps never pass on.
+    said = str(e.value)
+    assert "add_game" not in said and "instructions" not in said
+    assert "bgrules add <game>" in said and "bgrules deploy" in said and "link stays the same" in said
+    assert "isn't from the rulebook" in said
+
+
+def test_remote_list_games_says_how_to_add(monkeypatch, tmp_path):
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path))
+    assert "how_to_add" not in server.list_games()
+    monkeypatch.setattr(store, "REMOTE", True)
+    assert server.list_games()["how_to_add"] == store.REMOTE_HOW_TO_ADD
 
 
 # --- deploy: token, package, gcloud commands --------------------------------

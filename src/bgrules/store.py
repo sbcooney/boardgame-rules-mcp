@@ -57,6 +57,22 @@ def home() -> Path:
 # user, and games are added on the user's computer, not here.
 REMOTE = False
 
+# How games get onto a remote instance. It goes in the tool replies themselves, not only the
+# server's instructions: some apps (the Claude mobile app, for one) don't pass those on.
+REMOTE_HOW_TO_ADD = (
+    "This is the user's private copy in Google Cloud, built from the rulebooks on their computer, so it can't "
+    "add games itself. Tell the user how to add one: "
+    "1. On their computer, add the game as usual: ask Claude Desktop or Claude Code to add it, or run "
+    "`bgrules add <game>`. "
+    "2. On the same computer, run the deploy again (`bgrules deploy`, the same one line as the first time). "
+    "It rebuilds this copy in a few minutes. "
+    "3. Nothing changes on their phone: the connector's link stays the same. "
+    "If the game isn't in list_games' `available` list, they can add their own copy of its rulebook PDF in "
+    "step 1, or request the game with list_games' `request_a_game` link. "
+    "You may answer from general knowledge in the meantime, but say plainly that it isn't from the rulebook, "
+    "and still give these steps."
+)
+
 
 def pdf_path(stored: str) -> str:
     """Where a document's PDF is now. The index stores absolute paths; when the
@@ -203,8 +219,7 @@ def resolve_edition(db: sqlite3.Connection, game: str, edition: str | None) -> s
     editions = [r["edition"] for r in db.execute("SELECT DISTINCT edition FROM docs WHERE game=?", (game,))]
     if not editions:
         games = sorted({r["game"] for r in db.execute("SELECT game FROM docs")})
-        how = ("Games are added on the user's computer, then the deploy is run again (see the server's instructions)."
-               if REMOTE else f"Install it with add_game (or `bgrules add {game}`).")
+        how = REMOTE_HOW_TO_ADD if REMOTE else f"Install it with add_game (or `bgrules add {game}`)."
         raise LookupError_(f"Game {game!r} is not installed. Installed games: {games or 'none'}. {how}")
     if edition is None:
         if len(editions) > 1:
