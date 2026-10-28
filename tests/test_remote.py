@@ -467,3 +467,35 @@ async def _remote_calls(url):
             cid = json.loads(search.content[0].text)["results"][0]["citation_id"]
             shown = await session.call_tool("show_passage", {"citation_id": cid, "quote": "The robber begins the game in the desert."})
             return init.instructions, tools, search, shown
+
+
+NOT_READY = ("ERROR: Failed to create topic: ... organization policy ... If the topic's project was recently created, "
+             "you may need to wait a few minutes for the project's organization policy to be properly initialized, "
+             "and then retry this operation.")
+
+
+def test_gcloud_waits_for_a_new_project(monkeypatch, capsys):
+    results = [1, 1, 0]
+    monkeypatch.setattr(deploy.subprocess, "run",
+                        lambda cmd, **kw: subprocess.CompletedProcess(cmd, (code := results.pop(0)), "", NOT_READY if code else ""))
+    slept = []
+    monkeypatch.setattr(deploy.time, "sleep", slept.append)
+    assert deploy.GCloud("p")("pubsub", "topics", "create", "t").returncode == 0
+    assert slept == [20, 20]
+    assert "isn't ready yet" in capsys.readouterr().err
+
+
+def test_gcloud_gives_up_on_a_project_that_never_gets_ready(monkeypatch):
+    monkeypatch.setattr(deploy.subprocess, "run", lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1, "", NOT_READY))
+    slept = []
+    monkeypatch.setattr(deploy.time, "sleep", slept.append)
+    with pytest.raises(deploy.DeployError, match="recently created"):
+        deploy.GCloud("p")("pubsub", "topics", "create", "t")
+    assert sum(slept) == 600
+
+
+def test_gcloud_does_not_retry_other_failures(monkeypatch):
+    monkeypatch.setattr(deploy.subprocess, "run", lambda cmd, **kw: subprocess.CompletedProcess(cmd, 1, "", "PERMISSION_DENIED"))
+    monkeypatch.setattr(deploy.time, "sleep", lambda s: pytest.fail("slept"))
+    with pytest.raises(deploy.DeployError):
+        deploy.GCloud("p")("pubsub", "topics", "create", "t")
