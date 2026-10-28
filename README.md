@@ -125,7 +125,10 @@ New customers are usually offered the [free trial](https://cloud.google.com/free
 
 1. Install it. On a Mac: `brew install --cask gcloud-cli` ([other systems](https://cloud.google.com/sdk/docs/install)).
 2. Run `gcloud init`. It opens a browser to sign in to your Google account: sign in and click **Allow**.
-3. Back in the terminal, it may ask which project to use, or offer to create one. The deploy makes and uses its own project, so any answer is fine; skip creating one if you can.
+3. Back in the terminal, it asks you to pick a cloud project. The deploy creates and uses its own project, so this choice doesn't matter:
+   - If it lists projects you already have, enter the number of any of them.
+   - If you have none, it offers to create one. Project IDs may only use lowercase letters, digits and hyphens (no underscores), so enter something like `bgrules-setup`.
+   - If creating the project fails (for example `project_id contains invalid characters`), gcloud still finishes signing you in. Run `gcloud config unset project` to clear the bad choice and carry on.
 
 **3. Deploy (in the terminal)**
 
@@ -135,7 +138,12 @@ Add your games on this computer as usual, then run:
 bgrules deploy
 ```
 
-(or `uvx boardgame-rules-mcp deploy`). The first run asks two things:
+This needs the `bgrules` command, version 0.7.0 or later:
+
+- If you get `command not found: bgrules`, it isn't installed. Install it as shown in [Quick start](#quick-start) (`uv tool install boardgame-rules-mcp`), or run `uvx boardgame-rules-mcp@latest deploy` instead.
+- If you get `invalid choice: 'deploy'`, your copy is older. Update it with `uv tool upgrade boardgame-rules-mcp`.
+
+The first run asks two things:
 
 - **Which billing account** to use, if you have more than one.
 - **A monthly budget**, in your billing account's currency (suggested: 5). Change it later with `bgrules deploy --budget <amount>`. Billing for the project is turned off when it's passed (the [hard stop](#cost)).
@@ -144,9 +152,12 @@ Then it creates a Google Cloud project just for this (named `bgrules-` and six r
 
 **4. Add the connector (in a browser, once)**
 
-1. On [claude.ai](https://claude.ai), go to **Settings > Connectors** and click **Add custom connector**.
-2. Give it a name (for example "Board game rules") and paste the connector URL. Leave any sign-in (OAuth) settings empty.
-3. Connectors can't be added from the phone, but once added on claude.ai they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
+1. On [claude.ai](https://claude.ai), go to **Customize > Connectors**, click **+ Add**, then **Add custom connector**. (On a Team or Enterprise plan, an owner adds it under **Organization settings > Connectors** instead.)
+2. Give it a name (for example "Board game rules"), paste the connector URL and click **Continue**.
+3. For sign-in, choose **No sign-in** (it's usually already picked, marked "Detected"). It warns that anyone with the server URL can use the connector. That's expected: the URL contains your secret token, which is what keeps it private (see [Keep the link private](#keep-the-link-private)). Leave **Request headers** empty and click **Add**.
+4. Claude then shows the connector's tools, each set to **Needs approval**, which would ask you to approve every lookup. All of them only read your rulebooks, so set the group's dropdown to **Always allow**. (You can change this later in **Customize > Connectors**.)
+5. In a chat, click **+** in the lower left, open **Connectors** and make sure it's turned on.
+6. Connectors can't be added from the phone, but once added on claude.ai they show up in the mobile app. Custom connectors work on every Claude plan; the Free plan allows one.
 
 **5. Ask a rules question in the mobile app**
 
