@@ -81,13 +81,16 @@ Adding games:
   1. On their computer, add the game as usual: ask Claude Desktop or Claude Code to add it, or run
      `bgrules add <game>`. It goes into ~/.bgrules, the folder this copy is built from.
   2. On the same computer, run the deploy command again: the same one line they ran the first time
-     (`bgrules deploy`, or `uvx boardgame-rules-mcp deploy`). It sends a fresh copy of ~/.bgrules to Google
+     (`bgrules deploy`, or `uvx boardgame-rules-mcp@latest deploy`). It sends a fresh copy of ~/.bgrules to Google
      Cloud, which rebuilds this server in a few minutes.
   3. Nothing changes on their phone: the connector's link stays the same, and the game is there once the
      deploy finishes. Until then, this copy has the games from the previous deploy.
 - If the game isn't in list_games' `available` list either, they can add their own copy of its rulebook PDF in
   step 1, or request the game with list_games' `request_a_game` link. Don't point them to unofficial rules
   sources instead.
+- For a game this copy doesn't have, and only then, you may answer from general knowledge (an exception to
+  "Answer ONLY from passages" above), but say plainly that it isn't from the rulebook, and still give the
+  steps above.
 - A document with `user_provided` is the user's own copy, not a checked publisher edition. When citing it, say
   it comes from the rulebook they added."""
 
@@ -114,9 +117,10 @@ def _call(fn, *args, **kwargs) -> dict:
 def list_games() -> dict:
     """List the games, editions and rulebook documents installed,
     each game's official changes (errata) that older printed rulebooks lack, and
-    the games that can be installed with add_game (`available`), and a link for
-    requesting a game that isn't available (`request_a_game`). Installed documents
-    marked `user_provided` are rulebooks the user added themselves."""
+    the games that can be installed (`available`), and a link for requesting a game
+    that isn't available (`request_a_game`). Installed documents marked
+    `user_provided` are rulebooks the user added themselves. `how_to_add`, when
+    present, says how to add a game that isn't installed."""
     return _call(lambda db: {
         "installed": [
             {**row, **({"user_provided": True} if manifest.is_user_added(row["game"], row["edition"], row["doc_id"]) else {})}
@@ -125,6 +129,7 @@ def list_games() -> dict:
         "official_changes": store.official_changes(db),
         "available": manifest.available(),
         "request_a_game": manifest.request_link(),
+        **({"how_to_add": store.REMOTE_HOW_TO_ADD} if store.REMOTE else {}),
     })
 
 
