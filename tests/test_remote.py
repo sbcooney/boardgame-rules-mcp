@@ -368,12 +368,13 @@ spec.loader.exec_module(budget_stop)
 
 
 class FakeBilling:
-    def __init__(self, enabled=True):
+    def __init__(self, enabled=True, read_status=200):
         self.enabled = enabled
+        self.read_status = read_status
         self.puts = []
 
     def get(self, url):
-        return FakeResponse({"billingEnabled": self.enabled})
+        return FakeResponse({"billingEnabled": self.enabled}, self.read_status)
 
     def put(self, url, json):
         self.puts.append((url, json))
@@ -381,11 +382,14 @@ class FakeBilling:
 
 
 class FakeResponse:
-    def __init__(self, body):
+    def __init__(self, body, status_code=200):
         self.body = body
+        self.status_code = status_code
+        self.ok = status_code < 400
 
     def raise_for_status(self):
-        pass
+        if not self.ok:
+            raise RuntimeError(f"HTTP {self.status_code}")
 
     def json(self):
         return self.body
@@ -410,6 +414,22 @@ def test_hard_stop_turns_billing_off_at_the_budget(monkeypatch):
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "bgrules-x")
     budget_stop.stop_billing(Event({"costAmount": 5.2, "budgetAmount": 5.0}))
     assert billing.puts == [("https://cloudbilling.googleapis.com/v1/projects/bgrules-x/billingInfo", {"billingAccountName": ""})]
+
+
+def test_hard_stop_turns_billing_off_even_if_it_cannot_read_the_status():
+    billing = FakeBilling(read_status=403)
+    said = budget_stop.handle({"costAmount": 20, "budgetAmount": 10}, "p", billing)
+    assert billing.puts == [("https://cloudbilling.googleapis.com/v1/projects/p/billingInfo", {"billingAccountName": ""})]
+    assert "billing turned off" in said and "HTTP 403" in said
+
+
+def test_hard_stop_function_can_read_the_billing_status(fake_home, remote_home, gcloud):
+    deploy.deploy()
+    member = "serviceAccount:bgrules-budget-stop@"
+    roles = {next(a for a in c if a.startswith("--role=")) for c in gcloud.calls
+             if c[:2] == ["projects", "add-iam-policy-binding"] and any(a.startswith(f"--member={member}") for a in c)}
+    # Billing Manager can change the billing link but not read the project; Browser can.
+    assert {"--role=roles/billing.projectManager", "--role=roles/browser"} <= roles
 
 
 def test_hard_stop_does_nothing_when_billing_is_already_off():

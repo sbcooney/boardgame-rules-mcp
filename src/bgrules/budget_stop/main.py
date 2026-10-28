@@ -37,13 +37,14 @@ def handle(notice: dict, project: str, session) -> str:
     if not over_budget(notice):
         return f"Cost {cost} is under the budget {budget}: nothing to do."
     info = session.get(f"{BILLING_API}/projects/{project}/billingInfo")
-    info.raise_for_status()
-    if not info.json().get("billingEnabled"):
+    if info.ok and not info.json().get("billingEnabled"):
         return f"Cost {cost} reached the budget {budget}; billing is already off."
+    # If the status can't be read, unlink anyway: a failed read mustn't block the stop.
+    read = "" if info.ok else f" (couldn't read billing status: HTTP {info.status_code})"
     # An empty billing account name unlinks the project from its billing account.
     done = session.put(f"{BILLING_API}/projects/{project}/billingInfo", json={"billingAccountName": ""})
     done.raise_for_status()
-    return f"Cost {cost} reached the budget {budget}: billing turned off for {project}."
+    return f"Cost {cost} reached the budget {budget}: billing turned off for {project}{read}."
 
 
 def stop_billing(cloud_event) -> None:

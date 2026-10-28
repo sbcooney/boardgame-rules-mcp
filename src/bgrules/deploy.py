@@ -35,6 +35,7 @@ DEFAULT_BUDGET = 5
 TOPIC = "bgrules-budget"
 STOP_FUNCTION = "bgrules-budget-stop"
 STOP_ACCOUNT = "bgrules-budget-stop"
+STOP_ROLES = ["roles/billing.projectManager", "roles/browser", "roles/run.invoker", "roles/eventarc.eventReceiver"]
 REPOSITORY = "cloud-run-source-deploy"  # where `gcloud run deploy --source` puts images
 
 APIS = [
@@ -317,11 +318,13 @@ def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
 
     # The function's own identity, allowed to do one thing: unlink billing from this project.
     # Cloud Billing asks for Project Billing Manager on the project plus Billing Account Viewer
-    # on the account (viewing, not changing it). It can also receive the budget's Pub/Sub events.
+    # on the account (viewing, not changing it). Reading the project's billing status also needs
+    # resourcemanager.projects.get, which neither has: Browser is the smallest role with it.
+    # It can also receive the budget's Pub/Sub events.
     member = f"serviceAccount:{STOP_ACCOUNT}@{project}.iam.gserviceaccount.com"
     if not gcloud.ok("iam", "service-accounts", "describe", f"{STOP_ACCOUNT}@{project}.iam.gserviceaccount.com"):
         gcloud("iam", "service-accounts", "create", STOP_ACCOUNT, "--display-name=Turns billing off when the budget is passed")
-    for role in ("roles/billing.projectManager", "roles/run.invoker", "roles/eventarc.eventReceiver"):
+    for role in STOP_ROLES:
         gcloud("projects", "add-iam-policy-binding", project, f"--member={member}", f"--role={role}",
                "--condition=None", "--format=none")
     gcloud("billing", "accounts", "add-iam-policy-binding", account, f"--member={member}", "--role=roles/billing.viewer",
