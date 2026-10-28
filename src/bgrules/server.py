@@ -5,6 +5,8 @@ with where it is (section path, page, link); the client model writes the
 answer from those passages.
 """
 
+import hmac
+import os
 import platform
 import shutil
 import subprocess
@@ -17,7 +19,7 @@ from mcp.server.mcpserver import Image, MCPServer
 
 from . import ingest, manifest, render, store
 
-INSTRUCTIONS = """\
+_INSTRUCTIONS = """\
 This server gives you the official rulebook text for board games the user has installed.
 When answering a rules question:
 - Answer ONLY from passages returned by these tools. Never rely on your own memory of a game's rules.
@@ -38,8 +40,7 @@ When answering a rules question:
   Once per answer, for the main citation only, and as its own step: not in parallel with other tool calls,
   since some apps then shrink the image to a thumbnail. Skip it when the rulebook doesn't address the question.
   If its `highlight` is "approximate" because of "ocr" or "repeated", say the underline may be slightly off.
-- open_in_rulebook opens the PDF on the user's computer at the cited page, to read the passage in context.
-
+{open_pdf}
 Official changes (errata):
 - Some rules were officially changed after older rulebooks were printed. A result with `amended_by` is one of
   them. Then give BOTH: what the printed rule says (cite the rulebook), and the official change (cite its
@@ -49,6 +50,9 @@ Official changes (errata):
   game's official changes up front, before they matter.
 - Only official, publisher-issued documents are indexed. Don't present fan FAQs or wikis as official rules.
 
+{adding}"""
+
+_LOCAL_ADDING = """\
 Adding games:
 - If the user asks about a game that isn't installed, check list_games' `available` list and offer to add it
   with add_game. Some documents can't be downloaded automatically: give the user the `download_page`, ask
@@ -68,6 +72,31 @@ Adding games:
 - A document with `user_provided` is the user's own copy, not a checked publisher edition. When citing it, say
   it comes from the rulebook they added."""
 
+# A remote instance (`serve --http`) is a copy of the user's ~/.bgrules, rebuilt by `bgrules deploy`.
+_REMOTE_ADDING = """\
+Adding games:
+- This server is the user's private copy in Google Cloud, built from the rulebooks on their computer. It can't
+  add games itself. If the user asks about a game that isn't in list_games' `installed` list, say this copy
+  doesn't have it, and explain how to add it:
+  1. On their computer, add the game as usual: ask Claude Desktop or Claude Code to add it, or run
+     `bgrules add <game>`. It goes into ~/.bgrules, the folder this copy is built from.
+  2. On the same computer, run the deploy command again: the same one line they ran the first time
+     (`bgrules deploy`, or `uvx boardgame-rules-mcp deploy`). It sends a fresh copy of ~/.bgrules to Google
+     Cloud, which rebuilds this server in a few minutes.
+  3. Nothing changes on their phone: the connector's link stays the same, and the game is there once the
+     deploy finishes. Until then, this copy has the games from the previous deploy.
+- If the game isn't in list_games' `available` list either, they can add their own copy of its rulebook PDF in
+  step 1, or request the game with list_games' `request_a_game` link. Don't point them to unofficial rules
+  sources instead.
+- A document with `user_provided` is the user's own copy, not a checked publisher edition. When citing it, say
+  it comes from the rulebook they added."""
+
+INSTRUCTIONS = _INSTRUCTIONS.format(
+    open_pdf="- open_in_rulebook opens the PDF on the user's computer at the cited page, to read the passage in context.\n",
+    adding=_LOCAL_ADDING,
+)
+REMOTE_INSTRUCTIONS = _INSTRUCTIONS.format(open_pdf="", adding=_REMOTE_ADDING)
+
 mcp = MCPServer("bgrules", instructions=INSTRUCTIONS)
 
 
@@ -83,7 +112,7 @@ def _call(fn, *args, **kwargs) -> dict:
 
 @mcp.tool()
 def list_games() -> dict:
-    """List the games, editions and rulebook documents installed on this machine,
+    """List the games, editions and rulebook documents installed,
     each game's official changes (errata) that older printed rulebooks lack, and
     the games that can be installed with add_game (`available`), and a link for
     requesting a game that isn't available (`request_a_game`). Installed documents
@@ -209,7 +238,7 @@ def show_passage(citation_id: str, quote: str | None = None) -> list:
         return [{"error": str(e)}]
     finally:
         db.close()
-    summary = {k: cite[k] for k in ("citation_id", "game", "edition", "document", "section_path", "printed_page", "open_link")}
+    summary = {k: cite[k] for k in ("citation_id", "game", "edition", "document", "section_path", "printed_page", "open_link") if k in cite}
     found = render.quote_lines(cite["lines"], quote) if quote and cite["lines"] else None
     if found:
         summary["highlight"] = found["highlight"]
@@ -327,3 +356,60 @@ def ask_rules(game: str, question: str) -> str:
 
 def run() -> None:
     mcp.run()
+
+
+# A remote instance is reached through a secret link, https://<host>/<token>/mcp: Claude's custom
+# connectors can't send headers or sign in, so the token has to be in the URL.
+MIN_TOKEN_LENGTH = 32
+
+
+def remote_mode() -> None:
+    """Drop what needs the user's own computer (adding games, opening the PDF), and
+    tell the client how games get onto this copy instead."""
+    mcp.remove_tool("add_game")
+    mcp.remove_tool("open_in_rulebook")
+    mcp._lowlevel_server.instructions = REMOTE_INSTRUCTIONS
+    store.REMOTE = True
+
+
+class _TokenGate:
+    """Answers only /<token>/mcp. Every other path, a wrong token included, gets the
+    same bare 404, so nothing shows that a server is there."""
+
+    def __init__(self, app, token: str):
+        self.app = app
+        self.token = token.encode()
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "lifespan":  # starts the MCP session manager
+            return await self.app(scope, receive, send)
+        if scope["type"] != "http":
+            return
+        token, _, rest = scope["path"].lstrip("/").partition("/")
+        if not hmac.compare_digest(token.encode(), self.token) or rest != "mcp":
+            await send({"type": "http.response.start", "status": 404, "headers": [(b"content-type", b"text/plain")]})
+            return await send({"type": "http.response.body", "body": b"Not Found"})
+        await self.app({**scope, "path": "/mcp", "raw_path": b"/mcp"}, receive, send)
+
+
+def http_app(token: str):
+    """The MCP server over streamable HTTP, stateless (any instance can answer any
+    request, so it can scale to zero), behind the token."""
+    if len(token) < MIN_TOKEN_LENGTH:
+        raise ValueError(f"BGRULES_TOKEN must be at least {MIN_TOKEN_LENGTH} characters.")
+    # host="0.0.0.0" turns off the SDK's localhost-only Host check: the token guards this server.
+    app = mcp.streamable_http_app(streamable_http_path="/mcp", stateless_http=True, json_response=True, host="0.0.0.0")
+    return _TokenGate(app, token)
+
+
+def run_http() -> None:
+    """Serve over HTTP on $PORT, as Cloud Run expects."""
+    import uvicorn
+
+    token = os.environ.get("BGRULES_TOKEN", "")
+    if len(token) < MIN_TOKEN_LENGTH:
+        raise SystemExit(f"error: set BGRULES_TOKEN to a secret of at least {MIN_TOKEN_LENGTH} characters.")
+    remote_mode()
+    # No access log: request paths contain the token.
+    uvicorn.run(http_app(token), host="0.0.0.0", port=int(os.environ.get("PORT", "8080")),
+                access_log=False, server_header=False)
