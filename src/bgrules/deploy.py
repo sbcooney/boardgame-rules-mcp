@@ -168,6 +168,20 @@ def build_context(dest: Path, home: Path | None = None) -> list[str]:
     return games
 
 
+def _retry_delay(args: tuple[str, ...], result: subprocess.CompletedProcess) -> tuple[int, int]:
+    """(seconds between tries, seconds to keep trying) for failures that pass on their own, or (0, 0)."""
+    if result.returncode == 0:
+        return 0, 0
+    # A service account just created can take a few seconds to be usable in IAM bindings.
+    if "add-iam-policy-binding" in args and "does not exist" in result.stderr:
+        return 5, 30
+    # A project's organization policies are set up a few minutes after it's created; until then
+    # some services (Pub/Sub topics, for one) are refused, and Google says to wait and retry.
+    if "recently created" in result.stderr and "wait" in result.stderr:
+        return 20, 600
+    return 0, 0
+
+
 class GCloud:
     """Runs gcloud commands as the signed-in user."""
 
@@ -180,12 +194,18 @@ class GCloud:
             cmd.append(f"--project={self.project}")
         if quiet:
             cmd.append("--quiet")
-        for attempt in range(6):
+        start, announced = time.monotonic(), False
+        while True:
             result = subprocess.run(cmd, capture_output=True, text=True)
-            # A service account just created can take a few seconds to be usable in IAM bindings.
-            if result.returncode == 0 or "add-iam-policy-binding" not in args or "does not exist" not in result.stderr:
+            delay, limit = _retry_delay(args, result)
+            # Measured from the first try, so a slow command (a build) isn't retried for hours.
+            waited = time.monotonic() - start
+            if not delay or waited >= limit:
                 break
-            time.sleep(5)
+            if limit > 60 and not announced:
+                _step("The new project isn't ready yet; waiting for Google Cloud to finish setting it up...")
+                announced = True
+            time.sleep(delay)
         if check and result.returncode != 0:
             raise DeployError(f"`{' '.join(cmd[:4])} ...` failed:\n{result.stderr.strip()}")
         return result
