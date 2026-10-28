@@ -64,7 +64,8 @@ REMOTE_HOW_TO_ADD = (
     "add games itself. Tell the user how to add one: "
     "1. On their computer, add the game as usual: ask Claude Desktop or Claude Code to add it, or run "
     "`bgrules add <game>`. "
-    "2. On the same computer, run the deploy again (`bgrules deploy`, the same one line as the first time). "
+    "2. On the same computer, run the deploy again: the same one line as the first time (`bgrules deploy`, or "
+    "`uvx boardgame-rules-mcp@latest deploy`). "
     "It rebuilds this copy in a few minutes. "
     "3. Nothing changes on their phone: the connector's link stays the same. "
     "If the game isn't in list_games' `available` list, they can add their own copy of its rulebook PDF in "
@@ -226,7 +227,8 @@ def resolve_edition(db: sqlite3.Connection, game: str, edition: str | None) -> s
             raise LookupError_(f"{game} has several editions installed {editions}; pass edition= (rules differ between editions).")
         return editions[0]
     if edition not in editions:
-        raise LookupError_(f"Edition {edition!r} of {game} is not installed. Installed: {editions}")
+        how = f" {REMOTE_HOW_TO_ADD}" if REMOTE else ""
+        raise LookupError_(f"Edition {edition!r} of {game} is not installed. Installed: {editions}.{how}")
     return edition
 
 

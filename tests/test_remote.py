@@ -73,7 +73,7 @@ def test_remote_mode_drops_local_tools_and_explains_redeploying():
     assert {"list_games", "search_rules", "get_section", "lookup_term", "show_passage", "get_page", "verify_quote"} <= set(out["tools"])
     assert "run the deploy command again" in out["instructions"]
     assert "Nothing changes on their phone" in out["instructions"]
-    assert "isn't from\n  the rulebook" in out["instructions"]
+    assert "say plainly that it isn't from the rulebook" in " ".join(out["instructions"].split())
     assert "open_in_rulebook" not in out["instructions"] and "add_game" not in out["instructions"]
     assert out["remote"] is True
 
@@ -111,6 +111,17 @@ def test_remote_not_installed_points_to_the_deploy(monkeypatch, tmp_path):
     assert "add_game" not in said and "instructions" not in said
     assert "bgrules add <game>" in said and "bgrules deploy" in said and "link stays the same" in said
     assert "isn't from the rulebook" in said
+
+
+def test_remote_missing_edition_says_how_to_add(fake_home, monkeypatch):
+    db = store.connect()
+    with pytest.raises(store.LookupError_) as e:
+        store.resolve_edition(db, "catan", "2025")
+    assert "deploy" not in str(e.value)
+    monkeypatch.setattr(store, "REMOTE", True)
+    with pytest.raises(store.LookupError_, match="Edition '2025'") as e:
+        store.resolve_edition(db, "catan", "2025")
+    assert store.REMOTE_HOW_TO_ADD in str(e.value)
 
 
 def test_remote_list_games_says_how_to_add(monkeypatch, tmp_path):

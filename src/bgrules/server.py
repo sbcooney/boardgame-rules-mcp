@@ -88,8 +88,9 @@ Adding games:
 - If the game isn't in list_games' `available` list either, they can add their own copy of its rulebook PDF in
   step 1, or request the game with list_games' `request_a_game` link. Don't point them to unofficial rules
   sources instead.
-- For a game this copy doesn't have, you may answer from general knowledge, but say plainly that it isn't from
-  the rulebook, and still give the steps above.
+- For a game this copy doesn't have, and only then, you may answer from general knowledge (an exception to
+  "Answer ONLY from passages" above), but say plainly that it isn't from the rulebook, and still give the
+  steps above.
 - A document with `user_provided` is the user's own copy, not a checked publisher edition. When citing it, say
   it comes from the rulebook they added."""
 
