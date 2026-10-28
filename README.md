@@ -196,7 +196,7 @@ The connector URL holds a long random token: `https://<service>.run.app/<token>/
 
 That's about $2,800 a month, or about $90 a day. A flood of page-image requests costs less: about 1.2 TB of data a month, at roughly $0.12 per GB, is about $140.
 
-**The hard stop.** The deploy creates a monthly budget for the project. Google emails you at 50% and 90% of it. At 100%, a small function in the project turns billing off for that project (Google's ["cap costs"](https://cloud.google.com/billing/docs/how-to/disable-billing-with-notifications) setup), which stops the service. Your other projects and the billing account itself aren't touched. The function's own account can only unlink billing from this project: it has Project Billing Manager on the project, and Billing Account Viewer on the account, which lets it read but not change it.
+**The hard stop.** The deploy creates a monthly budget for the project. Google emails you at 50% and 90% of it. At 100%, a small function in the project turns billing off for that project (Google's ["cap costs"](https://cloud.google.com/billing/docs/how-to/disable-billing-with-notifications) setup), which stops the service. Your other projects and the billing account itself aren't touched. The function's own account can only unlink billing from this project: it has Project Billing Manager and Browser on the project (Browser only lets it read the project's billing status), and Billing Account Viewer on the account, which lets it read but not change it. These are the roles Google lists for [disabling billing](https://cloud.google.com/billing/docs/how-to/modify-project#disable_billing_for_a_project).
 
 Caveats:
 

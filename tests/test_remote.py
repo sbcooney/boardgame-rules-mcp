@@ -259,7 +259,7 @@ def test_deploy_sets_limits_and_hard_stop_before_deploying(fake_home, remote_hom
     assert f"--filter-projects=projects/{config['project']}" in budget
     assert "--threshold-rule=percent=1.0" in budget and "--budget-amount=5USD" in budget
     stop = next(c for c in fake.calls if c[:2] == ["functions", "deploy"])
-    assert "--trigger-topic=bgrules-budget" in stop
+    assert "--trigger-topic=bgrules-budget" in stop and "--retry" in stop
     assert names.index("functions deploy bgrules-budget-stop") < names.index("run deploy bgrules")
 
     run = next(c for c in fake.calls if c[:2] == ["run", "deploy"])
