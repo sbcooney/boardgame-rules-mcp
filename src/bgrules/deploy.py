@@ -35,6 +35,7 @@ DEFAULT_BUDGET = 5
 TOPIC = "bgrules-budget"
 STOP_FUNCTION = "bgrules-budget-stop"
 STOP_ACCOUNT = "bgrules-budget-stop"
+STOP_ROLES = ["roles/billing.projectManager", "roles/browser", "roles/run.invoker", "roles/eventarc.eventReceiver"]
 REPOSITORY = "cloud-run-source-deploy"  # where `gcloud run deploy --source` puts images
 
 APIS = [
@@ -316,12 +317,14 @@ def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
     ensure_budget(gcloud, config)
 
     # The function's own identity, allowed to do one thing: unlink billing from this project.
-    # Cloud Billing asks for Project Billing Manager on the project plus Billing Account Viewer
-    # on the account (viewing, not changing it). It can also receive the budget's Pub/Sub events.
+    # Google's "Disable billing for a project" lists Project Billing Manager plus Project Browser on
+    # the project (Browser gives resourcemanager.projects.get, to read its billing status), and
+    # Billing Account Viewer on the account (viewing, not changing it). It can also receive the
+    # budget's Pub/Sub events.
     member = f"serviceAccount:{STOP_ACCOUNT}@{project}.iam.gserviceaccount.com"
     if not gcloud.ok("iam", "service-accounts", "describe", f"{STOP_ACCOUNT}@{project}.iam.gserviceaccount.com"):
         gcloud("iam", "service-accounts", "create", STOP_ACCOUNT, "--display-name=Turns billing off when the budget is passed")
-    for role in ("roles/billing.projectManager", "roles/run.invoker", "roles/eventarc.eventReceiver"):
+    for role in STOP_ROLES:
         gcloud("projects", "add-iam-policy-binding", project, f"--member={member}", f"--role={role}",
                "--condition=None", "--format=none")
     gcloud("billing", "accounts", "add-iam-policy-binding", account, f"--member={member}", "--role=roles/billing.viewer",
@@ -332,7 +335,9 @@ def setup_hard_stop(gcloud: GCloud, config: dict, region: str) -> None:
     flags = ["--gen2", "--runtime=python313", f"--region={region}", f"--source={source}", "--entry-point=stop_billing",
              f"--trigger-topic={TOPIC}", f"--service-account={member.split(':')[1]}",
              f"--trigger-service-account={member.split(':')[1]}", f"--set-env-vars=GOOGLE_CLOUD_PROJECT={project}",
-             "--max-instances=1", "--memory=256Mi", "--no-allow-unauthenticated"]
+             "--max-instances=1", "--memory=256Mi", "--no-allow-unauthenticated",
+             # A stop that fails (an API error) is retried rather than waiting hours for the next notice.
+             "--retry"]
     digest = hashlib.sha256(json.dumps([
         [f.name, f.read_text()] for f in sorted(source.iterdir()) if f.is_file() and not f.name.startswith(".")
     ] + [f for f in flags if not f.startswith("--source=")]).encode()).hexdigest()
