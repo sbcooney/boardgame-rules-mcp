@@ -1,7 +1,8 @@
 """Render rulebook pages as PNGs with cited passages highlighted.
 
-Bounding boxes come from extraction (pdfplumber: PDF points, origin top-left),
-which matches pypdfium2's rendered bitmap once scaled.
+Bounding boxes come from extraction (pdfplumber: PDF points, origin at the
+media box's top-left). pypdfium2 renders only the crop box, so boxes are moved
+by the crop box's offset before scaling; most PDFs have none.
 """
 
 import io
@@ -94,6 +95,13 @@ def quote_lines(lines: list[dict], quote: str) -> dict | None:
     return {"boxes": boxes, "highlight": "approximate" if reasons else "exact", "reasons": sorted(reasons)}
 
 
+def crop_offset(page: pdfium.PdfPage) -> tuple[float, float]:
+    """How far the crop box's top-left is from the media box's, in points:
+    subtract it from an extracted box to place it on the rendered page."""
+    media, crop = page.get_mediabox(), page.get_cropbox()
+    return crop[0] - media[0], media[3] - crop[3]
+
+
 def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.5, crop_margin: float | None = None,
            underline: list[list[float]] | None = None) -> bytes:
     """Render one page (1-based) with `boxes` marked by a bar in the margin
@@ -108,8 +116,12 @@ def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.
     pdf = pdfium.PdfDocument(pdf_path)
     try:
         img = pdf[page - 1].render(scale=scale).to_pil().convert("RGB")
+        dx, dy = crop_offset(pdf[page - 1])
     finally:
         pdf.close()
+    if dx or dy:
+        boxes = [[x0 - dx, top - dy, x1 - dx, bottom - dy] for x0, top, x1, bottom in boxes]
+        underline = underline and [[x0 - dx, top - dy, x1 - dx, bottom - dy] for x0, top, x1, bottom in underline]
 
     draw = ImageDraw.Draw(img)
 

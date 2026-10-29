@@ -1,5 +1,9 @@
 """Page rendering helpers."""
 
+import io
+
+import pytest
+
 from bgrules.render import merge_regions
 
 
@@ -63,3 +67,25 @@ def test_show_passage_underlines_the_quote(tmp_path, monkeypatch):
         db.execute("UPDATE passages SET lines = NULL")
     old = server.show_passage(cid, "The player who most recently cooked goes first.")
     assert old[0]["highlight"] == "whole_passage" and "re-adding it later" in old[0]["note"]
+
+
+@pytest.mark.parametrize("inset", [0, 21])
+def test_underline_sits_under_the_text_when_the_page_is_cropped(tmp_path, inset):
+    # Extracted boxes are measured from the media box, but only the crop box is rendered (#40).
+    import pdfplumber
+    from PIL import Image
+
+    from bgrules.render import MARK, render
+    from test_own_rulebook import make_pdf
+
+    pdf = make_pdf(tmp_path / "rules.pdf", [[("The player who most recently cooked goes first.", "R", 10)]], crop_inset=inset)
+    with pdfplumber.open(pdf) as doc:
+        w = doc.pages[0].extract_words()
+    line = [w[0]["x0"], w[0]["top"], w[-1]["x1"], w[-1]["bottom"]]
+    img = Image.open(io.BytesIO(render(str(pdf), 1, [line], scale=1, underline=[line]))).convert("RGB")
+    px = img.load()
+    blue = [(x, y) for y in range(img.height) for x in range(img.width) if px[x, y] == MARK]
+    ink = [(x, y) for y in range(img.height) for x in range(img.width) if max(px[x, y]) < 100]
+    assert blue and ink
+    assert 0 <= min(y for _, y in blue) - max(y for _, y in ink) <= 3  # just below the letters
+    assert abs(min(x for x, _ in blue) - min(x for x, _ in ink)) <= 2
