@@ -229,6 +229,14 @@ def lookup_term(game: str, term: str, edition: str | None = None) -> dict:
     return _call(store.lookup_term, game, term, edition=edition)
 
 
+# Server instructions don't reach Claude in the phone app, so this goes in the result.
+REMOTE_WHERE_TO_SEE = (
+    "The user can't see this image in the chat: the Claude apps keep it inside the tool call. Don't say it's shown "
+    "above. Tell them where it is: tap the \"Used ...\" row for this connector, then the Show passage entry, then "
+    "the image to see it full size."
+)
+
+
 @mcp.tool(structured_output=False)
 def show_passage(citation_id: str, quote: str | None = None) -> list:
     """Show the cited passage as it appears in the printed rulebook: an image of
@@ -265,6 +273,10 @@ def show_passage(citation_id: str, quote: str | None = None) -> list:
         boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
         on_page = [s["bbox"] for s in underline if s["page"] == page] if underline else None
         images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36, underline=on_page), format="png"))
+    if store.REMOTE:
+        # The Claude apps show this inside the collapsed tool call, text first, so the image goes first (#41).
+        summary["where_to_see"] = REMOTE_WHERE_TO_SEE
+        return [*images, summary]
     return [summary, *images]
 
 

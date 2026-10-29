@@ -106,9 +106,10 @@ def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.
            underline: list[list[float]] | None = None) -> bytes:
     """Render one page (1-based) with `boxes` marked by a bar in the margin
     beside each, or, with `underline` set (a quote within them), those lines
-    underlined instead; crops still follow `boxes`.
+    underlined instead.
 
-    With crop_margin set, crop each box (plus that margin, in points)
+    With crop_margin set, crop each box (or each underlined line, so a phone
+    shows the quote large rather than its whole passage) plus that margin, in points,
     separately and stack the crops top to bottom in reading order, so a
     passage that continues in the next column stays a compact image;
     otherwise return the whole page.
@@ -142,7 +143,7 @@ def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.
         regions = merge_regions([
             (max(0, (x0 - crop_margin) * scale), max(0, (top - crop_margin) * scale),
              min(w, (x1 + crop_margin) * scale), min(h, (bottom + crop_margin) * scale))
-            for x0, top, x1, bottom in boxes
+            for x0, top, x1, bottom in (underline or boxes)
         ])
         crops = [img.crop(tuple(round(v) for v in r)) for r in regions]
         stacked = Image.new("RGB", (max(c.width for c in crops), sum(c.height for c in crops) + STACK_GAP * (len(crops) - 1)), "white")

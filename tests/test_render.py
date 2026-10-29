@@ -3,6 +3,7 @@
 import io
 
 import pytest
+from PIL import Image
 
 from bgrules.render import merge_regions
 
@@ -89,3 +90,15 @@ def test_underline_sits_under_the_text_when_the_page_is_cropped(tmp_path, inset)
     assert blue and ink
     assert 0 <= min(y for _, y in blue) - max(y for _, y in ink) <= 3  # just below the letters
     assert abs(min(x for x, _ in blue) - min(x for x, _ in ink)) <= 2
+
+
+def test_a_quote_is_cropped_to_its_own_lines(tmp_path):
+    # On a phone the image is a thumbnail: a crop of the quote alone reads larger than the whole passage (#41).
+    from bgrules.render import render
+    from test_own_rulebook import make_pdf
+
+    pdf = make_pdf(tmp_path / "rules.pdf", [[(f"Rule line {i} of a long passage about setup.", "R", 10) for i in range(12)]])
+    passage = [[72, 50, 300, 230]]
+    whole = Image.open(io.BytesIO(render(str(pdf), 1, passage, crop_margin=36)))
+    quote = Image.open(io.BytesIO(render(str(pdf), 1, passage, crop_margin=36, underline=[[72, 100, 200, 110]])))
+    assert quote.height < whole.height / 2 and quote.width < whole.width

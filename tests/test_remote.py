@@ -131,6 +131,25 @@ def test_remote_list_games_says_how_to_add(monkeypatch, tmp_path):
     assert server.list_games()["how_to_add"] == store.REMOTE_HOW_TO_ADD
 
 
+
+def test_remote_show_passage_puts_the_image_first_and_says_where_it_is(tmp_path, monkeypatch):
+    # The Claude apps keep the image inside the collapsed tool call (#41).
+    from mcp.server.mcpserver import Image
+
+    from bgrules import ingest
+    from test_own_rulebook import make_pdf, quiet
+
+    monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
+    pdf = make_pdf(tmp_path / "rules.pdf", [[("Setup", "R", 16), ("The player who most recently cooked goes first.", "R", 10)]])
+    ingest.add("Cooking", file=str(pdf), log=quiet)
+    cid = store.search(store.connect(), "cooking", "who goes first")["results"][0]["citation_id"]
+    local = server.show_passage(cid, "most recently cooked")
+    assert isinstance(local[1], Image) and "where_to_see" not in local[0]
+    monkeypatch.setattr(store, "REMOTE", True)
+    image, summary = server.show_passage(cid, "most recently cooked")
+    assert isinstance(image, Image) and summary["where_to_see"] == server.REMOTE_WHERE_TO_SEE
+    assert "shown above" in summary["where_to_see"] and "Show passage" in summary["where_to_see"]
+
 # --- deploy: token, package, gcloud commands --------------------------------
 
 @pytest.fixture
@@ -498,7 +517,8 @@ def test_serve_http_end_to_end(tmp_path):
     top = json.loads(search.content[0].text)["results"][0]
     assert top["section_path"] == ["Almanac", "Robber"] and "open_link" not in top
     kinds = [block.type for block in shown.content]
-    assert kinds[0] == "text" and "image" in kinds
+    assert kinds[0] == "image" and kinds[-1] == "text"  # image first: the apps show it inside the tool call
+    assert "where_to_see" in shown.content[-1].text
 
 
 async def _remote_calls(url):
