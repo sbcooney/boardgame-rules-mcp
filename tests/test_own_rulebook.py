@@ -7,11 +7,12 @@ import pytest
 from bgrules import extract, ingest, manifest, server, store
 
 
-def make_pdf(path, pages, sizes=None):
+def make_pdf(path, pages, sizes=None, crop_inset=0):
     """A minimal PDF: each page is a list of (text, font, size) lines, top to bottom,
     each optionally with an x position, or (x, y) to place it anywhere.
     Fonts: R (Helvetica) and B (Helvetica-Bold). `sizes` gives each page's
-    (width, height) (default 612 x 792)."""
+    (width, height) (default 612 x 792). `crop_inset` sets a crop box that
+    far (in points) inside each page's edges."""
     objs = ["<< /Type /Catalog /Pages 2 0 R >>", None,
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"]
@@ -24,7 +25,9 @@ def make_pdf(path, pages, sizes=None):
             if at is None:
                 y -= size * 1.5
         objs.append(f"<< /Length {len(stream) + 2} >>\nstream\n{stream}ET\nendstream")
-        objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {sizes[n][0] if sizes else 612} {sizes[n][1] if sizes else 792}] /Contents {len(objs)} 0 R "
+        w, h = sizes[n] if sizes else (612, 792)
+        crop = f"/CropBox [{crop_inset} {crop_inset} {w - crop_inset} {h - crop_inset}] " if crop_inset else ""
+        objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w} {h}] {crop}/Contents {len(objs)} 0 R "
                     "/Resources << /Font << /R 3 0 R /B 4 0 R >> >> >>")
         kids.append(f"{len(objs)} 0 R")
     objs[1] = f"<< /Type /Pages /Kids [{' '.join(kids)}] /Count {len(kids)} >>"

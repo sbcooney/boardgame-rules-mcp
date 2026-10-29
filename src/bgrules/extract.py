@@ -587,6 +587,7 @@ def _ocr_lines(pdf_path: str, pages: list[int], rules: dict):
         raise RuntimeError(
             f"Pages {pages} have no text, only images, so they need OCR, which uses macOS's Vision framework ({e})."
         ) from e
+    from .render import crop_offset
 
     def recognise(image) -> list:
         buf = io.BytesIO()
@@ -605,6 +606,8 @@ def _ocr_lines(pdf_path: str, pages: list[int], rules: dict):
         for page_no in pages:
             page = pdf[page_no - 1]
             width, height = page.get_size()
+            # The image is the crop box; boxes are stored from the media box, as pdfplumber's are.
+            dx, dy = crop_offset(page)
             found: list[tuple[str, tuple[float, float, float, float], int, float]] = []
             for scale in OCR_SCALES:
                 image = page.render(scale=scale).to_pil()
@@ -617,8 +620,8 @@ def _ocr_lines(pdf_path: str, pages: list[int], rules: dict):
                             continue
                         b = obs.boundingBox()  # normalised to the strip, origin bottom-left
                         sw = right - left
-                        bbox = (left + b.origin.x * sw, (1 - b.origin.y - b.size.height) * height,
-                                left + (b.origin.x + b.size.width) * sw, (1 - b.origin.y) * height)
+                        bbox = (dx + left + b.origin.x * sw, dy + (1 - b.origin.y - b.size.height) * height,
+                                dx + left + (b.origin.x + b.size.width) * sw, dy + (1 - b.origin.y) * height)
                         same = next((i for i, f in enumerate(found) if _overlap(f[1], bbox) > 0.5), None)
                         if same is None:
                             found.append((best.string(), bbox, col, best.confidence()))
