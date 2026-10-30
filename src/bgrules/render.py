@@ -95,6 +95,24 @@ def quote_lines(lines: list[dict], quote: str) -> dict | None:
     return {"boxes": boxes, "highlight": "approximate" if reasons else "exact", "reasons": sorted(reasons)}
 
 
+def _stack(images: list[Image.Image]) -> Image.Image:
+    stacked = Image.new("RGB", (max(i.width for i in images), sum(i.height for i in images) + STACK_GAP * (len(images) - 1)), "white")
+    y = 0
+    for i in images:
+        stacked.paste(i, (0, y))
+        y += i.height + STACK_GAP
+    return stacked
+
+
+def stack_pngs(pngs: list[bytes]) -> bytes:
+    """One PNG from several, top to bottom: a quote that runs over a page, as a single image."""
+    if len(pngs) == 1:
+        return pngs[0]
+    buf = io.BytesIO()
+    _stack([Image.open(io.BytesIO(p)).convert("RGB") for p in pngs]).save(buf, format="PNG", optimize=True)
+    return buf.getvalue()
+
+
 def crop_offset(page: pdfium.PdfPage) -> tuple[float, float]:
     """How far the crop box's top-left is from the media box's, in points:
     subtract it from an extracted box to place it on the rendered page."""
@@ -145,13 +163,7 @@ def render(pdf_path: str, page: int, boxes: list[list[float]], scale: float = 1.
              min(w, (x1 + crop_margin) * scale), min(h, (bottom + crop_margin) * scale))
             for x0, top, x1, bottom in (underline or boxes)
         ])
-        crops = [img.crop(tuple(round(v) for v in r)) for r in regions]
-        stacked = Image.new("RGB", (max(c.width for c in crops), sum(c.height for c in crops) + STACK_GAP * (len(crops) - 1)), "white")
-        y = 0
-        for c in crops:
-            stacked.paste(c, (0, y))
-            y += c.height + STACK_GAP
-        img = stacked
+        img = _stack([img.crop(tuple(round(v) for v in r)) for r in regions])
 
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)

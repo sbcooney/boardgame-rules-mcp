@@ -132,23 +132,45 @@ def test_remote_list_games_says_how_to_add(monkeypatch, tmp_path):
 
 
 
-def test_remote_show_passage_puts_the_image_first_and_says_where_it_is(tmp_path, monkeypatch):
-    # The Claude apps keep the image inside the collapsed tool call (#41).
-    from mcp.server.mcpserver import Image
-
+@pytest.fixture
+def cooking(tmp_path, monkeypatch):
     from bgrules import ingest
     from test_own_rulebook import make_pdf, quiet
 
     monkeypatch.setenv("BGRULES_HOME", str(tmp_path / "home"))
     pdf = make_pdf(tmp_path / "rules.pdf", [[("Setup", "R", 16), ("The player who most recently cooked goes first.", "R", 10)]])
     ingest.add("Cooking", file=str(pdf), log=quiet)
-    cid = store.search(store.connect(), "cooking", "who goes first")["results"][0]["citation_id"]
-    local = server.show_passage(cid, "most recently cooked")
-    assert isinstance(local[1], Image) and "where_to_see" not in local[0]
+    return store.search(store.connect(), "cooking", "who goes first")["results"][0]["citation_id"]
+
+
+def test_remote_search_says_to_show_the_rule_unasked(cooking, monkeypatch):
+    assert "show_the_rule" not in server.search_rules("cooking", "who goes first")
     monkeypatch.setattr(store, "REMOTE", True)
-    image, summary = server.show_passage(cid, "most recently cooked")
-    assert isinstance(image, Image) and summary["where_to_see"] == server.REMOTE_WHERE_TO_SEE
-    assert "shown above" in summary["where_to_see"] and "Show passage" in summary["where_to_see"]
+    assert "show_passage" in server.search_rules("cooking", "who goes first")["show_the_rule"]
+    assert "show_the_rule" not in server.search_rules("cooking", "zebra xylophone")
+
+
+def test_image_link_opens_only_that_image(cooking, monkeypatch, client):
+    from urllib.parse import urlsplit
+
+    assert "image_link" not in server.show_passage(cooking, "most recently cooked")[0]  # local: no change
+    monkeypatch.setattr(store, "REMOTE", True)
+    client.post(f"/{TOKEN}/mcp", json=INIT, headers=HEADERS)  # how the server learns its own address
+    summary = server.show_passage(cooking, "most recently cooked")[0]
+    assert "citation_id" not in summary and TOKEN not in summary["image_link"]
+    assert "[See it in the rulebook](image_link)" in summary["use_the_link"]
+
+    link = urlsplit(summary["image_link"])
+    url = f"{link.path}?{link.query}"
+    got = client.get(url)
+    assert got.status_code == 200 and got.headers["content-type"] == "image/png" and got.content[:4] == b"\x89PNG"
+    # A signature opens its own citation and quote only, and never the connector.
+    signature = link.path.removeprefix("/passage/").removesuffix(".png")
+    for bad in [url.replace("most", "least"), f"{link.path}?c={cooking}", f"/passage/{'0' * 64}.png?{link.query}",
+                f"{link.path}?c=other&q=x", link.path, f"/{signature}/mcp"]:
+        assert client.get(bad).status_code == 404, bad
+    assert client.post(f"/{signature}/mcp", json=INIT, headers=HEADERS).status_code == 404
+
 
 # --- deploy: token, package, gcloud commands --------------------------------
 
@@ -511,14 +533,16 @@ def test_serve_http_end_to_end(tmp_path):
     finally:
         proc.terminate()
         proc.wait(10)
-    instructions, tools, search, shown = result
+    instructions, tools, search, shown, image_status = result
     assert "run the deploy command again" in instructions  # what the client actually receives
     assert "add_game" not in tools and "open_in_rulebook" not in tools
     top = json.loads(search.content[0].text)["results"][0]
     assert top["section_path"] == ["Almanac", "Robber"] and "open_link" not in top
     kinds = [block.type for block in shown.content]
-    assert kinds[0] == "image" and kinds[-1] == "text"  # image first: the apps show it inside the tool call
-    assert "where_to_see" in shown.content[-1].text
+    assert kinds[0] == "text" and "image" in kinds
+    link = json.loads(shown.content[0].text)["image_link"]
+    assert link.startswith(f"http://127.0.0.1:{port}/passage/") and TOKEN not in link
+    assert image_status == 200
 
 
 async def _remote_calls(url):
@@ -529,7 +553,10 @@ async def _remote_calls(url):
             search = await session.call_tool("search_rules", {"game": "catan", "edition": "2020", "query": "What happens when I move the robber?"})
             cid = json.loads(search.content[0].text)["results"][0]["citation_id"]
             shown = await session.call_tool("show_passage", {"citation_id": cid, "quote": "The robber begins the game in the desert."})
-            return init.instructions, tools, search, shown
+            link = json.loads(shown.content[0].text)["image_link"]
+            async with httpx2.AsyncClient() as http:
+                image_status = (await http.get(link)).status_code
+            return init.instructions, tools, search, shown, image_status
 
 
 NOT_READY = ("ERROR: Failed to create topic: ... organization policy ... If the topic's project was recently created, "
