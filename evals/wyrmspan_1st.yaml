@@ -2,12 +2,11 @@
 #
 # Same format as catan_2020.yaml: short rulings in our own words, checked
 # against the indexed rulebook text, and the sections that settle each one.
-# The `vocab` questions were written before trying a synonym list. The `automa`
-# and `expansion` questions need those documents installed.
+# The `vocab` questions were written before the game's synonym list.
 game: wyrmspan
 edition: "1st"
 game_name: Wyrmspan
-edition_desc: base game rules (rulebook r19), Automa solo rules (r6) and Dragon Academy (r10)
+edition_desc: base game rules (rulebook r19)
 
 core: [
   wy-start-cards, wy-excavate-cost, wy-explore-third, wy-trait-itself, wy-tie,
@@ -177,70 +176,6 @@ questions:
     question: How many points is a tucked dragon worth?
     answer: 1 VP each, unless otherwise specified.
     sections: ["Dragon Abilities > Example Dragon Card"]
-
-  # ---- automa: the solo rulebook ----------------------------------------
-  - id: wy-au-resources
-    category: guide
-    question: Does Automa pay coins or eggs for her actions in solo play?
-    answer: No. She gets no player mat, never gains coins, eggs or resources, and doesn't pay them.
-    sections: ["Automa Doesn’t Follow the Rules"]
-  - id: wy-au-deck
-    category: guide
-    question: How many decision cards are in Automa's deck?
-    answer: Always 8, chosen from the 16 included. One is set aside unseen.
-    sections: ["Automa Doesn’t Follow the Rules > Build the Decision Deck", "Difficulty Levels"]
-  - id: wy-au-tie
-    category: guide
-    question: Who wins a tie against Automa?
-    answer: You win.
-    sections: ["Game End and Scoring"]
-  - id: wy-au-opponents
-    category: guide
-    question: In solo, when I trigger an ability that gives other players something, what does Automa gain?
-    answer: Nothing.
-    sections: ["On Your Turn"]
-  - id: wy-au-ravel-coins
-    category: guide
-    question: How many coins can I carry between rounds in Ravel Mode?
-    answer: At most 2. You discard down to 2 when you pass.
-    sections: ["Round End/Upkeep", "Variant: Ravel Mode"]
-  - id: wy-au-level3
-    category: guide
-    question: What's different at Automa Level 3 scoring?
-    answer: She gains 1 extra VP for each dragon she has at the end of the game.
-    sections: ["Difficulty Levels", "Game End and Scoring"]
-
-  # ---- expansion: Dragon Academy ----------------------------------------
-  - id: wy-da-pass
-    category: guide
-    question: In Dragon Academy, what do I do with my adventurer when I pass?
-    answer: In rounds 1 to 3, place it on a space on the updated round tracker board; no one else may claim that space that round. Passing is your entire turn.
-    sections: ["Rule Changes > Passing & Round End Actions"]
-  - id: wy-da-train-order
-    category: guide
-    question: In what order are a fledgling's training boxes filled?
-    answer: Always from left to right.
-    sections: ["Rule Changes > New Dragon Type: Fledglings"]
-  - id: wy-da-purple
-    category: guide
-    question: Does a fledgling's purple ability work before it's fully trained?
-    answer: No, it's inactive, though it still counts for objectives and end-game scoring.
-    sections: ["Rule Changes > New Dragon Type: Fledglings"]
-  - id: wy-da-tithe
-    category: guide
-    question: What counts as a tithe for the King's Guild?
-    answer: Any one item, a resource, a dragon card, a cave card or an egg, and multiple tithes may be mixed.
-    sections: ["Rule Changes > Select Dragon Guild Powers Explained Ability Or Concept > King’s Guild"]
-  - id: wy-da-conditional
-    category: guide
-    question: If I meet a blue star condition on a dragon, do I still pay the entice action?
-    answer: Yes, you must still entice it or use an ability to play it, but you ignore its printed play cost.
-    sections: ["Rule Changes > Free-to-Play (Conditional) Dragons"]
-  - id: wy-da-automa-cache
-    category: guide
-    question: With Dragon Academy solo, how many cache tokens does Automa get from a free benefit given to all opponents?
-    answer: 2 cache tokens for each thing, or 1 for each thing if the benefit requires paying a cost.
-    sections: ["Automa’s Cache"]
 
   # ---- not addressed ---------------------------------------------------
   - id: wy-na-trade

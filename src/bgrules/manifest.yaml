@@ -251,41 +251,6 @@ wyrmspan:
             # Rules text 10pt. Dropped: card and icon text, which is much smaller.
             body_fonts: [AcuminProCond, Amarante-Regular]
             body_size: [8.9, 10.1]
-        - id: automa
-          title: Automa Solo Rulebook (r6)
-          source: user_supplied  # Wyrmspan/Wyr_AutomaRulebook_r6_PF.pdf in the official folder
-          download_page: https://www.dropbox.com/scl/fo/ulyfze69rb24tsgip7mn7/h?rlkey=ha4lz6kvkwmjaglah0lwtzjto&st=u27wgbff&dl=0
-          expected_sha256: e6327e04d78de6f746476d911d0048f8a08d2f5938d1896d38116d8cc2eabde0
-          extraction:
-            layout: boxes  # same layout and type as the rulebook
-            content_pages: [1, 7]  # page 8 is credits
-            heading_fonts:
-              - {name: Amarante-Regular, min_size: 14.5, max_size: 15.5, part: true}
-              - {name: Amarante-Regular, min_size: 10.9, max_size: 11.1}
-            subheadings:
-              - {pattern: "^(?!•|NOTE|IMPORTANT|DESIGNER)", fonts: [Amarante-Regular], min_size: 8.9, max_size: 9.1}
-            body_fonts: [AcuminProCond, Amarante-Regular]
-            body_size: [8.9, 10.1]
-        - id: dragon-academy
-          title: Dragon Academy Expansion Rulebook (r10)
-          source: user_supplied  # Wyrmspan/Dragon Academy Expansion/Wyr_DA_Rulebook_r10.pdf in the official folder
-          download_page: https://www.dropbox.com/scl/fo/ulyfze69rb24tsgip7mn7/h?rlkey=ha4lz6kvkwmjaglah0lwtzjto&st=u27wgbff&dl=0
-          expected_sha256: 399abcab3ea7c9096500c6dfee0e9d6e1ec4141df978db2972b99d790784c3c2
-          extraction:
-            layout:  # same layout and type as the rulebook, and a table of guild powers
-              - {pages: [1, 4], layout: boxes}
-              - {pages: [5, 5], layout: table}  # guild | ability | explanation
-              - {pages: [6, 7], layout: boxes}
-            table: {column_bounds: [118, 197], title_columns: [0]}
-            skip_text: ['^(DRAGON ABILITY|DRAGON GUILD TILE|ABILITY OR CONCEPT|EXPLANATION|GUILD TILE OR CONCEPT|HEPU|HEPU AGGRESSVE)$']  # table titles; card labels
-            content_pages: [1, 7]  # page 8 is help links
-            heading_fonts:
-              - {name: Amarante-Regular, min_size: 14.5, max_size: 15.5, part: true}
-              - {name: Amarante-Regular, min_size: 10.9, max_size: 11.1}
-            subheadings:
-              - {pattern: "^(?!•|NOTE|IMPORTANT|DESIGNER)", fonts: [Amarante-Regular], min_size: 8.9, max_size: 9.1}
-            body_fonts: [AcuminProCond, Amarante-Regular]
-            body_size: [8.9, 10.1]
 
 spirit-island:
   name: Spirit Island
