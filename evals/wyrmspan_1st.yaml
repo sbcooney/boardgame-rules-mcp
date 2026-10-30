@@ -1,0 +1,200 @@
+# Wyrmspan (base game, rulebook r19) eval questions.
+#
+# Same format as catan_2020.yaml: short rulings in our own words, checked
+# against the indexed rulebook text, and the sections that settle each one.
+# The `vocab` questions were written before the game's synonym list.
+game: wyrmspan
+edition: "1st"
+game_name: Wyrmspan
+edition_desc: base game rules (rulebook r19)
+
+core: [
+  wy-start-cards, wy-excavate-cost, wy-explore-third, wy-trait-itself, wy-tie,
+  wy-carry-over, wy-other-turn-limit, wy-hatchling-third, wy-fourth-column,
+  wy-vocab-meeple, wy-vocab-gem,
+  wy-na-trade, wy-na-undo,
+]
+
+questions:
+  # ---- lookup ----------------------------------------------------------
+  - id: wy-rounds
+    category: lookup
+    question: How many rounds does a game of Wyrmspan last?
+    answer: 4 rounds.
+    sections: ["Gameplay", "Entice > If You Already Know Wingspan"]
+  - id: wy-start-cards
+    category: lookup
+    question: What cards and resources does each player start with?
+    answer: Draw 3 dragons and 3 cave cards and keep 4 of them in any combination, discarding the other 2, and take 3 resources of your choice, plus 6 coins and 1 egg.
+    sections: ["Setup > Each Player Gains:"]
+  - id: wy-start-egg
+    category: lookup
+    question: How many eggs do I begin the game with?
+    answer: 1 egg, placed on one of the 2 nest icons on your player mat.
+    sections: ["Setup > Each Player Then:", "Setup > Each Player Gains:"]
+  - id: wy-income
+    category: lookup
+    question: What does each player gain at the beginning of a new round?
+    answer: 6 coins and 1 egg.
+    sections: ["Round End/Upkeep", "Entice > If You Already Know Wingspan"]
+  - id: wy-excavate-cost
+    category: lookup
+    question: How many eggs does it cost to excavate a space in the 4th column?
+    answer: 2 eggs, on top of the base cost of 1 coin (the 3rd column costs 1 egg).
+    sections: ["Excavate > Play a Cave Card Into 1 of Your Caves."]
+  - id: wy-explore-third
+    category: lookup
+    question: What does it cost to explore the same cave a third time in a round?
+    answer: 1 coin and 2 eggs. Three times is the maximum.
+    sections: ["Explore"]
+  - id: wy-max-dragons
+    category: lookup
+    question: What's the most dragons a player mat can hold?
+    answer: 12 dragons.
+    sections: ["Entice > Add a Dragon to Your Player Mat."]
+  - id: wy-capacity
+    category: lookup
+    question: What's the limit on coins, cards and resources at the end of my turn?
+    answer: You must discard down to 9 coins, 9 cards and 9 resource tokens.
+    sections: ["Turn End", "Additional Rules, Notes, and Concepts > ACTIVATING ABILITIES MULTIPLE", "Overview > Terminology", "Entice > If You Already Know Wingspan"]
+  - id: wy-traits
+    category: lookup
+    question: What are the dragon traits?
+    answer: Shy, aggressive, playful and helpful.
+    sections: ["Dragon Abilities > Example Dragon Card"]
+  - id: wy-exchange
+    category: lookup
+    question: When can I exchange resources, and at what rate?
+    answer: At any point during the game, 2 resources in any combination for 1 resource of another type.
+    sections: ["Additional Rules, Notes, and Concepts > ON YOUR PLAYER MAT OR IN A CAVE:", "Entice > If You Already Know Wingspan"]
+  - id: wy-tie
+    category: lookup
+    question: How is a tie broken at the end of the game?
+    answer: The tied player with the most visible dragons on their player mat wins, not counting tucked cards. If still tied, they share the victory.
+    sections: ["Game End and Scoring"]
+  - id: wy-guild-markers
+    category: lookup
+    question: How many player markers can I place on the Dragon Guild tile?
+    answer: At most 4.
+    sections: ["Dragon Guild"]
+  - id: wy-start-player
+    category: lookup
+    question: Who is start player in the next round?
+    answer: The start player marker advances 1 player clockwise at the beginning of the next round.
+    sections: ["Round End/Upkeep"]
+  - id: wy-discard-paid
+    category: lookup
+    question: What happens to the coins and eggs I paid on my mat when the round ends?
+    answer: They're discarded at the end of the round.
+    sections: ["Round End/Upkeep"]
+
+  # ---- edge ------------------------------------------------------------
+  - id: wy-trait-itself
+    category: edge
+    question: If a dragon's ability counts playful dragons, and it's playful itself, does it count itself?
+    answer: Yes. A dragon looking for a category includes itself if it applies.
+    sections: ["Dragon Abilities > Example Dragon Card"]
+  - id: wy-carry-over
+    category: edge
+    question: Do I keep unspent coins when I pass for the round?
+    answer: Yes. Coins, resources, cave cards, dragons and nested eggs carry over to the next round.
+    sections: ["Gameplay", "Round End/Upkeep"]
+  - id: wy-pass-benefits
+    category: edge
+    question: After I've passed, can I still gain benefits from other players' turns?
+    answer: Yes. You take no more turns that round, but you may still gain benefits during others' turns.
+    sections: ["Gameplay"]
+  - id: wy-other-turn-limit
+    category: edge
+    question: If another player's ability puts me over my capacity limit on their turn, do I discard right away?
+    answer: No. You don't need to discard down until the end of your next turn.
+    sections: ["Additional Rules, Notes, and Concepts > ACTIVATING ABILITIES MULTIPLE"]
+  - id: wy-hatchling-third
+    category: edge
+    question: After a hatchling's third-cache bonus triggers, does caching there still give the regular benefit?
+    answer: Yes. The bonus happens exactly once per hatchling, and you may keep activating its first 2 abilities afterwards.
+    sections: ["Dragon Abilities > Hatchlings"]
+  - id: wy-fourth-column
+    category: edge
+    question: When I cover a 4th column space, how many items do I spend for the coin, and can I do it again later?
+    answer: 3 items (resources, dragons and cave cards in any combination) for 1 coin. It's optional and only once per space.
+    sections: ["Excavate > Play a Cave Card Into 1 of Your Caves."]
+  - id: wy-decline-opponents
+    category: edge
+    question: If I decline a when played benefit that also gives opponents something, do they still get it?
+    answer: Yes. Other players must be allowed to collect their benefit even if you decline yours.
+    sections: ["Dragon Abilities", "Excavate > Play a Cave Card Into 1 of Your Caves.", "Entice > If You Already Know Wingspan"]
+  - id: wy-if-activated-same-turn
+    category: edge
+    question: Does a dragon's if activated ability trigger on the turn I play it?
+    answer: No. "If activated" abilities do not activate the turn you play the dragon.
+    sections: ["Dragon Abilities"]
+  - id: wy-empty-display
+    category: edge
+    question: An ability lets me gain a card from the display but it's empty. What happens?
+    answer: You may not take the benefit, because the display doesn't refill until the end of the turn. With a plain "gain" you may still draw from the deck instead.
+    sections: ["Additional Rules, Notes, and Concepts > GAIN A DRAGON OR A CAVE CARD FROM THE DISPLAY:", "Additional Rules, Notes, and Concepts > GAIN A DRAGON OR A CAVE CARD:"]
+  - id: wy-no-nest
+    category: edge
+    question: At the start of a round I have no empty nest. What happens to my free egg?
+    answer: You may not gain it.
+    sections: ["Round End/Upkeep", "Dragon Abilities > Example Dragon Card > LAY AN EGG OR PAY AN EGG:"]
+  - id: wy-zero-objective
+    category: edge
+    question: If I have none of the items a round objective asks for, where does my marker go?
+    answer: On "all others" (0 VP), regardless of your position relative to other players.
+    sections: ["Round End/Upkeep"]
+  - id: wy-free-play-cost
+    category: edge
+    question: If an ability lets me play a dragon, do I also pay the coin for the entice action?
+    answer: No. The only payment is the cost printed on the dragon; the entice coin is paid only when selecting that action.
+    sections: ["Additional Rules, Notes, and Concepts > ABILITIES FOR PLAYING A DRAGON OR CAVE CARD AT A"]
+
+  # ---- vocab: players' words, not the rulebook's -----------------------
+  - id: wy-vocab-meeple
+    category: vocab
+    question: Where does my meeple go after I finish walking through a cave?
+    answer: Your adventurer returns to Base Camp.
+    sections: ["Explore", "Explore > Example"]
+  - id: wy-vocab-gem
+    category: vocab
+    question: Are gems counted as resources?
+    answer: Yes. Crystal is one of the resources, along with gold, meat and milk. Coins and eggs aren't.
+    sections: ["Additional Rules, Notes, and Concepts > ON YOUR PLAYER MAT OR IN A CAVE:", "Overview > Terminology"]
+  - id: wy-vocab-market
+    category: vocab
+    question: When does the card market refill?
+    answer: At the end of each player's turn.
+    sections: ["Additional Rules, Notes, and Concepts > ACTIVATING ABILITIES MULTIPLE", "Turn End", "Additional Rules, Notes, and Concepts > ABILITY ACTIVATION SEQUENCING:"]
+  - id: wy-vocab-bank
+    category: vocab
+    question: What should we do if the bank runs out of eggs?
+    answer: Players may return excess tokens from their mats to the supply, but must track how many times they've explored each cave that round.
+    sections: ["On Your Turn", "Explore"]
+  - id: wy-vocab-points
+    category: vocab
+    question: How many points is a tucked dragon worth?
+    answer: 1 VP each, unless otherwise specified.
+    sections: ["Dragon Abilities > Example Dragon Card"]
+
+  # ---- not addressed ---------------------------------------------------
+  - id: wy-na-trade
+    category: not_addressed
+    question: Can players trade dragons with each other?
+    answer: The rulebook doesn't address trading between players.
+    sections: []
+  - id: wy-na-undo
+    category: not_addressed
+    question: Can I take back a move if I haven't drawn a new card yet?
+    answer: The rulebook doesn't address taking back a move.
+    sections: []
+  - id: wy-na-spectator
+    category: not_addressed
+    question: Are spectators allowed to give advice during the game?
+    answer: The rulebook doesn't address spectators.
+    sections: []
+  - id: wy-na-time
+    category: not_addressed
+    question: Is there a time limit for each turn?
+    answer: The rulebook doesn't mention a turn time limit.
+    sections: []

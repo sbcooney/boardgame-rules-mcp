@@ -221,6 +221,37 @@ wingspan:
             body_fonts: [FuturaPT-Light, FuturaPT-Book, FuturaPT-Medium, FuturaPT-LightObl, FuturaPTCond-BookObl, CardenioModern-Bold]
             body_size: [10, 12.5]
 
+wyrmspan:
+  name: Wyrmspan
+  editions:
+    "1st":
+      docs:
+        - id: rulebook
+          title: Rulebook (r19)
+          source: user_supplied  # Wyrmspan/Wyr_Rulebook_r19.pdf in the official folder
+          download_page: https://www.dropbox.com/scl/fo/ulyfze69rb24tsgip7mn7/h?rlkey=ha4lz6kvkwmjaglah0lwtzjto&st=u27wgbff&dl=0
+          expected_sha256: 7fbef5edf345343f943d2e9b9aed88aed34088d722522786f62dfc3e2c976702
+          extraction:
+            # Free-form layout with sidebars, like Wingspan, and a table of guild powers.
+            layout:
+              - {pages: [2, 12], layout: boxes}
+              - {pages: [13, 13], layout: table}  # guild | ability | rules
+              - {pages: [14, 16], layout: boxes}
+            table: {column_bounds: [201, 352], title_columns: [0]}
+            content_pages: [2, 16]  # page 1 is the cover, parts list and contents
+            skip_pages: [3]  # a setup diagram: only its letter labels are text
+            heading_fonts:
+              - {name: Amarante-Regular, min_size: 14.5, max_size: 15.5, part: true}  # "ON YOUR TURN", "EXCAVATE"
+              - {name: Amarante-Regular, min_size: 10.9, max_size: 11.1}  # "HATCHLINGS"
+            subheadings:
+              # "LAY AN EGG OR PAY AN EGG:". Terms set in the same type in the middle of
+              # a paragraph or bullet list stay in its text ("NOTE:", "• EGGS:").
+              - {pattern: '^[^•]', fonts: [Amarante-Regular], min_size: 8.9, max_size: 9.1}
+            skip_text: ['^(DRAGON GUILD TILE|ABILITY|RULES)$', '^MEDIUM LYFL$']  # the guild table's column titles; a card label
+            # Rules text 10pt. Dropped: card and icon text, which is much smaller.
+            body_fonts: [AcuminProCond, Amarante-Regular]
+            body_size: [8.9, 10.1]
+
 spirit-island:
   name: Spirit Island
   editions:
