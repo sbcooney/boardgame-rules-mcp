@@ -227,10 +227,12 @@ wyrmspan:
     "1st":
       docs:
         - id: rulebook
-          title: Rulebook (r19, Wyrmspan/Wyr_Rulebook_r19.pdf in the official folder)
-          source: user_supplied
-          download_page: https://www.dropbox.com/scl/fo/ulyfze69rb24tsgip7mn7/h?rlkey=ha4lz6kvkwmjaglah0lwtzjto&st=u27wgbff&dl=0
-          expected_sha256: 7fbef5edf345343f943d2e9b9aed88aed34088d722522786f62dfc3e2c976702
+          title: Rulebook (r19)
+          # Linked as the rulebook download from Stonemaier's rules page
+          # (https://stonemaiergames.com/games/wyrmspan/rules-faq/). The link is to their
+          # whole folder; this path within it, with dl=1, serves the file itself.
+          url: https://www.dropbox.com/scl/fo/ulyfze69rb24tsgip7mn7/h/Wyrmspan/Wyr_Rulebook_r19.pdf?rlkey=ha4lz6kvkwmjaglah0lwtzjto&dl=1
+          sha256: 7fbef5edf345343f943d2e9b9aed88aed34088d722522786f62dfc3e2c976702
           extraction:
             # Free-form layout with sidebars, like Wingspan, and a table of guild powers.
             layout:
