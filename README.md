@@ -173,11 +173,12 @@ On the phone, Claude explains these steps when you ask about a game the instance
 
 ### Keep the link private
 
-The connector URL holds a long random token: `https://<service>.run.app/<token>/mcp`. Claude's custom connectors can't send passwords or sign in to Google, so the token in the URL is what keeps others out. Every other address gets a plain 404. Anyone with the link can read your copies of the rulebooks, so don't share it.
+The connector URL holds a long random token: `https://<service>.run.app/<token>/mcp`. Claude's custom connectors can't send passwords or sign in to Google, so the token in the URL is what keeps others out. Every other address gets a plain 404, apart from the image links below. Anyone with the connector link can read your copies of the rulebooks, so don't share it.
 
 - The token is saved in `~/.bgrules-remote/token` (readable only by you) and reused, so the link never changes. If it leaks, run `bgrules deploy --new-token` and replace the URL in the connector on claude.ai.
+- Claude's answers can include a "See it in the rulebook" link to a page image, since the phone app hides images inside the tool call. These links don't contain your token. Each one is signed for a single image, so if you share a chat, others can open that image and read the quoted words in its address, but nothing else. Links keep working until you run `bgrules deploy --new-token`.
 - There are no keys to leak. The deploy runs as you, through `gcloud`; it never creates an API key or a service-account key.
-- Cloud Run's request logs in your project record the URL, token included. Only people with access to your project can see them.
+- Cloud Run's request logs in your project record the URL, token included, and image links too. Only people with access to your project can see them.
 - Turn on [2-Step Verification](https://myaccount.google.com/signinoptions/twosv) for your Google account: it controls the project and its billing.
 
 ### Cost

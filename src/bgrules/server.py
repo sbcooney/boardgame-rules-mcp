@@ -213,10 +213,7 @@ def search_rules(game: str, query: str, edition: str | None = None, max_results:
     Each result's `quote` is exact rulebook text; `coverage` is the share of the
     question's key words the passage contains.
     """
-    result = _call(store.search, game, query, edition=edition, max_results=max(1, min(max_results, 10)))
-    if store.REMOTE and result.get("found"):
-        result["show_the_rule"] = REMOTE_SHOW_THE_RULE
-    return result
+    return _ask_to_show(_call(store.search, game, query, edition=edition, max_results=max(1, min(max_results, 10))))
 
 
 @mcp.tool()
@@ -232,7 +229,13 @@ def lookup_term(game: str, term: str, edition: str | None = None) -> dict:
     """Look up a section by its exact title, such as a glossary or almanac entry
     ("Robber", "Longest Road", "Distance Rule"). Returns found=false with similar
     titles when there is no exact match."""
-    return _call(store.lookup_term, game, term, edition=edition)
+    return _ask_to_show(_call(store.lookup_term, game, term, edition=edition))
+
+
+def _ask_to_show(result: dict) -> dict:
+    if store.REMOTE and result.get("found"):
+        result["show_the_rule"] = REMOTE_SHOW_THE_RULE
+    return result
 
 
 # Server instructions don't reach Claude in the phone app, so these go in the results.

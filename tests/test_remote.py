@@ -148,6 +148,8 @@ def test_remote_search_says_to_show_the_rule_unasked(cooking, monkeypatch):
     monkeypatch.setattr(store, "REMOTE", True)
     assert "show_passage" in server.search_rules("cooking", "who goes first")["show_the_rule"]
     assert "show_the_rule" not in server.search_rules("cooking", "zebra xylophone")
+    assert "show_passage" in server.lookup_term("cooking", "Setup")["show_the_rule"]
+    assert "show_the_rule" not in server.lookup_term("cooking", "Zebra")
 
 
 def test_image_link_opens_only_that_image(cooking, monkeypatch, client):

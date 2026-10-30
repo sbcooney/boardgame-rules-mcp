@@ -102,3 +102,16 @@ def test_a_quote_is_cropped_to_its_own_lines(tmp_path):
     whole = Image.open(io.BytesIO(render(str(pdf), 1, passage, crop_margin=36)))
     quote = Image.open(io.BytesIO(render(str(pdf), 1, passage, crop_margin=36, underline=[[72, 100, 200, 110]])))
     assert quote.height < whole.height / 2 and quote.width < whole.width
+
+
+def test_a_quote_over_two_pages_makes_one_image(tmp_path):
+    # An image link can only open one image (#41).
+    from bgrules.render import STACK_GAP, render, stack_pngs
+    from test_own_rulebook import make_pdf
+
+    pdf = make_pdf(tmp_path / "rules.pdf", [[("First page.", "R", 10)], [("Second page.", "R", 10)]])
+    pngs = [render(str(pdf), page, [[72, 40, 300, 60]], crop_margin=10) for page in (1, 2)]
+    assert stack_pngs(pngs[:1]) == pngs[0]
+    first, second = (Image.open(io.BytesIO(p)) for p in pngs)
+    stacked = Image.open(io.BytesIO(stack_pngs(pngs)))
+    assert stacked.height == first.height + second.height + STACK_GAP and stacked.width == max(first.width, second.width)
