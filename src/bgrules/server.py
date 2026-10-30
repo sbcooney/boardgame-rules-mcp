@@ -5,6 +5,8 @@ with where it is (section path, page, link); the client model writes the
 answer from those passages.
 """
 
+import asyncio
+import hashlib
 import hmac
 import os
 import platform
@@ -14,6 +16,7 @@ import threading
 import webbrowser
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
+from urllib.parse import parse_qs, urlencode
 
 from mcp.server.mcpserver import Image, MCPServer
 
@@ -210,7 +213,7 @@ def search_rules(game: str, query: str, edition: str | None = None, max_results:
     Each result's `quote` is exact rulebook text; `coverage` is the share of the
     question's key words the passage contains.
     """
-    return _call(store.search, game, query, edition=edition, max_results=max(1, min(max_results, 10)))
+    return _ask_to_show(_call(store.search, game, query, edition=edition, max_results=max(1, min(max_results, 10))))
 
 
 @mcp.tool()
@@ -226,7 +229,24 @@ def lookup_term(game: str, term: str, edition: str | None = None) -> dict:
     """Look up a section by its exact title, such as a glossary or almanac entry
     ("Robber", "Longest Road", "Distance Rule"). Returns found=false with similar
     titles when there is no exact match."""
-    return _call(store.lookup_term, game, term, edition=edition)
+    return _ask_to_show(_call(store.lookup_term, game, term, edition=edition))
+
+
+def _ask_to_show(result: dict) -> dict:
+    if store.REMOTE and result.get("found"):
+        result["show_the_rule"] = REMOTE_SHOW_THE_RULE
+    return result
+
+
+# Server instructions don't reach Claude in the phone app, so these go in the results.
+REMOTE_SHOW_THE_RULE = (
+    "Once you know which passage your answer rests on, call show_passage for it, with `quote` set to the words you "
+    "quote, without waiting to be asked. Then end your answer with its `image_link`."
+)
+REMOTE_LINK_NOTE = (
+    "End your answer with `image_link` as a markdown link, [See it in the rulebook](image_link), copied exactly. "
+    "The user sees the printed rule by tapping it. Don't say the image is shown above: the apps hide it in the tool call."
+)
 
 
 @mcp.tool(structured_output=False)
@@ -258,14 +278,25 @@ def show_passage(citation_id: str, quote: str | None = None) -> list:
             "The quote isn't in this passage, so the whole passage is marked. Check it with verify_quote, "
             "or show the passage that contains it."
         )
+    pngs = _passage_pngs(cite, pdf_path, found)
+    if store.REMOTE:
+        # Only what Claude needs: the app lists these fields above the image.
+        summary = {k: summary[k] for k in ("edition", "section_path", "printed_page", "highlight", "highlight_reasons", "note") if k in summary}
+        link = _image_link(citation_id, quote)
+        if link:
+            summary |= {"image_link": link, "use_the_link": REMOTE_LINK_NOTE}
+    return [summary, *(Image(data=png, format="png") for png in pngs)]
+
+
+def _passage_pngs(cite: dict, pdf_path: str, found: dict | None) -> list[bytes]:
+    """One image per page: with a placed quote, only the pages it is on."""
     underline = found["boxes"] if found else None
-    images = []
-    # With a quote, only the pages it is on.
+    pngs = []
     for page in sorted({s["page"] for s in underline or cite["spans"]}):
         boxes = [s["bbox"] for s in cite["spans"] if s["page"] == page]
         on_page = [s["bbox"] for s in underline if s["page"] == page] if underline else None
-        images.append(Image(data=render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36, underline=on_page), format="png"))
-    return [summary, *images]
+        pngs.append(render.render(pdf_path, page, boxes, scale=2.0, crop_margin=36, underline=on_page))
+    return pngs
 
 
 @mcp.tool(structured_output=False)
@@ -367,6 +398,41 @@ def run() -> None:
 # connectors can't send headers or sign in, so the token has to be in the URL.
 MIN_TOKEN_LENGTH = 32
 
+# Where this instance is reached, and its token: set by the HTTP app, for signing image links.
+_remote_base: str | None = None
+_remote_token: str | None = None
+
+
+def _image_signature(citation_id: str, quote: str | None) -> str:
+    """Signs one image, so a link shared from a chat opens that image and nothing else."""
+    message = f"passage-image\0{citation_id}\0{quote or ''}".encode()
+    return hmac.new(_remote_token.encode(), message, hashlib.sha256).hexdigest()
+
+
+def _image_link(citation_id: str, quote: str | None) -> str | None:
+    if not _remote_base or not _remote_token:
+        return None
+    query = urlencode({"c": citation_id, **({"q": quote} if quote else {})})
+    return f"{_remote_base}/passage/{_image_signature(citation_id, quote)}.png?{query}"
+
+
+def _passage_image(path: str, query: str) -> bytes | None:
+    """The PNG for an image link, or None if the link isn't one this server signed."""
+    params = parse_qs(query)
+    citation_id, quote = params.get("c", [""])[0], params.get("q", [None])[0]
+    signature = path.removeprefix("passage/").removesuffix(".png")
+    if not citation_id or not hmac.compare_digest(signature.encode(), _image_signature(citation_id, quote).encode()):
+        return None
+    db = store.connect()
+    try:
+        cite, pdf_path = store.get_passage(db, citation_id)
+    except store.LookupError_:
+        return None
+    finally:
+        db.close()
+    found = render.quote_lines(cite["lines"], quote) if quote and cite["lines"] else None
+    return render.stack_pngs(_passage_pngs(cite, pdf_path, found))
+
 
 def remote_mode() -> None:
     """Drop what needs the user's own computer (adding games, opening the PDF), and
@@ -378,8 +444,8 @@ def remote_mode() -> None:
 
 
 class _TokenGate:
-    """Answers only /<token>/mcp. Every other path, a wrong token included, gets the
-    same bare 404, so nothing shows that a server is there."""
+    """Answers only /<token>/mcp and signed image links. Every other path, a wrong
+    token included, gets the same bare 404, so nothing shows that a server is there."""
 
     def __init__(self, app, token: str):
         self.app = app
@@ -390,10 +456,23 @@ class _TokenGate:
             return await self.app(scope, receive, send)
         if scope["type"] != "http":
             return
-        token, _, rest = scope["path"].lstrip("/").partition("/")
+        path = scope["path"].lstrip("/")
+        if path.startswith("passage/") and scope["method"] == "GET":
+            png = await asyncio.to_thread(_passage_image, path, scope["query_string"].decode())
+            if png:
+                headers = [(b"content-type", b"image/png"), (b"cache-control", b"private, max-age=86400"),
+                           (b"x-robots-tag", b"noindex"), (b"referrer-policy", b"no-referrer")]
+                await send({"type": "http.response.start", "status": 200, "headers": headers})
+                return await send({"type": "http.response.body", "body": png})
+        token, _, rest = path.partition("/")
         if not hmac.compare_digest(token.encode(), self.token) or rest != "mcp":
             await send({"type": "http.response.start", "status": 404, "headers": [(b"content-type", b"text/plain")]})
             return await send({"type": "http.response.body", "body": b"Not Found"})
+        global _remote_base
+        headers = dict(scope["headers"])
+        if b"host" in headers:  # Only trusted past the token check. Cloud Run ends TLS, so scope says http.
+            scheme = headers.get(b"x-forwarded-proto", scope["scheme"].encode()).decode()
+            _remote_base = f"{scheme}://{headers[b'host'].decode()}"
         await self.app({**scope, "path": "/mcp", "raw_path": b"/mcp"}, receive, send)
 
 
@@ -402,6 +481,8 @@ def http_app(token: str):
     request, so it can scale to zero), behind the token."""
     if len(token) < MIN_TOKEN_LENGTH:
         raise ValueError(f"BGRULES_TOKEN must be at least {MIN_TOKEN_LENGTH} characters.")
+    global _remote_token
+    _remote_token = token
     # host="0.0.0.0" turns off the SDK's localhost-only Host check: the token guards this server.
     app = mcp.streamable_http_app(streamable_http_path="/mcp", stateless_http=True, json_response=True, host="0.0.0.0")
     return _TokenGate(app, token)
