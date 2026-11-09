@@ -203,8 +203,9 @@ def default_hints(pdf_path: str) -> dict:
         n_pages = len(pdf.pages)
         spreads = _spread_hints(pdf.pages)
         for page in pdf.pages:
+            crop = _crop_box(page)
             for c in page.chars:
-                if c["text"].strip():
+                if c["text"].strip() and _in_crop(c, crop):
                     size = round(c["size"] * 2) / 2
                     sizes[size] = sizes.get(size, 0) + 1
     body = max(sizes, key=sizes.get) if sizes else 10.0
@@ -261,11 +262,27 @@ def _spread_numbers(page) -> int | None:
     return None
 
 
-def _crop_box(page) -> tuple | None:
-    """The page's crop box (x0, top, x1, bottom), if it is inside the media box.
-    Some PDFs print only that part of the page (A Feast for Odin: 21 pt in from
-    each edge): text in the margin is cut off in print and in our page images."""
-    return page.cropbox if tuple(page.cropbox) != tuple(page.mediabox) else None
+CROP_INSET = 1.0  # points: a crop box edge closer than this to the page's edge isn't a cut
+
+
+def _crop_box(page, from_corner: bool = False) -> tuple | None:
+    """The edges (x0, top, x1, bottom) at which a pdfplumber page's crop box cuts
+    off its media box, or None if it doesn't. Some PDFs print only that part of
+    the page (A Feast for Odin: 21 pt in from each edge): text beyond it is cut
+    off in print and in our page images. An edge that isn't inset (by more than
+    CROP_INSET) is infinite, so text there is checked only against the page's
+    edge, as before. With `from_corner`, coordinates are measured from the media
+    box's top-left corner, as pdfminer's are; pdfplumber's keep the media box's
+    offset. Rotated pages are left unchecked: pdfplumber doesn't rotate the box."""
+    if page.rotation % 360:
+        return None
+    (mx0, mtop, mx1, mbottom), (cx0, ctop, cx1, cbottom) = page.mediabox, page.cropbox
+    inf = float("inf")
+    box = (cx0 if cx0 > mx0 + CROP_INSET else -inf, ctop if ctop > mtop + CROP_INSET else -inf,
+           cx1 if cx1 < mx1 - CROP_INSET else inf, cbottom if cbottom < mbottom - CROP_INSET else inf)
+    if all(abs(v) == inf for v in box):
+        return None
+    return (box[0] - mx0, box[1] - mtop, box[2] - mx0, box[3] - mtop) if from_corner else box
 
 
 def _in_crop(c: dict, crop: tuple | None) -> bool:
@@ -494,8 +511,13 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
         wanted = [p for p in pages if p <= len(pdf.pages)]
         # Pages with no text layer (scans, photos, "print to PDF" copies) are
         # read by OCR; so is every page of `layout: ocr`.
-        ocr_pages = [p for p in wanted if layout_for(p) == "ocr" or not pdf.pages[p - 1].chars]
+        def has_text(page) -> bool:
+            crop = _crop_box(page)
+            return any(_in_crop(c, crop) for c in page.chars)
+
+        ocr_pages = [p for p in wanted if layout_for(p) == "ocr" or not has_text(pdf.pages[p - 1])]
         box_pages = [p for p in wanted if layout_for(p) == "boxes" and p not in ocr_pages]
+        box_crops = {p: _crop_box(pdf.pages[p - 1], from_corner=True) for p in box_pages}
         for page_no in wanted:
             if page_no in box_pages or page_no in ocr_pages:
                 continue
@@ -504,12 +526,13 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
             # page) or cut off by its crop box is invisible in print: never index it.
             crop = _crop_box(page)
             page = page.within_bbox(page.bbox).dedupe_chars().filter(
-                lambda obj: keep(obj) and (obj["object_type"] != "char" or _in_crop(obj, crop)))
+                lambda obj, crop=crop: keep(obj) and (obj["object_type"] != "char" or _in_crop(obj, crop)))
             if layout_for(page_no) == "table":
                 by_page[page_no] = table_lines(page, page_no)
             else:
                 by_page[page_no] = page_lines(page, page_no, 1 if layout_for(page_no) == "rows" else columns)
-    for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char, figure_text=hints.get("figure_text", False),
+    for page_no, box_no, raw in _box_lines(pdf_path, box_pages, keep_char, crops=box_crops,
+                                           figure_text=hints.get("figure_text", False),
                                            line_margin=hints.get("line_margin", 0.5),
                                            inline_boxes=hints.get("inline_boxes", False)):
         by_page.setdefault(page_no, []).extend(to_lines([raw], page_no, box_no))
@@ -671,13 +694,14 @@ def _ocr_lines(pdf_path: str, pages: list[int], rules: dict):
         yield page_no, lines
 
 
-def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = False, line_margin: float = 0.5,
-               inline_boxes: bool = False):
+def _box_lines(pdf_path: str, pages: list[int], keep_char, crops: dict | None = None, figure_text: bool = False,
+               line_margin: float = 0.5, inline_boxes: bool = False):
     """Free-form layouts (`layout: boxes`): let pdfminer group characters into
     text boxes, so side-by-side boxes (main text, sidebars, card text) stay
     apart, then yield each box's lines in reading order, as
     (page_no, box_no, line) with `line` shaped like a pdfplumber text line
-    and holding only the characters `keep_char` accepts. `pages` must exist
+    and holding only the characters `keep_char` accepts and the page's crop
+    box (from `crops`, see _crop_box with from_corner) shows. `pages` must exist
     in the document. `figure_text` also reads text drawn inside embedded
     graphics (some rulebooks set their page titles that way). `line_margin`
     is how far apart (in line heights) lines may be and still form one text
@@ -750,12 +774,10 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
 
     if not pages:
         return
-    pages = sorted(pages)
-    with pdfplumber.open(pdf_path) as pdf:  # the crop boxes, in the same top-down coordinates
-        crops = {p: _crop_box(pdf.pages[p - 1]) for p in pages}
+    pages, crops = sorted(pages), crops or {}
     laparams = LAParams(all_texts=figure_text, line_margin=line_margin)
     for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=laparams)):
-        boxes = [box_lines(box, layout, crops[page_no]) for box in reading_order(layout)]
+        boxes = [box_lines(box, layout, crops.get(page_no)) for box in reading_order(layout)]
         if inline_boxes:
             boxes = _merge_inline(boxes)
         boxes = _merge_tables(boxes)

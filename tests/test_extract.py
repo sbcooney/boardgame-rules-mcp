@@ -192,3 +192,33 @@ def test_without_a_crop_box_text_on_the_page_edge_is_kept(tmp_path):
 
     pdf = make_pdf(tmp_path / "rules.pdf", [[("Each player takes a turn.", "R", 10), ("his", "R", 10, -4, 500)]])
     assert [ln.text for ln in extract_lines(str(pdf), {"layout": "boxes"})] == ["Each player takes a turn.", "his"]
+
+
+@pytest.mark.parametrize("layout", ["columns", "boxes"])
+def test_crop_box_on_a_page_that_doesnt_start_at_zero(tmp_path, layout):
+    # pdfminer measures from the media box's corner, pdfplumber doesn't
+    from bgrules.extract import extract_lines
+    from test_own_rulebook import make_pdf
+
+    pdf = make_pdf(tmp_path / "rules.pdf", [[
+        ("Each player takes a turn in order.", "R", 10, 172, 800),
+        ("Inside near left edge.", "R", 10, 140, 500),
+        ("Emigration and", "R", 10, 172, 112),  # below the crop box
+    ]], mediabox=[100, 100, 712, 892], cropbox=[130, 130, 682, 862])
+    texts = [ln.text for ln in extract_lines(str(pdf), {"layout": layout})]
+    assert texts == ["Each player takes a turn in order.", "Inside near left edge."]
+
+
+@pytest.mark.parametrize("layout", ["columns", "boxes"])
+def test_only_edges_the_crop_box_cuts_are_checked(tmp_path, layout):
+    # Cut at the top only, with the other edges a fraction of a point off the page's:
+    # text straddling the left edge is read as with no crop box at all.
+    from bgrules.extract import extract_lines
+    from test_own_rulebook import make_pdf
+
+    lines = [("Each player takes a turn.", "R", 10, 72, 700), ("his", "R", 10, -4, 500)]
+    plain = make_pdf(tmp_path / "plain.pdf", [lines])
+    cut = make_pdf(tmp_path / "cut.pdf", [[*lines, ("Emigration and", "R", 10, 72, 780)]],
+                   cropbox=[0, -0.4, 612.4, 760])
+    expected = [ln.text for ln in extract_lines(str(plain), {"layout": layout})]
+    assert [ln.text for ln in extract_lines(str(cut), {"layout": layout})] == expected
