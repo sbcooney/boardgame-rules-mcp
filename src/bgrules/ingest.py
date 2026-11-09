@@ -280,7 +280,7 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
             log(f"Warning: {dest.name} differs from the known version of this rulebook; citations may not match.")
 
         # A new copy is read from its .part file and replaces the installed one only
-        # once it has been read, so a file that can't be never clobbers a good one.
+        # once it has been read, so a file that can't be read never replaces a good one.
         source = incoming if incoming is not None else dest
         log(f"Extracting {doc['title']}…")
         try:
@@ -289,6 +289,9 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
             except RuntimeError as e:  # image-only pages, and no OCR on this system
                 raise IngestError(str(e) + (" Any installed copy is unchanged." if incoming is not None else "")) from e
             except Exception as e:  # pdfminer raises its own errors for damaged files
+                if incoming is None:  # re-indexing the installed copy
+                    raise IngestError(f"The installed copy of {doc['title']} ({dest}) couldn't be read as a PDF: it may "
+                                      f"be damaged. Add {game} again to replace it.") from e
                 raise IngestError(_unreadable(game, doc, file, damaged=True)) from e
             ocr_pages = sorted({ln.page for ln in lines if ln.ocr})
             if ocr_pages:

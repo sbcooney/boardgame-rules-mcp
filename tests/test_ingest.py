@@ -128,6 +128,17 @@ def test_a_damaged_pdf_is_a_one_line_error(game, tmp_path, monkeypatch):
     assert installed.read_bytes() == b"older copy"
 
 
+def test_a_damaged_installed_copy_is_named_on_reindex(game, monkeypatch):
+    # no link to blame: a document the user downloads, already installed
+    _, installed = game
+    installed.write_bytes(b"%PDF-1.4\nnot really")
+    doc = {"id": "rules", "title": "Rules", "source": "user_supplied", "download_page": "https://example.com/files"}
+    monkeypatch.setattr(manifest, "load", lambda: {"demo": {"editions": {"1": {"docs": [doc]}}}})
+    with pytest.raises(ingest.IngestError, match=r"The installed copy of Rules \(.*rules.pdf\) couldn't be read as a PDF"):
+        ingest.add("demo", log=lambda m: None)
+    assert installed.exists()
+
+
 def test_unknown_game_message(game, capsys):
     assert cli.main(["add", "chess"]) == 1
     assert capsys.readouterr().err.strip() == (
