@@ -63,6 +63,31 @@ def download_pdf(url: str, dest: Path) -> None:
         raise
 
 
+def _looks_like_pdf(path: Path) -> bool:
+    """PDF files start with this header (download_pdf checks the same)."""
+    with open(path, "rb") as f:
+        return b"%PDF-" in f.read(1024)
+
+
+def _unreadable(game: str, doc: dict, file: str | None, damaged: bool) -> str:
+    """One line for a rulebook file that can't be read, saying what to do instead."""
+    if not file and doc.get("user_added"):
+        return (f"The file at {doc['url']} couldn't be read as a PDF: it may be damaged. Check that the link opens the "
+                "rulebook itself, or download it and add the file instead.")
+    if not file:
+        return (f"The file downloaded from {doc['url']} couldn't be read as a PDF, so nothing was changed. Try again "
+                "later; if it keeps happening, report it at https://github.com/sbcooney/boardgame-rules-mcp/issues.")
+    what = (f"{Path(file).name} couldn't be read as a PDF: it may be damaged or only partly downloaded." if damaged
+            else f"{Path(file).name} isn't a PDF: it may be a web page saved under the rulebook's name.")
+    if doc.get("url"):
+        todo = f"{game} downloads its rulebook from the publisher: add it again without a file."
+    elif doc.get("download_page"):
+        todo = f"Download the rulebook again from {doc['download_page']} and add that file."
+    else:
+        todo = "Download the rulebook again and add that file."
+    return f"{what} {todo} Any installed copy is unchanged."
+
+
 def cli_hint(game: str, edition: str, doc_id: str) -> str:
     return f"then run:\n  bgrules add {game} --edition {edition} --doc {doc_id} --file /path/to/{doc_id}.pdf"
 
@@ -103,10 +128,13 @@ def _register_own(name: str, game: str, edition: str | None, file: str, doc_id: 
         raise IngestError(f"No such file: {file}")
     if Path(file).suffix.lower() != ".pdf":
         raise IngestError(f"{Path(file).name} isn't a PDF. Only PDF rulebooks can be added for now.")
+    own = {"url": url, "user_added": True} if url else {}
+    if not _looks_like_pdf(Path(file)):
+        raise IngestError(_unreadable(game, own, None if url else file, damaged=False))
     try:
         hints = default_hints(file)
     except Exception as e:  # pdfminer raises its own errors for damaged files
-        raise IngestError(f"Couldn't read {Path(file).name} as a PDF ({e}).") from e
+        raise IngestError(_unreadable(game, own, None if url else file, damaged=True)) from e
     if known:
         doc = known[0]
         doc["extraction"] = {**hints, **doc.get("extraction", {})}
@@ -233,6 +261,10 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
 
         if incoming is not None:
             digest = sha256_of(incoming)
+            if digest != expected and not _looks_like_pdf(incoming):
+                # Said before the checksum: a web page saved as .pdf isn't "another version".
+                incoming.unlink()
+                raise IngestError(_unreadable(game, doc, file, damaged=False))
             if doc.get("sha256") and digest != expected:
                 incoming.unlink()
                 raise IngestError(
@@ -242,32 +274,47 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
                     "know it (`uv tool upgrade boardgame-rules-mcp`, or update the Claude Desktop extension). If that doesn't help, "
                     "report it at https://github.com/sbcooney/boardgame-rules-mcp/issues."
                 )
-            incoming.replace(dest)
-        digest = sha256_of(dest)
+        else:
+            digest = sha256_of(dest)
         if expected and digest != expected:
             log(f"Warning: {dest.name} differs from the known version of this rulebook; citations may not match.")
 
+        # A new copy is read from its .part file and replaces the installed one only
+        # once it has been read, so a file that can't be read never replaces a good one.
+        source = incoming if incoming is not None else dest
         log(f"Extracting {doc['title']}…")
         try:
-            lines = extract_lines(str(dest), doc.get("extraction", {}))
-        except RuntimeError as e:  # image-only pages, and no OCR on this system
-            raise IngestError(str(e)) from e
-        ocr_pages = sorted({ln.page for ln in lines if ln.ocr})
-        if ocr_pages:
-            # Say so wherever this document is cited: OCR can misread a character.
-            log(f"Pages {ocr_pages} have no text layer; read them by OCR. Check quotes against the page images.")
-            if "OCR" not in doc.get("title", ""):
-                doc = {**doc, "title": f"{doc.get('title', doc['id'])} (text read by OCR)"}
-        ex = doc.get("extraction", {})
-        sections = build_sections(lines, doc.get("parts"), preamble_heading=ex.get("preamble_heading", "Introduction"),
-                                  column_continuations=ex.get("column_continuations", False))
-        spreads = doc.get("extraction", {}).get("spreads")
-        if spreads:
-            # Two-page spreads split down the middle of the PDF page.
-            import pdfplumber
+            try:
+                lines = extract_lines(str(source), doc.get("extraction", {}))
+            except RuntimeError as e:  # image-only pages, and no OCR on this system
+                raise IngestError(str(e) + (" Any installed copy is unchanged." if incoming is not None else "")) from e
+            except Exception as e:  # pdfminer raises its own errors for damaged files
+                if incoming is None:  # re-indexing the installed copy
+                    raise IngestError(f"The installed copy of {doc['title']} ({dest}) couldn't be read as a PDF: it may "
+                                      f"be damaged. Add {game} again to replace it.") from e
+                raise IngestError(_unreadable(game, doc, file, damaged=True)) from e
+            ocr_pages = sorted({ln.page for ln in lines if ln.ocr})
+            if ocr_pages:
+                # Say so wherever this document is cited: OCR can misread a character.
+                log(f"Pages {ocr_pages} have no text layer; read them by OCR. Check quotes against the page images.")
+                if "OCR" not in doc.get("title", ""):
+                    doc = {**doc, "title": f"{doc.get('title', doc['id'])} (text read by OCR)"}
+            ex = doc.get("extraction", {})
+            sections = build_sections(lines, doc.get("parts"), preamble_heading=ex.get("preamble_heading", "Introduction"),
+                                      column_continuations=ex.get("column_continuations", False))
+            spreads = doc.get("extraction", {}).get("spreads")
+            if spreads:
+                # Two-page spreads split down the middle of the PDF page.
+                import pdfplumber
 
-            with pdfplumber.open(dest) as pdf:
-                doc = {**doc, "spreads": {"first": spreads[0], "last": spreads[1], "split": pdf.pages[spreads[0] - 1].width / 2}}
+                with pdfplumber.open(source) as pdf:
+                    doc = {**doc, "spreads": {"first": spreads[0], "last": spreads[1], "split": pdf.pages[spreads[0] - 1].width / 2}}
+        except BaseException:
+            if incoming is not None:
+                incoming.unlink(missing_ok=True)
+            raise
+        if incoming is not None:
+            incoming.replace(dest)
         n = store.replace_doc(db, game, edition, doc, dest, digest, sections)
         if save_hints:
             save_hints()
