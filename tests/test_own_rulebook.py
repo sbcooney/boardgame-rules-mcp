@@ -184,6 +184,15 @@ def test_reindexed_from_the_installed_copy(rulebook):
     assert ingest.add("root", log=quiet)[0]["sections"] == 3
 
 
+def test_a_web_page_saved_as_a_pdf_is_named_as_one(rulebook, tmp_path):
+    page = tmp_path / "rules.pdf"
+    page.write_bytes(b"<!DOCTYPE html><html>preview</html>")
+    with pytest.raises(ingest.IngestError) as e:
+        ingest.add("Root", file=str(page), log=quiet)
+    assert str(e.value) == ("rules.pdf isn't a PDF: it may be a web page saved under the rulebook's name. "
+                            "Download the rulebook again and add that file. Any installed copy is unchanged.")
+
+
 def test_another_edition_or_document_joins_the_same_game(rulebook):
     ingest.add("Root", file=str(rulebook), edition="2nd", log=quiet)
     ingest.add("Root", file=str(rulebook), edition="2nd", doc_id="law", log=quiet)
@@ -213,7 +222,7 @@ def test_a_broken_new_copy_leaves_the_installed_one(rulebook, tmp_path):
     good = installed.read_bytes()
     broken = tmp_path / "broken.pdf"
     broken.write_bytes(b"%PDF-1.4\nnot really")
-    with pytest.raises(ingest.IngestError, match="Couldn't read broken.pdf"):
+    with pytest.raises(ingest.IngestError, match="broken.pdf couldn't be read as a PDF: it may be damaged or only partly downloaded. Download the rulebook again"):
         ingest.add("Root", file=str(broken), log=quiet)
     assert installed.read_bytes() == good
     assert ingest.add("root", log=quiet)[0]["sections"] == 3

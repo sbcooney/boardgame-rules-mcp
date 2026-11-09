@@ -60,8 +60,9 @@ def test_file_that_isnt_a_pdf_is_a_one_line_error(game, tmp_path, capsys):
     page.write_bytes(NOT_A_PDF)
     assert cli.main(["add", "demo", "--file", str(page)]) == 1
     err = capsys.readouterr().err
-    assert err.strip() == ("error: notes.pdf isn't a readable PDF: it may be a web page or an incomplete download saved "
-                           "as .pdf. Download the rulebook again and add that file. Any installed copy is unchanged.")
+    assert err.strip() == ("error: notes.pdf isn't a PDF: it may be a web page saved under the rulebook's name. "
+                           "demo downloads its rulebook from the publisher: add it again without a file. "
+                           "Any installed copy is unchanged.")
     assert installed.read_bytes() == b"good"
     assert not installed.with_suffix(".part").exists()
 
@@ -79,7 +80,7 @@ def test_download_that_isnt_a_pdf_leaves_installed_copy(game):
     source, installed = game
     installed.write_bytes(b"older copy")
     source.write_bytes(NOT_A_PDF)
-    with pytest.raises(ingest.IngestError, match="The file downloaded from .* isn't a readable PDF, so nothing was changed"):
+    with pytest.raises(ingest.IngestError, match="The file downloaded from .* couldn't be read as a PDF, so nothing was changed"):
         ingest.add("demo", log=lambda m: None)
     assert installed.read_bytes() == b"older copy"
     assert not installed.with_suffix(".part").exists()
@@ -90,7 +91,41 @@ def test_add_game_reports_a_file_that_isnt_a_pdf(game, tmp_path):
     page.write_bytes(NOT_A_PDF)
     result = server._add_job("demo", None, str(page), None)
     assert result["added"] is False
-    assert result["error"].startswith("notes.pdf isn't a readable PDF")
+    assert result["error"].startswith("notes.pdf isn't a PDF")
+
+
+def test_a_pdf_that_fails_to_index_leaves_installed_copy(game, tmp_path, monkeypatch):
+    # e.g. damaged past the header, or scanned pages on a system without OCR
+    _, installed = game
+    installed.write_bytes(b"older copy")
+    doc = {"id": "rules", "title": "Rules", "source": "user_supplied", "download_page": "https://example.com/files"}
+    monkeypatch.setattr(manifest, "load", lambda: {"demo": {"editions": {"1": {"docs": [doc]}}}})
+    seen = []
+
+    def broken(path, hints):
+        seen.append(path)
+        raise RuntimeError("Pages [1] have no text, only images, so they need OCR.")
+
+    monkeypatch.setattr(ingest, "extract_lines", broken)
+    with pytest.raises(ingest.IngestError, match="need OCR. Any installed copy is unchanged."):
+        ingest.add("demo", file=str(other_pdf(tmp_path / "scan.pdf")), log=lambda m: None)
+    assert seen == [str(installed.with_suffix(".part"))]
+    assert installed.read_bytes() == b"older copy"
+    assert not installed.with_suffix(".part").exists()
+
+
+def test_a_damaged_pdf_is_a_one_line_error(game, tmp_path, monkeypatch):
+    _, installed = game
+    installed.write_bytes(b"older copy")
+    doc = {"id": "rules", "title": "Rules", "source": "user_supplied", "download_page": "https://example.com/files"}
+    monkeypatch.setattr(manifest, "load", lambda: {"demo": {"editions": {"1": {"docs": [doc]}}}})
+    broken = tmp_path / "rules.pdf"
+    broken.write_bytes(b"%PDF-1.4\nnot really")
+    with pytest.raises(ingest.IngestError) as e:
+        ingest.add("demo", file=str(broken), log=lambda m: None)
+    assert str(e.value) == ("rules.pdf couldn't be read as a PDF: it may be damaged or only partly downloaded. Download "
+                            "the rulebook again from https://example.com/files and add that file. Any installed copy is unchanged.")
+    assert installed.read_bytes() == b"older copy"
 
 
 def test_unknown_game_message(game, capsys):
