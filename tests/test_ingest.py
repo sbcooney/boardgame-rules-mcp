@@ -4,7 +4,13 @@ import hashlib
 
 import pytest
 
-from bgrules import cli, ingest, manifest
+from bgrules import cli, ingest, manifest, server
+from test_own_rulebook import make_pdf
+
+
+def other_pdf(path):
+    """A real PDF that isn't the published one, so it fails the checksum."""
+    return make_pdf(path, [[("A different edition.", "R", 10)]])
 
 
 @pytest.fixture
@@ -22,7 +28,7 @@ def game(tmp_path, monkeypatch):
 def test_refused_download_leaves_installed_copy(game):
     source, installed = game
     installed.write_bytes(b"older copy")
-    source.write_bytes(b"publisher changed it")
+    other_pdf(source)
     with pytest.raises(ingest.IngestError, match="Checksum mismatch.*uv tool upgrade boardgame-rules-mcp.*Claude Desktop extension"):
         ingest.add("demo", log=lambda m: None)
     assert installed.read_bytes() == b"older copy"
@@ -33,7 +39,7 @@ def test_refused_file_leaves_installed_copy(game, tmp_path):
     _, installed = game
     installed.write_bytes(b"good")
     other = tmp_path / "other.pdf"
-    other.write_bytes(b"a different edition")
+    other_pdf(other)
     with pytest.raises(ingest.IngestError, match="Checksum mismatch"):
         ingest.add("demo", file=str(other), log=lambda m: None)
     assert installed.read_bytes() == b"good"
@@ -42,6 +48,49 @@ def test_refused_file_leaves_installed_copy(game, tmp_path):
 def test_missing_file_is_a_clear_error(game, capsys):
     assert cli.main(["add", "demo", "--file", "/no/such/rules.pdf"]) == 1
     assert "No such file: /no/such/rules.pdf" in capsys.readouterr().err
+
+
+NOT_A_PDF = b"<!DOCTYPE html><html><body>Dropbox preview</body></html>"
+
+
+def test_file_that_isnt_a_pdf_is_a_one_line_error(game, tmp_path, capsys):
+    _, installed = game
+    installed.write_bytes(b"good")
+    page = tmp_path / "notes.pdf"
+    page.write_bytes(NOT_A_PDF)
+    assert cli.main(["add", "demo", "--file", str(page)]) == 1
+    err = capsys.readouterr().err
+    assert err.strip() == ("error: notes.pdf isn't a readable PDF: it may be a web page or an incomplete download saved "
+                           "as .pdf. Download the rulebook again and add that file. Any installed copy is unchanged.")
+    assert installed.read_bytes() == b"good"
+    assert not installed.with_suffix(".part").exists()
+
+
+def test_file_that_isnt_a_pdf_names_the_download_page(game, tmp_path, monkeypatch):
+    doc = {"id": "rules", "title": "Rules", "source": "user_supplied", "download_page": "https://example.com/files"}
+    monkeypatch.setattr(manifest, "load", lambda: {"demo": {"editions": {"1": {"docs": [doc]}}}})
+    page = tmp_path / "notes.pdf"
+    page.write_bytes(NOT_A_PDF)
+    with pytest.raises(ingest.IngestError, match="Download the rulebook again from https://example.com/files and"):
+        ingest.add("demo", file=str(page), log=lambda m: None)
+
+
+def test_download_that_isnt_a_pdf_leaves_installed_copy(game):
+    source, installed = game
+    installed.write_bytes(b"older copy")
+    source.write_bytes(NOT_A_PDF)
+    with pytest.raises(ingest.IngestError, match="The file downloaded from .* isn't a readable PDF, so nothing was changed"):
+        ingest.add("demo", log=lambda m: None)
+    assert installed.read_bytes() == b"older copy"
+    assert not installed.with_suffix(".part").exists()
+
+
+def test_add_game_reports_a_file_that_isnt_a_pdf(game, tmp_path):
+    page = tmp_path / "notes.pdf"
+    page.write_bytes(NOT_A_PDF)
+    result = server._add_job("demo", None, str(page), None)
+    assert result["added"] is False
+    assert result["error"].startswith("notes.pdf isn't a readable PDF")
 
 
 def test_unknown_game_message(game, capsys):

@@ -63,6 +63,17 @@ def download_pdf(url: str, dest: Path) -> None:
         raise
 
 
+def _readable_pdf(path: Path) -> bool:
+    """Whether pdfplumber, which extraction uses, can open the file and find pages in it."""
+    import pdfplumber
+
+    try:
+        with pdfplumber.open(path) as pdf:
+            return len(pdf.pages) > 0
+    except Exception:  # pdfminer raises its own errors for files that aren't PDFs
+        return False
+
+
 def cli_hint(game: str, edition: str, doc_id: str) -> str:
     return f"then run:\n  bgrules add {game} --edition {edition} --doc {doc_id} --file /path/to/{doc_id}.pdf"
 
@@ -233,6 +244,18 @@ def _add(game: str, edition: str | None, file: str | None, doc_id: str | None, l
 
         if incoming is not None:
             digest = sha256_of(incoming)
+            if digest != expected and not _readable_pdf(incoming):
+                # A web page or a failed download saved as .pdf: say so plainly, before
+                # it replaces the installed copy (a checksum match is known to be good).
+                incoming.unlink()
+                if file:
+                    again = f" from {doc['download_page']}" if doc.get("download_page") else ""
+                    raise IngestError(f"{Path(file).name} isn't a readable PDF: it may be a web page or an incomplete "
+                                      f"download saved as .pdf. Download the rulebook again{again} and add that file. "
+                                      "Any installed copy is unchanged.")
+                raise IngestError(f"The file downloaded from {doc['url']} isn't a readable PDF, so nothing was changed. "
+                                  "Try again later; if it keeps happening, report it at "
+                                  "https://github.com/sbcooney/boardgame-rules-mcp/issues.")
             if doc.get("sha256") and digest != expected:
                 incoming.unlink()
                 raise IngestError(
