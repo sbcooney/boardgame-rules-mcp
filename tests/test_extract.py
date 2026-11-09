@@ -1,3 +1,5 @@
+import pytest
+
 from bgrules.extract import (
     Line, Section, _add_side_titles, _demote_long_headings, _is_full_width, _merge_inline, build_sections, join_lines,
     normalize_heading,
@@ -165,3 +167,28 @@ def test_heading_lines_that_dont_read_as_titles_become_text():
     ]
     _demote_long_headings(lines, max_words=12)
     assert [ln.text for ln in lines if ln.is_heading] == ["Course of the Game", "the solo Game"]
+
+
+@pytest.mark.parametrize("layout", ["columns", "boxes"])
+def test_text_cut_off_by_the_crop_box_is_not_extracted(tmp_path, layout):
+    # e.g. A Feast for Odin: the printed page ends 21 pt inside the PDF page
+    from bgrules.extract import extract_lines
+    from test_own_rulebook import make_pdf
+
+    pdf = make_pdf(tmp_path / "rules.pdf", [[
+        ("Each player takes a turn in order.", "R", 10),
+        ("Emigration and", "R", 10, 72, 12),  # below the crop box's bottom edge
+        ("OR", "R", 10, 596, 500),  # past its right edge
+    ]], crop_inset=30)
+    hints = {"layout": layout, "body_size": [9, 11]} if layout == "boxes" else {"body_size": [9, 11]}
+    assert [ln.text for ln in extract_lines(str(pdf), hints)] == ["Each player takes a turn in order."]
+
+
+def test_without_a_crop_box_text_on_the_page_edge_is_kept(tmp_path):
+    # Only a crop box inside the page changes what's kept: a Villainous guide's
+    # page 5 has letters straddling its left edge that were always indexed.
+    from bgrules.extract import extract_lines
+    from test_own_rulebook import make_pdf
+
+    pdf = make_pdf(tmp_path / "rules.pdf", [[("Each player takes a turn.", "R", 10), ("his", "R", 10, -4, 500)]])
+    assert [ln.text for ln in extract_lines(str(pdf), {"layout": "boxes"})] == ["Each player takes a turn.", "his"]

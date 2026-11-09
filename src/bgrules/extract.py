@@ -261,6 +261,21 @@ def _spread_numbers(page) -> int | None:
     return None
 
 
+def _crop_box(page) -> tuple | None:
+    """The page's crop box (x0, top, x1, bottom), if it is inside the media box.
+    Some PDFs print only that part of the page (A Feast for Odin: 21 pt in from
+    each edge): text in the margin is cut off in print and in our page images."""
+    return page.cropbox if tuple(page.cropbox) != tuple(page.mediabox) else None
+
+
+def _in_crop(c: dict, crop: tuple | None) -> bool:
+    """Whether a character is mostly inside the crop box; always, when there is none."""
+    if crop is None:
+        return True  # the page's edges are checked as before
+    x, y = (c["x0"] + c["x1"]) / 2, (c["top"] + c["bottom"]) / 2
+    return crop[0] <= x <= crop[2] and crop[1] <= y <= crop[3]
+
+
 def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
     columns = hints.get("columns", 1)
     heading_fonts = hints.get("heading_fonts", [])
@@ -486,8 +501,10 @@ def extract_lines(pdf_path: str, hints: dict) -> list[Line]:
                 continue
             page = pdf.pages[page_no - 1]
             # Text positioned outside the page (layout spill-over from a facing
-            # page) is invisible in print: never index it.
-            page = page.within_bbox(page.bbox).dedupe_chars().filter(keep)
+            # page) or cut off by its crop box is invisible in print: never index it.
+            crop = _crop_box(page)
+            page = page.within_bbox(page.bbox).dedupe_chars().filter(
+                lambda obj: keep(obj) and (obj["object_type"] != "char" or _in_crop(obj, crop)))
             if layout_for(page_no) == "table":
                 by_page[page_no] = table_lines(page, page_no)
             else:
@@ -690,7 +707,7 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
             boxes.insert(below[0] if below else len(boxes), fig)
         return boxes
 
-    def box_lines(box, layout) -> list[dict]:
+    def box_lines(box, layout, crop) -> list[dict]:
         h, lines = layout.height, []
         for tl in box:
             chars, text, seen, runs = [], "", set(), []
@@ -703,8 +720,8 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
                     continue
                 c = {"fontname": obj.fontname, "size": obj.size, "text": obj.get_text(),
                      "x0": obj.x0, "x1": obj.x1, "top": h - obj.y1, "bottom": h - obj.y0}
-                if obj.x1 < 0 or obj.x0 > layout.width or obj.y1 < 0 or obj.y0 > h:
-                    continue  # outside the page: invisible in print
+                if obj.x1 < 0 or obj.x0 > layout.width or obj.y1 < 0 or obj.y0 > h or not _in_crop(c, crop):
+                    continue  # outside the page or its crop box: invisible in print
                 if not keep_char(c):
                     continue
                 key = (c["text"], round(c["x0"]), round(c["top"]))
@@ -734,9 +751,11 @@ def _box_lines(pdf_path: str, pages: list[int], keep_char, figure_text: bool = F
     if not pages:
         return
     pages = sorted(pages)
+    with pdfplumber.open(pdf_path) as pdf:  # the crop boxes, in the same top-down coordinates
+        crops = {p: _crop_box(pdf.pages[p - 1]) for p in pages}
     laparams = LAParams(all_texts=figure_text, line_margin=line_margin)
     for page_no, layout in zip(pages, extract_pages(pdf_path, page_numbers=[p - 1 for p in pages], laparams=laparams)):
-        boxes = [box_lines(box, layout) for box in reading_order(layout)]
+        boxes = [box_lines(box, layout, crops[page_no]) for box in reading_order(layout)]
         if inline_boxes:
             boxes = _merge_inline(boxes)
         boxes = _merge_tables(boxes)
